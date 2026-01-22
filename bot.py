@@ -20,76 +20,48 @@ logging.basicConfig(level=logging.INFO)
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
 
-# ================== /start ==================
+# ================== START ==================
 @dp.message(CommandStart())
 async def start_handler(message: Message):
     text = (
-        "Salom! 👋\n\n"
-        "Men **Davlat Yordamchi Botman** 🤖\n\n"
-        "Quyidagi yo‘nalishlar bo‘yicha professional yordam beraman:\n\n"
-        "📦 **Omborxona**\n"
-        "• Kirim / chiqim\n"
-        "• Qoldiq nazorati\n"
-        "• Inventarizatsiya\n"
-        "• Ombor hisobotlari\n\n"
-        "📊 **Buxgalteriya**\n"
-        "• Xarajat va daromad tahlili\n"
-        "• Hisobotlar\n"
-        "• Hujjatlar bilan ishlash\n\n"
-        "🎧 **Operator / Menejer**\n"
-        "• Mijozlar bilan muloqot\n"
-        "• Buyurtmalar\n"
-        "• Tushuntirish va maslahat\n\n"
-        "✍️ Savolingni yoz — aniq va dadil javob beraman."
+        "👋 *Salom!*\n\n"
+        "Men — *Davlat Yordamchi Bot* 🤖\n\n"
+        "📦 Omborxona ishlari\n"
+        "📊 Buxgalteriya\n"
+        "🧾 Hisobotlar\n"
+        "📈 Tahlil va maslahat\n\n"
+        "Savolingni yoz — men professional yordam beraman."
     )
     await message.answer(text, parse_mode="Markdown")
 
-# ================== ODDIY XABARLAR ==================
+# ================== UMUMIY JAVOB ==================
 @dp.message()
-async def all_messages_handler(message: Message):
-    user_text = message.text.lower()
+async def universal_handler(message: Message):
+    question = message.text.lower()
 
-    if "ombor" in user_text:
+    if "ombor" in question:
         await message.answer(
-            "📦 **Ombor bo‘yicha maslahat:**\n\n"
-            "Omborda eng muhim 3 narsa:\n"
-            "1️⃣ Kirim-chiqimning aniq yozilishi\n"
-            "2️⃣ Qoldiqni doimiy tekshirish\n"
-            "3️⃣ Hujjat va real mahsulot mosligi\n\n"
-            "Agar xohlasang, misol bilan tushuntirib beraman."
+            "📦 *Omborxona bo‘yicha yordam:*\n"
+            "- Qabul\n"
+            "- Chiqim\n"
+            "- Qoldiq nazorati\n"
+            "- Inventarizatsiya\n\n"
+            "Aniq savol bering."
         )
 
-    elif "buxgalter" in user_text or "hisob" in user_text:
+    elif "hisobot" in question or "buxgalter" in question:
         await message.answer(
-            "📊 **Buxgalteriya bo‘yicha maslahat:**\n\n"
-            "Har bir operatsiya:\n"
-            "• Sana\n"
-            "• Summa\n"
-            "• Izoh\n"
-            "• Mas’ul shaxs\n"
-            "bilan qayd etilishi shart.\n\n"
-            "Qaysi hisob-kitob kerak — ayt."
-        )
-
-    elif "hisobot" in user_text:
-        await message.answer(
-            "📑 **Hisobot tayyorlash:**\n\n"
-            "Men quyidagilarni tuzib bera olaman:\n"
-            "• Kunlik\n"
-            "• Oylik\n"
-            "• Ombor qoldig‘i\n"
-            "• Daromad-xarajat\n\n"
-            "Qaysi biri kerak?"
+            "📊 *Buxgalteriya / Hisobotlar:*\n"
+            "- Kirim-chiqim\n"
+            "- Oylik hisob\n"
+            "- Qoldiq hisobot\n\n"
+            "Qaysi hisobot kerak?"
         )
 
     else:
         await message.answer(
-            "✅ Tushundim.\n\n"
-            "Savolingni biroz aniqroq yoz:\n"
-            "📦 Ombormi?\n"
-            "📊 Buxgalteriyami?\n"
-            "🎧 Operatorlik masalasimi?\n\n"
-            "Men professional yordam beraman."
+            "❓ Savolingizni biroz aniqroq yozing.\n"
+            "Men ombor, buxgalteriya va hisobot bo‘yicha yordam beraman."
         )
 
 # ================== ISHGA TUSHIRISH ==================
