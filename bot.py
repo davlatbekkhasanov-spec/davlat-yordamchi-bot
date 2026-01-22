@@ -1,77 +1,71 @@
-import os
 import asyncio
-from telegram import Update
-from telegram.ext import (
-    ApplicationBuilder,
-    ContextTypes,
-    CommandHandler,
-    MessageHandler,
-    filters,
-)
+import logging
+import os
+
+from aiogram import Bot, Dispatcher, types
+from aiogram.filters import CommandStart
+from aiogram.types import Message
+from dotenv import load_dotenv
+
+load_dotenv()
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 
+logging.basicConfig(level=logging.INFO)
 
-SYSTEM_PROMPT = """
-Sen 15 yillik tajribaga ega bo‘lgan omborxona, logistika va buxgalteriya bo‘yicha
-yuqori malakali professional mutaxassissan.
-
-Sen quyidagi rollarni mukammal bilasan:
-- Omborchi
-- Ombor hisobchisi
-- Logist
-- Buxgalter
-- Ombor menejeri
-- Audit va inventarizatsiya mutaxassisi
-- Analitik
-- Operator-maslahatchi
-
-Javoblaring har doim:
-- aniq
-- mantiqli
-- real hayotga mos
-- kerak bo‘lsa bosqichma-bosqich bo‘ladi
-
-Agar savol noto‘g‘ri bo‘lsa — to‘g‘rilaysan.
-Agar savol noaniq bo‘lsa — aniqlashtirasan.
-Har doim professional yordamchi bo‘lib qolasan.
-"""
+bot = Bot(token=BOT_TOKEN)
+dp = Dispatcher()
 
 
-from openai import OpenAI
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-
-
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text(
-        "Salom! 👋\n"
-        "Men omborxona, logistika va buxgalteriya bo‘yicha professional yordamchiman.\n\n"
-        "Savolingni yoz — yordam beraman."
+@dp.message(CommandStart())
+async def start_handler(message: Message):
+    await message.answer(
+        "Salom! 👋\n\n"
+        "Men **Davlat Yordamchi Botman 🤖**\n\n"
+        "📦 Omborxona\n"
+        "📊 Buxgalteriya\n"
+        "🧾 Hisobotlar\n"
+        "📈 Analitika\n"
+        "👨‍💼 Operator yordami\n\n"
+        "Bo‘yicha **professional yordam beraman**.\n\n"
+        "Savolingni yoz 👇"
     )
 
 
-async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_text = update.message.text
+@dp.message()
+async def any_message(message: Message):
+    text = message.text.lower()
 
-    response = client.chat.completions.create(
-        model="gpt-4o-mini",
-        messages=[
-            {"role": "system", "content": SYSTEM_PROMPT},
-            {"role": "user", "content": user_text},
-        ],
-    )
+    if "ombor" in text:
+        await message.answer(
+            "📦 **Omborxona bo‘yicha yordam:**\n"
+            "• Kirim-chiqim\n"
+            "• Qoldiq nazorati\n"
+            "• Inventarizatsiya\n"
+            "• FIFO / LIFO\n"
+            "• Ombor xatolari\n\n"
+            "Aniq savolingni yoz."
+        )
 
-    answer = response.choices[0].message.content
-    await update.message.reply_text(answer)
+    elif "buxgalter" in text or "hisob" in text:
+        await message.answer(
+            "📊 **Buxgalteriya bo‘yicha yordam:**\n"
+            "• Debet / Kredit\n"
+            "• Ombor + buxgalteriya bog‘lanishi\n"
+            "• Hisobotlar\n"
+            "• Qoldiq farqlari\n\n"
+            "Qanday masala bor?"
+        )
+
+    else:
+        await message.answer(
+            "Tushundim ✅\n"
+            "Savolingni biroz aniqroq yozsang, professional javob beraman."
+        )
 
 
 async def main():
-    app = ApplicationBuilder().token(BOT_TOKEN).build()
-
-    app.add_handler(CommandHandler("start", start))
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
-
-    await app.run_polling()
+    await dp.start_polling(bot)
 
 
 if __name__ == "__main__":
