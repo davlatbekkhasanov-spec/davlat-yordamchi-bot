@@ -10,9 +10,8 @@ from dotenv import load_dotenv
 load_dotenv()
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
-
 if not BOT_TOKEN:
-    raise ValueError("BOT_TOKEN topilmadi. Render Environment Variables ni tekshir!")
+    raise ValueError("BOT_TOKEN topilmadi")
 
 logging.basicConfig(level=logging.INFO)
 
@@ -24,17 +23,16 @@ dp = Dispatcher()
 async def start_handler(message: Message):
     await message.answer(
         "👋 Salom!\n\n"
-        "🤖 Davlat Yordamchi bot ishga tushdi.\n\n"
+        "🤖 Davlat Yordamchi bot ishga tushdi.\n"
         "Buyruqlar:\n"
         "/start — botni boshlash"
     )
 
 
 async def main():
+    print("BOT STARTED")
     await dp.start_polling(bot)
 
 
 if __name__ == "__main__":
     asyncio.run(main())
-    print("BOT STARTED")
-bot.infinity_polling()
