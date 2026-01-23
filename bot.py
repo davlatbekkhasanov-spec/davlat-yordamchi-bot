@@ -1,61 +1,50 @@
 import os
 import asyncio
-from aiogram import Bot, Dispatcher, types
+from aiogram import Bot, Dispatcher, F
+from aiogram.types import Message
 from aiogram.enums import ParseMode
-from aiogram.client.default import DefaultBotProperties
-from openai import OpenAI
+from openai import AsyncOpenAI
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
-bot = Bot(
-    token=BOT_TOKEN,
-    default=DefaultBotProperties(parse_mode=ParseMode.HTML)
-)
+bot = Bot(token=BOT_TOKEN, parse_mode=ParseMode.HTML)
 dp = Dispatcher()
-
-client = OpenAI(api_key=OPENAI_API_KEY)
+ai = AsyncOpenAI(api_key=OPENAI_API_KEY)
 
 SYSTEM_PROMPT = """
-Sen Davlatbek nomidan ishlaydigan professional yordamchisan.
-Sen omborxona va logistika bo‘yicha yetuk mutaxassissan.
-
-Vazifang:
-— Ishchilarga buyruq ohangida javob berish
-— Menejerlarga tahlil bilan javob berish
-— Xo‘jayin savollariga juda qisqa javob berish
-
-Qoidalar:
-— Hech qachon “sun’iy intellektman” dema
-— Har doim real ish muhitidagi kabi yoz
-— Keraksiz gap yo‘q
+Sen professional omborxona va logistika bo‘yicha eng yetuk mutaxassissan.
+Sen xo‘jayinning o‘rniga 24/7 javob berasan.
+Ishchilarga qat’iy, aniq, qisqa va tushunarli javob berasan.
+O‘zbek tilida gaplashasan.
+Keraksiz gap yozmaysan.
+Telegram guruhlarda ham ishlaysan.
 """
 
-@dp.message()
-async def handler(message: types.Message):
-    if not message.text:
-        return
-
-    if message.chat.type in ["group", "supergroup"]:
-        me = await bot.me()
-        if f"@{me.username}" not in message.text:
-            return
-        user_text = message.text.replace(f"@{me.username}", "").strip()
-    else:
-        user_text = message.text.strip()
-
-    response = client.responses.create(
-        model="gpt-4.1-mini",
-        input=[
+async def ask_ai(user_text: str) -> str:
+    response = await ai.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=[
             {"role": "system", "content": SYSTEM_PROMPT},
             {"role": "user", "content": user_text}
-        ]
+        ],
+        temperature=0.2
     )
+    return response.choices[0].message.content
 
-    await message.reply(response.output_text)
+
+@dp.message(F.text)
+async def handle_message(message: Message):
+    try:
+        reply = await ask_ai(message.text)
+        await message.answer(reply)
+    except Exception as e:
+        await message.answer("Xatolik yuz berdi. Keyinroq urinib ko‘ring.")
+
 
 async def main():
     await dp.start_polling(bot)
+
 
 if __name__ == "__main__":
     asyncio.run(main())
