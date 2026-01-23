@@ -7,10 +7,9 @@ import os
 
 TOKEN = os.getenv("BOT_TOKEN")
 
-# XO‘JAYINLAR
 OWNERS = {
-    1432810519,  # SEN
-    2624538      # XO‘JAYINING
+    1432810519,
+    2624538
 }
 
 logging.basicConfig(level=logging.INFO)
@@ -18,21 +17,18 @@ logging.basicConfig(level=logging.INFO)
 bot = Bot(token=TOKEN)
 dp = Dispatcher()
 
-def get_role(user_id: int) -> str:
-    if user_id in OWNERS:
-        return "owner"
-    return "worker"
+
+def is_owner(user_id: int) -> bool:
+    return user_id in OWNERS
 
 
 @dp.message(CommandStart())
 async def start_handler(message: Message):
-    role = get_role(message.from_user.id)
-
-    if role == "owner":
+    if is_owner(message.from_user.id):
         await message.answer(
-            "👑 Salom xo‘jayin!\n\n"
+            "👑 Salom xo‘jayin.\n\n"
             "Men omborxona bo‘yicha AI yordamchiman.\n"
-            "Buyruq bering."
+            "Savol yoki buyruq yozing."
         )
     else:
         await message.answer(
@@ -44,26 +40,30 @@ async def start_handler(message: Message):
 
 @dp.message(Command("id"))
 async def id_handler(message: Message):
-    await message.answer(
-        f"🆔 Sizning ID: `{message.from_user.id}`",
-        parse_mode="Markdown"
-    )
+    await message.answer(f"🆔 ID: `{message.from_user.id}`", parse_mode="Markdown")
 
 
 @dp.message(F.text)
-async def text_handler(message: Message):
-    role = get_role(message.from_user.id)
+async def ai_answer(message: Message):
+    text = message.text.lower()
 
-    if role == "owner":
-        await message.answer(
-            f"👑 Xo‘jayin so‘rovi qabul qilindi:\n\n"
-            f"📝 {message.text}"
+    # Hozircha oddiy mantiq (keyin OpenAI ulanadi)
+    if "inventarizatsiya" in text:
+        answer = (
+            "📦 Inventarizatsiya — bu ombordagi mavjud "
+            "mahsulotlarni sanab, hujjatlar bilan solishtirish jarayoni.\n\n"
+            "U yo‘qotishlar, kamomad yoki ortiqchani aniqlash uchun qilinadi."
         )
     else:
-        await message.answer(
-            "📦 So‘rovingiz qabul qilindi.\n"
-            "Mas’ul shaxs javob beradi."
+        answer = (
+            "📘 Savolingiz qabul qilindi.\n"
+            "Bu savol bo‘yicha aniqroq yozsangiz, batafsil tushuntiraman."
         )
+
+    if is_owner(message.from_user.id):
+        await message.answer(f"👑 Xo‘jayin uchun javob:\n\n{answer}")
+    else:
+        await message.answer(answer)
 
 
 async def main():
