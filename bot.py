@@ -1,48 +1,74 @@
-from telegram import Update
-from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, ContextTypes, filters
+import asyncio
+import logging
+from aiogram import Bot, Dispatcher, F
+from aiogram.types import Message
+from aiogram.filters import CommandStart, Command
+import os
 
-TOKEN = "BOT_TOKENINGNI_BU_YERGA_QO‘Y"
+TOKEN = os.getenv("BOT_TOKEN")
 
-# XO‘JAYINLAR IDsi
-OWNER_IDS = [1432810519, 2624538]
+# XO‘JAYINLAR
+OWNERS = {
+    1432810519,  # SEN
+    2624538      # XO‘JAYINING
+}
 
-# /start
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text(
-        "👋 Salom!\n"
-        "📦 Men omborxona bo‘yicha AI yordamchi botman.\n"
-        "Savolingizni yozing."
-    )
+logging.basicConfig(level=logging.INFO)
 
-# /id — MUHIM
-async def get_id(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user = update.effective_user
-    role = "👑 XO‘JAYIN" if user.id in OWNER_IDS else "👷 ISHCHI"
+bot = Bot(token=TOKEN)
+dp = Dispatcher()
 
-    await update.message.reply_text(
-        f"🆔 Sizning ID: {user.id}\n"
-        f"🔐 Rolingiz: {role}"
-    )
+def get_role(user_id: int) -> str:
+    if user_id in OWNERS:
+        return "owner"
+    return "worker"
 
-# Oddiy xabarlar
-async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = update.effective_user.id
 
-    if user_id in OWNER_IDS:
-        prefix = "👑 Rahbar uchun javob:\n"
+@dp.message(CommandStart())
+async def start_handler(message: Message):
+    role = get_role(message.from_user.id)
+
+    if role == "owner":
+        await message.answer(
+            "👑 Salom xo‘jayin!\n\n"
+            "Men omborxona bo‘yicha AI yordamchiman.\n"
+            "Buyruq bering."
+        )
     else:
-        prefix = "👷 Ishchi uchun ko‘rsatma:\n"
+        await message.answer(
+            "📦 Salom!\n"
+            "Men omborxona bo‘yicha yordamchi botman.\n"
+            "Savolingizni yozing."
+        )
 
-    await update.message.reply_text(prefix + "Savolingiz qabul qilindi.")
 
-def main():
-    app = ApplicationBuilder().token(TOKEN).build()
+@dp.message(Command("id"))
+async def id_handler(message: Message):
+    await message.answer(
+        f"🆔 Sizning ID: `{message.from_user.id}`",
+        parse_mode="Markdown"
+    )
 
-    app.add_handler(CommandHandler("start", start))
-    app.add_handler(CommandHandler("id", get_id))  # 👈 ENG MUHIM QATOR
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 
-    app.run_polling()
+@dp.message(F.text)
+async def text_handler(message: Message):
+    role = get_role(message.from_user.id)
+
+    if role == "owner":
+        await message.answer(
+            f"👑 Xo‘jayin so‘rovi qabul qilindi:\n\n"
+            f"📝 {message.text}"
+        )
+    else:
+        await message.answer(
+            "📦 So‘rovingiz qabul qilindi.\n"
+            "Mas’ul shaxs javob beradi."
+        )
+
+
+async def main():
+    await dp.start_polling(bot)
+
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())
