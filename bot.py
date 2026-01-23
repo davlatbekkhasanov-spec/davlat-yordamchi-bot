@@ -1,178 +1,155 @@
 import os
 import asyncio
-import io
-from datetime import datetime
 from collections import defaultdict, deque
+from datetime import datetime
 
 from aiogram import Bot, Dispatcher, F
-from aiogram.types import Message, BufferedInputFile
+from aiogram.types import Message
 from aiogram.filters import CommandStart
 from dotenv import load_dotenv
 from openai import AsyncOpenAI
 
-import pandas as pd
-
-# ================= ENV =================
+# ================== ENV ==================
 load_dotenv()
-
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
 if not BOT_TOKEN or not OPENAI_API_KEY:
-    raise RuntimeError("❌ BOT_TOKEN yoki OPENAI_API_KEY yo‘q")
+    raise RuntimeError("BOT_TOKEN yoki OPENAI_API_KEY yo‘q")
 
-# ================= ROLES =================
-OWNERS = {1432810519, 2624538}  # xo‘jayinlar
+# ================== ROLES ==================
+OWNERS = {1432810519, 2624538}
 
-# ================= MEMORY =================
-CHAT_MEMORY = defaultdict(lambda: deque(maxlen=12))
-EVENT_LOG = defaultdict(list)
+def is_owner(uid: int) -> bool:
+    return uid in OWNERS
 
-# ================= CLIENTS =================
-bot = Bot(BOT_TOKEN)
-dp = Dispatcher()
-ai = AsyncOpenAI(api_key=OPENAI_API_KEY)
+def role_name(uid: int) -> str:
+    return "XO‘JAYIN" if is_owner(uid) else "ISHCHI"
 
-# ================= SYSTEM PROMPT =================
-SYSTEM_PROMPT = """
-SEN OMBORXONA BO‘YICHA PROFESSIONAL AI YORDAMCHISAN.
+# ================== STORAGE ==================
+CHAT_MEMORY = defaultdict(lambda: deque(maxlen=15))
 
-QOIDALAR:
-- XO‘JAYIN → to‘liq, strategik, aniq
-- ISHCHI → qisqa, rasmiy, buyruqqa mos
-- Kamomat, inventar, kirim-chiqimni aniq tushuntir
-- Ombor intizomiga amal qil
-- Keraksiz gap yozma
-- O‘zbek tilida javob ber
-"""
+WAREHOUSE = {
+    "kirim": 0,
+    "chiqim": 0
+}
 
-# ================= HELPERS =================
-def is_owner(user_id: int) -> bool:
-    return user_id in OWNERS
+LOGS = []
 
-
-async def ask_ai(chat_id: int, user_id: int, text: str) -> str:
-    role = "XO‘JAYIN" if is_owner(user_id) else "ISHCHI"
-
-    messages = [{"role": "system", "content": SYSTEM_PROMPT}]
-    messages.extend(CHAT_MEMORY[chat_id])
-    messages.append({
-        "role": "user",
-        "content": f"ROL: {role}\nSAVOL: {text}"
-    })
-
-    try:
-        resp = await ai.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=messages,
-            temperature=0.2
-        )
-
-        answer = resp.choices[0].message.content.strip()
-
-        CHAT_MEMORY[chat_id].append({"role": "user", "content": text})
-        CHAT_MEMORY[chat_id].append({"role": "assistant", "content": answer})
-
-        return answer
-
-    except Exception:
-        return "❌ AI bilan bog‘lanishda xatolik bo‘ldi."
-
-
-def log_event(chat_id, user, text, category):
-    EVENT_LOG[chat_id].append({
+def log_event(user, text, category):
+    LOGS.append({
         "time": datetime.now().strftime("%Y-%m-%d %H:%M"),
         "user": user,
         "category": category,
         "text": text
     })
 
+# ================== AI ==================
+ai = AsyncOpenAI(api_key=OPENAI_API_KEY)
 
-# ================= START =================
+SYSTEM_PROMPT = """
+SEN — KORPORATIV OMBORXONA AI YORDAMCHISAN.
+
+QOIDALAR:
+- XO‘JAYIN → strategik, batafsil, tahlilli
+- ISHCHI → qisqa, buyruq ohangida
+- Ombor: kirim, chiqim, qoldiq, kamomad
+- Keraksiz gap yozma
+- Faqat O‘ZBEK TILIDA
+"""
+
+async def ask_ai(chat_id: int, uid: int, text: str) -> str:
+    messages = [{"role": "system", "content": SYSTEM_PROMPT}]
+    messages.extend(CHAT_MEMORY[chat_id])
+    messages.append({
+        "role": "user",
+        "content": f"ROL: {role_name(uid)}\n{text}"
+    })
+
+    try:
+        r = await ai.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=messages,
+            temperature=0.25
+        )
+        answer = r.choices[0].message.content.strip()
+
+        CHAT_MEMORY[chat_id].append({"role": "user", "content": text})
+        CHAT_MEMORY[chat_id].append({"role": "assistant", "content": answer})
+
+        return answer
+    except Exception:
+        return "❌ AI vaqtincha javob bera olmadi"
+
+# ================== BOT ==================
+bot = Bot(BOT_TOKEN)
+dp = Dispatcher()
+
+# ================== START ==================
 @dp.message(CommandStart())
-async def start(message: Message):
-    if is_owner(message.from_user.id):
-        await message.answer(
-            "👑 Salom xo‘jayin!\n\n"
-            "Men omborxona bo‘yicha 24/7 AI yordamchiman.\n"
-            "Buyruq yoki savol bering."
-        )
+async def start(msg: Message):
+    if is_owner(msg.from_user.id):
+        await msg.answer("👑 Xo‘jayin, ombor AI tayyor.")
     else:
-        await message.answer(
-            "📦 Salom!\n"
-            "Omborxona yordamchi botiga xush kelibsiz.\n"
-            "Savolingizni yozing."
-        )
+        await msg.answer("📦 Ombor yordamchisi. Buyruq yozing.")
 
+# ================== COMMANDS ==================
+@dp.message(F.text.startswith("/kirim"))
+async def kirim(msg: Message):
+    try:
+        qty = int(msg.text.split()[-1])
+        WAREHOUSE["kirim"] += qty
+        log_event(msg.from_user.full_name, msg.text, "KIRIM")
+        await msg.answer(f"✅ Kirim qabul qilindi: {qty}")
+    except:
+        await msg.answer("❌ To‘g‘ri format: /kirim 10")
 
-# ================= COMMANDS =================
-@dp.message(F.text.startswith("/kamomat"))
-async def kamomat(message: Message):
-    log_event(
-        message.chat.id,
-        message.from_user.full_name,
-        message.text,
-        "KAMOMAT"
-    )
+@dp.message(F.text.startswith("/chiqim"))
+async def chiqim(msg: Message):
+    try:
+        qty = int(msg.text.split()[-1])
+        WAREHOUSE["chiqim"] += qty
+        log_event(msg.from_user.full_name, msg.text, "CHIQIM")
+        await msg.answer(f"📤 Chiqim yozildi: {qty}")
+    except:
+        await msg.answer("❌ To‘g‘ri format: /chiqim 5")
 
-    if is_owner(message.from_user.id):
-        await message.answer("👑 Kamomat xo‘jayin tomonidan qayd etildi.")
-    else:
-        await message.answer("⏳ Kamomat qabul qilindi. Mas’ul shaxs ko‘rib chiqadi.")
-
-
-@dp.message(F.text.startswith("/inventar"))
-async def inventar(message: Message):
-    log_event(
-        message.chat.id,
-        message.from_user.full_name,
-        message.text,
-        "INVENTAR"
-    )
-
-    await message.answer("📋 Inventar so‘rovi qabul qilindi.")
-
+@dp.message(F.text.startswith("/qoldiq"))
+async def qoldiq(msg: Message):
+    q = WAREHOUSE["kirim"] - WAREHOUSE["chiqim"]
+    await msg.answer(f"📊 Joriy qoldiq: {q}")
 
 @dp.message(F.text.startswith("/hisobot"))
-async def report(message: Message):
-    if not is_owner(message.from_user.id):
-        await message.answer("❌ Hisobot faqat xo‘jayinlar uchun.")
+async def hisobot(msg: Message):
+    if not is_owner(msg.from_user.id):
+        await msg.answer("❌ Bu buyruq faqat xo‘jayinga")
         return
 
-    data = EVENT_LOG[message.chat.id]
-    if not data:
-        await message.answer("📭 Hozircha ma’lumot yo‘q.")
+    if not LOGS:
+        await msg.answer("📭 Hozircha hisobot yo‘q")
         return
 
-    df = pd.DataFrame(data)
-
-    buffer = io.BytesIO()
-    df.to_excel(buffer, index=False)
-    buffer.seek(0)
-
-    file = BufferedInputFile(
-        buffer.read(),
-        filename="ombor_hisobot.xlsx"
+    text = "\n".join(
+        f"{l['time']} | {l['user']} | {l['category']} | {l['text']}"
+        for l in LOGS[-20:]
     )
+    await msg.answer(text)
 
-    await message.answer_document(file)
-
-
-# ================= TEXT =================
+# ================== TEXT HANDLER ==================
 @dp.message(F.text)
-async def text_handler(message: Message):
-    await message.answer("⏳ So‘rov qayta ishlanmoqda...")
+async def text_handler(msg: Message):
+    if msg.chat.type in ["group", "supergroup"]:
+        if not msg.reply_to_message and "bot" not in msg.text.lower():
+            return
 
     answer = await ask_ai(
-        chat_id=message.chat.id,
-        user_id=message.from_user.id,
-        text=message.text
+        chat_id=msg.chat.id,
+        uid=msg.from_user.id,
+        text=msg.text
     )
+    await msg.answer(answer)
 
-    await message.answer(answer)
-
-
-# ================= RUN =================
+# ================== RUN ==================
 async def main():
     await dp.start_polling(bot)
 
