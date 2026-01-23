@@ -1,25 +1,12 @@
-import os
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, ContextTypes, filters
 
-# =========================
-# TOKEN
-# =========================
-TOKEN = os.getenv("TELEGRAM_TOKEN")
-if not TOKEN:
-    raise ValueError("TELEGRAM_TOKEN topilmadi")
+TOKEN = "BOT_TOKENINGNI_BU_YERGA_QO‘Y"
 
-# =========================
-# XO‘JAYINLAR
-# =========================
-OWNER_IDS = [
-    1432810519,  # SEN
-    2624538      # XO‘JAYINING
-]
+# XO‘JAYINLAR IDsi
+OWNER_IDS = [1432810519, 2624538]
 
-# =========================
 # /start
-# =========================
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "👋 Salom!\n"
@@ -27,44 +14,32 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "Savolingizni yozing."
     )
 
-# =========================
-# /id
-# =========================
-async def my_id(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text(f"Sizning ID: {update.effective_user.id}")
+# /id — MUHIM
+async def get_id(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user = update.effective_user
+    role = "👑 XO‘JAYIN" if user.id in OWNER_IDS else "👷 ISHCHI"
 
-# =========================
-# ASOSIY MANTIQ
-# =========================
+    await update.message.reply_text(
+        f"🆔 Sizning ID: {user.id}\n"
+        f"🔐 Rolingiz: {role}"
+    )
+
+# Oddiy xabarlar
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
-    text = update.message.text
 
-    # ROL ANIQLASH
     if user_id in OWNER_IDS:
-        reply = (
-            "👑 Hurmatli rahbar,\n"
-            "Savolingiz qabul qilindi.\n\n"
-            f"📌 Savol: {text}\n\n"
-            "Tahlil qilib, eng to‘g‘ri yechimni taklif qilaman."
-        )
+        prefix = "👑 Rahbar uchun javob:\n"
     else:
-        reply = (
-            "👷 Ishchi uchun ko‘rsatma:\n"
-            f"📌 Savol: {text}\n\n"
-            "Amaldagi ombor tartibiga rioya qiling va natijani rahbarga xabar qiling."
-        )
+        prefix = "👷 Ishchi uchun ko‘rsatma:\n"
 
-    await update.message.reply_text(reply)
+    await update.message.reply_text(prefix + "Savolingiz qabul qilindi.")
 
-# =========================
-# RUN
-# =========================
 def main():
     app = ApplicationBuilder().token(TOKEN).build()
 
     app.add_handler(CommandHandler("start", start))
-    app.add_handler(CommandHandler("id", my_id))
+    app.add_handler(CommandHandler("id", get_id))  # 👈 ENG MUHIM QATOR
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 
     app.run_polling()
