@@ -33,18 +33,24 @@ async def ask_ai(user_text: str) -> str:
     return response.choices[0].message.content
 
 
-@dp.message(F.text)
-async def handle_message(message: Message):
+@dp.message()
+async def ai_reply(message: types.Message):
+    if message.text is None:
+        return
+
+    # Guruhda botga yozilganda yoki mention bo‘lsa javob beradi
+    if message.chat.type in ["group", "supergroup"]:
+        if not message.text.startswith("/") and bot.username not in message.text:
+            return
+
     try:
-        reply = await ask_ai(message.text)
-        await message.answer(reply)
-    except Exception as e:
-        await message.answer("Xatolik yuz berdi. Keyinroq urinib ko‘ring.")
-
-
-async def main():
-    await dp.start_polling(bot)
-
-
-if __name__ == "__main__":
-    asyncio.run(main())
+        response = client.chat.completions.create(
+            model="gpt-4.1-mini",
+            messages=[
+                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "user", "content": message.text}
+            ]
+        )
+        await message.reply(response.choices[0].message.content)
+    except:
+        pass
