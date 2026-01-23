@@ -1,83 +1,73 @@
 import os
-import logging
-import asyncio
+from telegram import Update
+from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, ContextTypes, filters
 
-from aiogram import Bot, Dispatcher, types
-from aiogram.enums import ChatType
-from aiogram.filters import CommandStart
-from aiogram.client.default import DefaultBotProperties
-
-from openai import OpenAI
-
-# ================== LOG ==================
-logging.basicConfig(level=logging.INFO)
-
-# ================== ENV ==================
-TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-
-if not TELEGRAM_TOKEN:
+# =========================
+# TOKEN
+# =========================
+TOKEN = os.getenv("TELEGRAM_TOKEN")
+if not TOKEN:
     raise ValueError("TELEGRAM_TOKEN topilmadi")
 
-if not OPENAI_API_KEY:
-    raise ValueError("OPENAI_API_KEY topilmadi")
+# =========================
+# XO‘JAYINLAR
+# =========================
+OWNER_IDS = [
+    1432810519,  # SEN
+    2624538      # XO‘JAYINING
+]
 
-# ================== OPENAI ==================
-client = OpenAI(api_key=OPENAI_API_KEY)
-
-SYSTEM_PROMPT = """
-Sen omborxona bo‘yicha eng yetuk mutaxassissan.
-24/7 javob berasan.
-Javoblaring aniq, tushunarli va o‘zbek tilida bo‘lsin.
-"""
-
-async def ask_ai(text: str) -> str:
-    response = client.chat.completions.create(
-        model="gpt-4o-mini",
-        messages=[
-            {"role": "system", "content": SYSTEM_PROMPT},
-            {"role": "user", "content": text},
-        ],
-        temperature=0.2,
-    )
-    return response.choices[0].message.content.strip()
-
-# ================== TELEGRAM ==================
-bot = Bot(
-    token=TELEGRAM_TOKEN,
-    default=DefaultBotProperties(parse_mode="HTML")
-)
-dp = Dispatcher()
-
-# ================== START ==================
-@dp.message(CommandStart())
-async def start_handler(message: types.Message):
-    await message.answer(
-        "👋 Salom!\n\n"
+# =========================
+# /start
+# =========================
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text(
+        "👋 Salom!\n"
         "📦 Men omborxona bo‘yicha AI yordamchi botman.\n"
-        "Savolingni yoz — javob beraman."
+        "Savolingizni yozing."
     )
 
-# ================== AI REPLY (PRIVATE + GROUP) ==================
-@dp.message()
-async def ai_reply(message: types.Message):
-    if not message.text:
-        return
+# =========================
+# /id
+# =========================
+async def my_id(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text(f"Sizning ID: {update.effective_user.id}")
 
-    # BOT O‘ZIGA JAVOB BERMASIN
-    if message.from_user.is_bot:
-        return
+# =========================
+# ASOSIY MANTIQ
+# =========================
+async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    text = update.message.text
 
-    try:
-        answer = await ask_ai(message.text)
-        await message.reply(answer)
-    except Exception as e:
-        logging.exception(e)
-        await message.reply("❌ Xatolik yuz berdi, keyinroq urinib ko‘ring.")
+    # ROL ANIQLASH
+    if user_id in OWNER_IDS:
+        reply = (
+            "👑 Hurmatli rahbar,\n"
+            "Savolingiz qabul qilindi.\n\n"
+            f"📌 Savol: {text}\n\n"
+            "Tahlil qilib, eng to‘g‘ri yechimni taklif qilaman."
+        )
+    else:
+        reply = (
+            "👷 Ishchi uchun ko‘rsatma:\n"
+            f"📌 Savol: {text}\n\n"
+            "Amaldagi ombor tartibiga rioya qiling va natijani rahbarga xabar qiling."
+        )
 
-# ================== MAIN ==================
-async def main():
-    await dp.start_polling(bot)
+    await update.message.reply_text(reply)
+
+# =========================
+# RUN
+# =========================
+def main():
+    app = ApplicationBuilder().token(TOKEN).build()
+
+    app.add_handler(CommandHandler("start", start))
+    app.add_handler(CommandHandler("id", my_id))
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+
+    app.run_polling()
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()
