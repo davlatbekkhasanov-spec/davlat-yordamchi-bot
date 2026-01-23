@@ -1,117 +1,137 @@
 import os
 import asyncio
-import logging
+from collections import defaultdict, deque
 
 from aiogram import Bot, Dispatcher, F
 from aiogram.types import Message
 from aiogram.filters import CommandStart
+from dotenv import load_dotenv
+from openai import AsyncOpenAI
 
-from openai import OpenAI
-
-# ================== SOZLAMALAR ==================
+# ================== CONFIG ==================
+load_dotenv()
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
-# XO‘JAYINLAR (ID lar)
-OWNERS = {
-    1432810519,   # SEN
-    2624538       # SENING XO‘JAYINING
-}
+if not BOT_TOKEN or not OPENAI_API_KEY:
+    raise RuntimeError("BOT_TOKEN yoki OPENAI_API_KEY yo‘q!")
 
-# ================== TEKSHIRUV ==================
+# 👑 XO‘JAYINLAR
+OWNERS = {1432810519, 2624538}
 
-if not BOT_TOKEN:
-    raise RuntimeError("BOT_TOKEN topilmadi")
+# xotira (chat_id → messages)
+CHAT_MEMORY = defaultdict(lambda: deque(maxlen=10))
 
-if not OPENAI_API_KEY:
-    raise RuntimeError("OPENAI_API_KEY topilmadi")
+# buyruqlar logi
+COMMAND_LOG = defaultdict(list)
 
-# ================== INIT ==================
+# OpenAI client
+ai_client = AsyncOpenAI(api_key=OPENAI_API_KEY)
 
-logging.basicConfig(level=logging.INFO)
-
+# Telegram
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
 
-client = OpenAI(api_key=OPENAI_API_KEY)
+# ================== SYSTEM PROMPT ==================
+SYSTEM_PROMPT = """
+SEN professional OMBORXONA AI yordamchisisan.
 
-# ================== AI FUNKSIYA ==================
+QOIDALAR:
+- Agar yozgan odam XO‘JAYIN bo‘lsa → to‘liq, strategik, aniq javob ber
+- Agar ISHCHI bo‘lsa → qisqa, rasmiy, tartibli javob ber
+- Ombor qoidalariga qat’iy amal qil
+- Xato, kamomat, inventar masalalarini aniq tushuntir
+- Keraksiz gap yo‘q
+- O‘zbek tilida javob ber
+"""
 
-async def ask_ai(question: str) -> str:
+# ================== HELPERS ==================
+def is_owner(user_id: int) -> bool:
+    return user_id in OWNERS
+
+
+async def ask_ai(chat_id: int, user_id: int, text: str) -> str:
+    role = "xo‘jayin" if is_owner(user_id) else "ishchi"
+
+    messages = [{"role": "system", "content": SYSTEM_PROMPT}]
+    messages.extend(CHAT_MEMORY[chat_id])
+
+    messages.append({
+        "role": "user",
+        "content": f"Rol: {role}\nSavol: {text}"
+    })
+
     try:
-        response = client.chat.completions.create(
+        response = await ai_client.chat.completions.create(
             model="gpt-4o-mini",
-            messages=[
-                {
-                    "role": "system",
-                    "content": (
-                        "Sen omborxona bo‘yicha professional AI yordamchisan. "
-                        "Javoblaring aniq, qisqa va amaliy bo‘lsin."
-                    )
-                },
-                {"role": "user", "content": question}
-            ],
-            temperature=0.3
+            messages=messages,
+            temperature=0.2
         )
-        return response.choices[0].message.content.strip()
+
+        answer = response.choices[0].message.content
+
+        CHAT_MEMORY[chat_id].append({"role": "user", "content": text})
+        CHAT_MEMORY[chat_id].append({"role": "assistant", "content": answer})
+
+        return answer
+
     except Exception as e:
-        logging.error(f"OPENAI ERROR: {e}")
         return "❌ AI bilan bog‘lanishda xatolik bo‘ldi."
 
-# ================== START ==================
 
+# ================== START ==================
 @dp.message(CommandStart())
-async def start_handler(message: Message):
-    if message.from_user.id in OWNERS:
+async def start(message: Message):
+    if is_owner(message.from_user.id):
         await message.answer(
             "👑 Salom xo‘jayin!\n\n"
             "Men omborxona bo‘yicha AI yordamchiman.\n"
-            "Savol yoki buyruq yozing."
+            "Buyruq yoki savolingizni yozing."
         )
     else:
         await message.answer(
             "📦 Salom!\n"
-            "Savolingiz qabul qilindi.\n"
-            "Mas’ul shaxsga yuboriladi."
+            "Men omborxona bo‘yicha yordamchi botman.\n"
+            "Savolingizni yozing."
         )
 
-# ================== ASOSIY MANTIQ ==================
 
-@dp.message(F.text)
-async def text_handler(message: Message):
-    user_id = message.from_user.id
-    text = message.text.strip()
-
-    # ===== XO‘JAYIN YOZSA =====
-    if user_id in OWNERS:
-        await message.answer("⏳ So‘rov qayta ishlanmoqda...")
-        answer = await ask_ai(text)
-        await message.answer(answer)
-        return
-
-    # ===== ISHCHI YOZSA =====
-    await message.answer(
-        "📨 So‘rovingiz qabul qilindi.\n"
-        "Mas’ul shaxs ko‘rib chiqadi."
+# ================== COMMANDS ==================
+@dp.message(F.text.startswith("/kamomat"))
+async def kamomat(message: Message):
+    COMMAND_LOG[message.chat.id].append(
+        f"KAMOMAT | {message.from_user.full_name}: {message.text}"
     )
 
-    ai_answer = await ask_ai(text)
+    if not is_owner(message.from_user.id):
+        await message.answer("⏳ So‘rov qabul qilindi. Mas’ul shaxs ko‘rib chiqadi.")
+    else:
+        await message.answer("👑 Kamomat qayd etildi.")
 
-    for owner_id in OWNERS:
-        await bot.send_message(
-            owner_id,
-            (
-                "📥 **Yangi so‘rov (ishchi):**\n\n"
-                f"👤 ID: `{user_id}`\n"
-                f"❓ Savol: {text}\n\n"
-                f"🤖 AI javob:\n{ai_answer}"
-            ),
-            parse_mode="Markdown"
-        )
+
+@dp.message(F.text.startswith("/inventar"))
+async def inventar(message: Message):
+    logs = COMMAND_LOG[message.chat.id][-10:]
+    text = "\n".join(logs) if logs else "Hozircha ma’lumot yo‘q."
+    await message.answer(f"📋 Oxirgi inventar ma’lumotlari:\n{text}")
+
+
+# ================== TEXT HANDLER ==================
+@dp.message(F.text)
+async def handle_text(message: Message):
+    await message.answer("⏳ So‘rov qayta ishlanmoqda...")
+
+    answer = await ask_ai(
+        chat_id=message.chat.id,
+        user_id=message.from_user.id,
+        text=message.text
+    )
+
+    await message.answer(answer)
+
 
 # ================== RUN ==================
-
 async def main():
     await dp.start_polling(bot)
 
