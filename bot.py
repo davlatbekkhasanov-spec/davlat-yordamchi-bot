@@ -13,8 +13,8 @@ from aiogram.fsm.state import StatesGroup, State
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 # ================= CONFIG =================
-BOT_TOKEN = "PUT_YOUR_BOT_TOKEN"
-GROUP_ID = -1001234567890   # guruh ID
+BOT_TOKEN = "8231063055:AAE6uspIbD0xVC8Q8PL6aBUEZMUAeL1X2QI"
+GROUP_ID = -1001877019294   # guruh ID
 
 EMPLOYEES = [
     "Sagdullaev Yunus",
