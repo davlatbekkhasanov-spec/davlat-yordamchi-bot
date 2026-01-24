@@ -1,32 +1,33 @@
 import asyncio
 import logging
-from datetime import datetime, date
-from collections import defaultdict
+import os
+from datetime import datetime
 
-from aiogram import Bot, Dispatcher, types
-from aiogram.filters import Command
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram import Bot, Dispatcher, F
 from aiogram.enums import ParseMode
+from aiogram.types import Message
+from aiogram.filters import Command
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
-# =======================
-# 🔧 SOZLAMALAR
-# =======================
+# ================== CONFIG ==================
+BOT_TOKEN = os.getenv("BOT_TOKEN")
+GROUP_ID = int(os.getenv("GROUP_ID", "0"))
 
-API_TOKEN = "BOT_TOKEN"
-GROUP_ID = -1001877019294
-OWNER_ID = 1432810519
+if not BOT_TOKEN:
+    raise RuntimeError("BOT_TOKEN environment variable is missing")
 
-TEST_MODE = True  # 🔴 avval TEST, keyin False qilamiz
+logging.basicConfig(level=logging.INFO)
 
-# =======================
-# 👥 XODIMLAR
-# =======================
+# ================== BOT ==================
+bot = Bot(token=BOT_TOKEN, parse_mode=ParseMode.HTML)
+dp = Dispatcher()
 
+# ================== DATA ==================
 EMPLOYEES = [
     "Sagdullaev Yunus",
     "Toxirov Muslimbek",
     "Ravshanov Oxunjon",
-    "Samadov Toʻlqim",
+    "Samadov To‘lqim",
     "Shernazarov Tolib",
     "Ruziboev Sindor",
     "Ruziboev Sardor",
@@ -40,138 +41,84 @@ FIELDS = [
     "Перемещение",
     "Фото тмц",
     "Уборка",
+    "Счет ТСД",
     "Фасовка",
+    "Услуга",
+    "Выгрузка/отгрузка",
     "Доставка",
+    "Переоценка",
+    "Акт пересортица",
+    "Пересчет товаров",
 ]
 
-# =======================
-# 📦 MA’LUMOTLAR
-# =======================
+# vaqtincha RAM da (keyin DB qilamiz)
+reports = {}
 
-user_states = {}
-daily_reports = defaultdict(lambda: defaultdict(lambda: defaultdict(int)))
-total_reports = defaultdict(lambda: defaultdict(int))
-
-# =======================
-# 🚀 BOT
-# =======================
-
-logging.basicConfig(level=logging.INFO)
-
-bot = Bot(API_TOKEN, parse_mode=ParseMode.HTML)
-dp = Dispatcher()
-
-# =======================
-# ▶️ START
-# =======================
-
-@dp.message(Command("start"))
-async def start(msg: types.Message):
-    await msg.answer("✅ Ombor AI bot ishga tushdi.")
-
-# =======================
-# 🧾 SHABLON
-# =======================
-
-async def send_daily_template():
-    chat_id = OWNER_ID if TEST_MODE else GROUP_ID
-
+# ================== HELPERS ==================
+def build_template():
+    text = "📋 <b>KUNLIK HISOBOT</b>\n\n"
     for emp in EMPLOYEES:
-        kb = InlineKeyboardMarkup(inline_keyboard=[
-            [
-                InlineKeyboardButton(
-                    text=f,
-                    callback_data=f"{emp}|{f}"
-                )
-            ] for f in FIELDS
-        ])
-
-        await bot.send_message(
-            chat_id,
-            f"📋 <b>HISOBOT</b>\n👤 <b>{emp}</b>\nBo‘limni tanlang:",
-            reply_markup=kb
-        )
-
-# =======================
-# 🔘 TUGMA
-# =======================
-
-@dp.callback_query()
-async def button_handler(call: types.CallbackQuery):
-    emp, field = call.data.split("|")
-    user_states[call.from_user.id] = (emp, field)
-    await call.message.answer(
-        f"✏️ <b>{emp}</b>\n<b>{field}</b> uchun raqam kiriting:"
-    )
-    await call.answer()
-
-# =======================
-# 🔢 RAQAM
-# =======================
-
-@dp.message(lambda m: m.text and m.text.isdigit())
-async def number_handler(msg: types.Message):
-    uid = msg.from_user.id
-    if uid not in user_states:
-        return
-
-    emp, field = user_states.pop(uid)
-    today = date.today().isoformat()
-    value = int(msg.text)
-
-    daily_reports[today][emp][field] += value
-    total_reports[emp][field] += value
-
-    await msg.answer(
-        f"✅ Saqlandi:\n<b>{emp}</b>\n{field} ( {value} )"
-    )
-
-# =======================
-# 📊 NATIJA
-# =======================
-
-async def publish_results():
-    chat_id = OWNER_ID if TEST_MODE else GROUP_ID
-    today = date.today().isoformat()
-
-    text = f"📊 <b>HISOBOT ({today})</b>\n\n"
-
-    for emp in EMPLOYEES:
-        text += f"👤 <b>{emp}</b>\n"
+        text += f"<b>{emp}</b>\n"
         for f in FIELDS:
-            d = daily_reports[today][emp].get(f, 0)
-            t = total_reports[emp].get(f, 0)
-            text += f"• {f}: {d} | Jami: {t}\n"
+            text += f"{f}: ( )\n"
         text += "\n"
+    return text
 
-    await bot.send_message(chat_id, text)
+def build_summary():
+    text = "📊 <b>NATIJALAR</b>\n\n"
+    for emp, data in reports.items():
+        text += f"<b>{emp}</b>\n"
+        for k, v in data.items():
+            text += f"{k}: {v}\n"
+        text += "\n"
+    return text if reports else "❗️Ma’lumot kiritilmadi"
 
-# =======================
-# ⏰ SCHEDULER (UTC)
-# =======================
+# ================== COMMANDS ==================
+@dp.message(Command("start"))
+async def start_cmd(message: Message):
+    await message.answer(
+        "✅ Bot ishlayapti.\n"
+        "/test_report — test shablon\n"
+        "Hisobotlar har kuni 19:30 da yuboriladi."
+    )
 
-async def scheduler():
-    while True:
-        now = datetime.utcnow()
+@dp.message(Command("test_report"))
+async def test_report(message: Message):
+    await message.answer(build_template())
 
-        # 19:30 UZ → 14:30 UTC
-        if now.hour == 14 and now.minute == 30:
-            await send_daily_template()
-            await asyncio.sleep(60)
+# ================== SCHEDULER TASKS ==================
+async def send_daily_template():
+    try:
+        await bot.send_message(GROUP_ID, build_template())
+    except Exception as e:
+        logging.error(f"Template error: {e}")
 
-        # 07:00 UZ → 02:00 UTC
-        if now.hour == 2 and now.minute == 0:
-            await publish_results()
-            await asyncio.sleep(60)
+async def send_daily_summary():
+    try:
+        await bot.send_message(GROUP_ID, build_summary())
+        reports.clear()
+    except Exception as e:
+        logging.error(f"Summary error: {e}")
 
-        await asyncio.sleep(20)
+# ================== TEXT HANDLER (NUMBER INPUT) ==================
+@dp.message(F.text.regexp(r"\d+"))
+async def handle_numbers(message: Message):
+    name = message.from_user.full_name
+    if name not in reports:
+        reports[name] = {}
 
-# =======================
-# ▶️ RUN
-# =======================
+    reports[name]["Kiritilgan"] = reports[name].get("Kiritilgan", 0) + int(message.text)
+    await message.reply("✅ Qabul qilindi")
 
+# ================== MAIN ==================
 async def main():
-    asyncio.create_task(scheduler())
+    scheduler = AsyncIOScheduler(timezone="Asia/Tashkent")
+
+    scheduler.add_job(send_daily_template, "cron", hour=19, minute=30)
+    scheduler.add_job(send_daily_summary, "cron", hour=7, minute=0)
+
+    scheduler.start()
+
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
