@@ -12,7 +12,7 @@ from pytz import timezone
 
 # ================== SOZLAMALAR ==================
 
-API_TOKEN = "BOT_TOKEN"
+API_TOKEN = 8231063055:AAE6uspIbD0xVC8Q8PL6aBUEZMUAeL1X2QI
 
 GROUP_ID = -1001877019294
 
