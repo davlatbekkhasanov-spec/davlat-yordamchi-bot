@@ -12,7 +12,7 @@ from aiogram.enums import ParseMode
 # 🔧 SOZLAMALAR
 # =======================
 
-API_TOKEN = "BOT_TOKENINGNI_BU_YERGA_QOʻY"
+API_TOKEN = "BOT_TOKEN"
 GROUP_ID = -1001877019294
 OWNER_ID = 1432810519
 
