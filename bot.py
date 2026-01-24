@@ -1,44 +1,27 @@
 import asyncio
 import logging
-from datetime import datetime, time as dtime
+from datetime import datetime
 
-from aiogram import Bot, Dispatcher, F
-from aiogram.types import (
-    Message,
-    InlineKeyboardMarkup,
-    InlineKeyboardButton,
-    CallbackQuery,
-)
-from aiogram.filters import Command
+from aiogram import Bot, Dispatcher
 from aiogram.enums import ParseMode
+from aiogram.filters import Command
+from aiogram.types import Message
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from apscheduler.triggers.cron import CronTrigger
+from pytz import timezone
 
-import os
-from dotenv import load_dotenv
+# ================== SOZLAMALAR ==================
 
-# ===================== ENV =====================
-load_dotenv()
+API_TOKEN = "BOT_TOKEN"
 
-API_TOKEN = os.getenv("BOT_TOKEN")
-GROUP_ID = int(os.getenv("GROUP_ID"))
+GROUP_ID = -1001877019294
 
-# ===================== LOG =====================
-logging.basicConfig(level=logging.INFO)
-
-# ===================== BOT =====================
-bot = Bot(API_TOKEN, parse_mode=ParseMode.HTML)
-dp = Dispatcher()
-
-# ===================== ADMINS =====================
-ADMINS = [
-    1432810519,   # sen
-    2624538,      # xo‘jayin
-    5732350707     # 3-rahbar (keyin o‘zgartirasan)
+MANAGER_IDS = [
+    5732350707,  # 1-rahbar
+    5732350707,  # 2-rahbar (bir xil bo‘lsa ham muammo yo‘q)
+    5732350707   # 3-rahbar
 ]
 
-# ===================== DATA =====================
 EMPLOYEES = [
     "Sagdullaev Yunus",
     "Toxirov Muslimbek",
@@ -49,7 +32,7 @@ EMPLOYEES = [
     "Ruziboev Sardor",
     "Samandar Foto",
     "Mustafoev Abdullo",
-    "Rajabboev Pulat"
+    "Rajabboev Pulat",
 ]
 
 SECTIONS = [
@@ -64,144 +47,72 @@ SECTIONS = [
     "Доставка",
     "Переоценка",
     "Акт пересортица",
-    "Пересчет товаров"
+    "Пересчет товаров",
 ]
 
-# ===================== STORAGE =====================
-daily_data = {}
-waiting_input = {}
-report_message_id = None
+# ================== LOG ==================
 
-# ===================== HELPERS =====================
-def today_key():
-    return datetime.now().strftime("%Y-%m-%d")
+logging.basicConfig(level=logging.INFO)
 
-def init_day():
-    key = today_key()
-    if key not in daily_data:
-        daily_data[key] = {}
-        for emp in EMPLOYEES:
-            daily_data[key][emp] = {s: None for s in SECTIONS}
+# ================== BOT ==================
 
-def build_report_text():
-    key = today_key()
-    text = f"📊 <b>KUNLIK HISOBOT — {key}</b>\n\n"
+bot = Bot(API_TOKEN, parse_mode=ParseMode.HTML)
+dp = Dispatcher()
+
+scheduler = AsyncIOScheduler(timezone=timezone("Asia/Tashkent"))
+
+# ================== YORDAMCHI ==================
+
+def build_report(date_str: str) -> str:
+    text = f"📋 <b>KUNLIK HISOBOT — {date_str}</b>\n\n"
     for emp in EMPLOYEES:
         text += f"<b>{emp}</b>\n"
-        for s in SECTIONS:
-            val = daily_data[key][emp][s]
-            if val is None:
-                text += f"{s}: ( )\n"
-            else:
-                text += f"{s}: ( <b>{val}</b> )\n"
+        for sec in SECTIONS:
+            text += f"{sec}: ( )\n"
         text += "\n"
     return text
 
-def build_keyboard():
-    rows = []
-    for emp in EMPLOYEES:
-        for s in SECTIONS:
-            rows.append([
-                InlineKeyboardButton(
-                    text=f"{emp} • {s}",
-                    callback_data=f"set|{emp}|{s}"
-                )
-            ])
-    return InlineKeyboardMarkup(inline_keyboard=rows)
+# ================== BUYRUQLAR ==================
 
-# ===================== COMMANDS =====================
 @dp.message(Command("start"))
-async def start_cmd(msg: Message):
-    await msg.answer(
+async def start_cmd(message: Message):
+    await message.answer(
         "✅ Bot ishlayapti.\n"
         "/test_report — test shablon\n"
         "⏰ Hisobotlar har kuni 19:30 da yuboriladi."
     )
 
 @dp.message(Command("test_report"))
-async def test_report(msg: Message):
-    if msg.chat.id != GROUP_ID:
-        await msg.answer("Bu buyruq faqat guruhda.")
+async def test_report(message: Message):
+    if message.chat.id != GROUP_ID:
+        await message.answer("❌ Bu buyruq faqat guruhda ishlaydi.")
         return
 
-    init_day()
-    global report_message_id
-    sent = await bot.send_message(
-        GROUP_ID,
-        build_report_text(),
-        reply_markup=build_keyboard()
-    )
-    report_message_id = sent.message_id
+    today = datetime.now().strftime("%Y-%m-%d")
+    await message.answer(build_report(today))
 
-# ===================== CALLBACK =====================
-@dp.callback_query(F.data.startswith("set|"))
-async def set_value(cb: CallbackQuery):
-    if cb.from_user.id not in ADMINS:
-        await cb.answer("⛔ Ruxsat yo‘q", show_alert=True)
-        return
-
-    _, emp, section = cb.data.split("|", 2)
-    waiting_input[cb.from_user.id] = (emp, section)
-
-    await cb.message.answer(
-        f"<b>{emp}</b>\n"
-        f"{section} uchun raqam kiriting:"
-    )
-    await cb.answer()
-
-# ===================== NUMBER INPUT =====================
-@dp.message(F.text.regexp(r"^\d+$"))
-async def number_input(msg: Message):
-    uid = msg.from_user.id
-    if uid not in waiting_input:
-        return
-
-    emp, section = waiting_input.pop(uid)
-    init_day()
-    daily_data[today_key()][emp][section] = int(msg.text)
-
-    global report_message_id
-    if report_message_id:
-        await bot.edit_message_text(
-            build_report_text(),
-            GROUP_ID,
-            report_message_id,
-            reply_markup=build_keyboard()
-        )
-
-    await msg.answer("✅ Saqlandi.")
-
-# ===================== SCHEDULER =====================
-scheduler = AsyncIOScheduler(timezone="Asia/Tashkent")
+# ================== AVTO HISOBOT ==================
 
 async def send_daily_report():
-    init_day()
-    global report_message_id
-    sent = await bot.send_message(
+    today = datetime.now().strftime("%Y-%m-%d")
+    await bot.send_message(
         GROUP_ID,
-        build_report_text(),
-        reply_markup=build_keyboard()
+        build_report(today)
     )
-    report_message_id = sent.message_id
 
 async def send_summary():
-    key = today_key()
-    if key not in daily_data:
-        return
+    await bot.send_message(
+        GROUP_ID,
+        "📊 <b>ERTALABGI NATIJALAR</b>\n\n(Hozircha test rejim)"
+    )
 
-    text = f"📈 <b>NATIJALAR — {key}</b>\n\n"
-    for emp in EMPLOYEES:
-        total = sum(v for v in daily_data[key][emp].values() if v)
-        text += f"{emp}: <b>{total}</b>\n"
+# ================== ISHGA TUSHIRISH ==================
 
-    await bot.send_message(GROUP_ID, text)
-
-scheduler.add_job(send_daily_report, CronTrigger(hour=19, minute=30))
-scheduler.add_job(send_summary, CronTrigger(hour=7, minute=0))
-
-# ===================== MAIN =====================
 async def main():
+    scheduler.add_job(send_daily_report, "cron", hour=19, minute=30)
+    scheduler.add_job(send_summary, "cron", hour=7, minute=0)
     scheduler.start()
+
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
