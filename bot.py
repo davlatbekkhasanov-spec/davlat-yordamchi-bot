@@ -5,38 +5,27 @@ from datetime import datetime
 from aiogram import Bot, Dispatcher, F
 from aiogram.types import (
     Message,
-    InlineKeyboardMarkup,
     InlineKeyboardButton,
-    CallbackQuery,
+    InlineKeyboardMarkup,
+    CallbackQuery
 )
-from aiogram.filters import Command
 from aiogram.enums import ParseMode
+from aiogram.fsm.context import FSMContext
+from aiogram.fsm.state import State, StatesGroup
+from aiogram.fsm.storage.memory import MemoryStorage
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
-# ===================== CONFIG =====================
-BOT_TOKEN = "8231063055:AAE6uspIbD0xVC8Q8PL6aBUEZMUAeL1X2QI"
-GROUP_ID = -1001877019294  # hisobot chiqadigan guruh ID
+# ================== CONFIG ==================
+API_TOKEN = "PASTE_BOT_TOKEN_HERE"
+GROUP_ID = -100XXXXXXXXXX   # guruh ID
 
 ADMINS = {
     5732350707,
     2624538,
     6991673998,
-    1432810519,
+    1432810519
 }
-
-EMPLOYEES = [
-    "Sagdullaev Yunus",
-    "Toxirov Muslimbek",
-    "Ravshanov Oxunjon",
-    "Samadov To‘lqum",
-    "Shernazarov Tolib",
-    "Ruziboev Sindor",
-    "Ruziboev Sardor",
-    "Samandar Foto",
-    "Mustafoev Abdullo",
-    "Rajabboev Pulat",
-]
 
 TASKS = [
     "Приход",
@@ -48,133 +37,115 @@ TASKS = [
     "Доставка",
     "Переоценка",
     "Акт пересортица",
-    "Пересчет товаров",
+    "Пересчет товаров"
 ]
 
-# employee -> task -> value
-DATA = {}
+EMPLOYEES = [
+    "Sagdullaev Yunus",
+    "Toxirov Muslimbek",
+    "Rajabboev Pulat",
+    "Ravshanov Oxunjon"
+]
 
-# user_id -> (employee, task)
-WAITING_INPUT = {}
-
-# ===================== INIT =====================
+# ================== INIT ==================
 logging.basicConfig(level=logging.INFO)
 
-bot = Bot(BOT_TOKEN, parse_mode=ParseMode.HTML)
-dp = Dispatcher()
+bot = Bot(API_TOKEN, parse_mode=ParseMode.HTML)
+dp = Dispatcher(storage=MemoryStorage())
 scheduler = AsyncIOScheduler()
 
-# ===================== HELPERS =====================
-def init_day():
-    today = datetime.now().date().isoformat()
-    DATA.clear()
-    for emp in EMPLOYEES:
-        DATA[emp] = {task: None for task in TASKS}
-    return today
+group_message_id = None
+report_data = {}
 
+# ================== FSM ==================
+class InputState(StatesGroup):
+    waiting_number = State()
 
+# ================== HELPERS ==================
 def build_report(title: str):
     text = f"📊 <b>{title}</b>\n\n"
-    for emp, tasks in DATA.items():
+    for emp in EMPLOYEES:
         text += f"<b>{emp}</b>\n"
-        for task, val in tasks.items():
-            value = val if val is not None else ""
-            text += f"{task}: ({value})\n"
+        for task in TASKS:
+            value = report_data.get(emp, {}).get(task)
+            text += f"{task}: ({value if value is not None else ''})\n"
         text += "\n"
     return text
 
+def employee_keyboard(emp: str):
+    buttons = [
+        [InlineKeyboardButton(text=task, callback_data=f"task:{emp}:{task}")]
+        for task in TASKS
+    ]
+    buttons.append([InlineKeyboardButton(text="⬅️ Orqaga", callback_data="back")])
+    return InlineKeyboardMarkup(inline_keyboard=buttons)
 
-def employee_keyboard():
-    return InlineKeyboardMarkup(
-        inline_keyboard=[
-            [InlineKeyboardButton(text=emp, callback_data=f"emp|{emp}")]
-            for emp in EMPLOYEES
-        ]
-    )
+# ================== COMMANDS ==================
+@dp.message(F.text == "/start")
+async def start(m: Message):
+    await m.answer("✅ Bot ishlayapti.")
 
+@dp.message(F.text == "/test1")
+async def test1(m: Message):
+    await send_report(test=True)
 
-def task_keyboard(emp):
-    rows = []
-    for task in TASKS:
-        value = DATA[emp][task]
-        label = f"{task} ({value})" if value is not None else task
-        rows.append(
-            [InlineKeyboardButton(text=label, callback_data=f"task|{emp}|{task}")]
+@dp.message(F.text == "/test2")
+async def test2(m: Message):
+    await send_summary(test=True)
+
+# ================== REPORT ==================
+async def send_report(test=False):
+    global group_message_id
+    title = "TEST HISOBOT" if test else "KUNLIK HISOBOT"
+    text = build_report(f"{title} — {datetime.now().date()}")
+
+    if group_message_id:
+        await bot.edit_message_text(
+            chat_id=GROUP_ID,
+            message_id=group_message_id,
+            text=text
         )
-    return InlineKeyboardMarkup(inline_keyboard=rows)
+    else:
+        msg = await bot.send_message(GROUP_ID, text)
+        group_message_id = msg.message_id
 
-# ===================== COMMANDS =====================
-@dp.message(Command("start"))
-async def start_cmd(msg: Message):
-    await msg.answer("✅ Bot ishlayapti.")
-
-
-@dp.message(Command("test1"))
-async def test1(msg: Message):
-    init_day()
-    text = build_report(f"TEST HISOBOT — {datetime.now().date()}")
-    await bot.send_message(GROUP_ID, text, reply_markup=employee_keyboard())
-
-
-@dp.message(Command("test2"))
-async def test2(msg: Message):
-    init_day()
-    text = build_report(f"TEST HISOBOT — {datetime.now().date()}")
-    await bot.send_message(GROUP_ID, text, reply_markup=employee_keyboard())
-
-
-# ===================== CALLBACKS =====================
-@dp.callback_query(F.data.startswith("emp|"))
-async def choose_employee(call: CallbackQuery):
-    _, emp = call.data.split("|", 1)
-    await call.message.edit_reply_markup(reply_markup=task_keyboard(emp))
-    await call.answer()
-
-
-@dp.callback_query(F.data.startswith("task|"))
-async def choose_task(call: CallbackQuery):
-    _, emp, task = call.data.split("|", 2)
-    WAITING_INPUT[call.from_user.id] = (emp, task)
-    await bot.send_message(
-        call.from_user.id,
-        f"<b>{emp}</b>\n{task} sonini kiriting:"
-    )
-    await call.answer()
-
-
-# ===================== INPUT =====================
-@dp.message(F.text.regexp(r"^\d+$"))
-async def save_number(msg: Message):
-    if msg.from_user.id not in WAITING_INPUT:
-        return
-
-    emp, task = WAITING_INPUT.pop(msg.from_user.id)
-    DATA[emp][task] = int(msg.text)
-
-    await msg.answer("✅ Saqlandi")
-
-    text = build_report(f"KUNLIK HISOBOT — {datetime.now().date()}")
-    await bot.send_message(GROUP_ID, text, reply_markup=employee_keyboard())
-
-
-# ===================== SCHEDULE =====================
-async def send_morning():
-    init_day()
-    text = build_report(f"KUNLIK HISOBOT — {datetime.now().date()}")
-    await bot.send_message(GROUP_ID, text, reply_markup=employee_keyboard())
-
-
-async def send_evening():
-    text = build_report(f"KUNLIK HISOBOT — {datetime.now().date()}")
+async def send_summary(test=False):
+    title = "TEST SUMMARY" if test else "ERTALABGI HISOBOT"
+    text = build_report(f"{title} — {datetime.now().date()}")
     await bot.send_message(GROUP_ID, text)
 
+# ================== CALLBACK ==================
+@dp.callback_query(F.data.startswith("task:"))
+async def choose_task(c: CallbackQuery, state: FSMContext):
+    _, emp, task = c.data.split(":")
+    await state.update_data(emp=emp, task=task)
+    await c.message.answer(f"{emp}\n<b>{task}</b sonini kiriting:")
+    await state.set_state(InputState.waiting_number)
+    await c.answer()
 
-# ===================== MAIN =====================
+@dp.message(InputState.waiting_number)
+async def save_number(m: Message, state: FSMContext):
+    if not m.text.isdigit():
+        await m.answer("❌ Faqat raqam kiriting")
+        return
+
+    data = await state.get_data()
+    emp = data["emp"]
+    task = data["task"]
+
+    report_data.setdefault(emp, {})[task] = int(m.text)
+
+    await send_report()
+    await m.answer("✅ Saqlandi", reply_markup=employee_keyboard(emp))
+    await state.clear()
+
+# ================== SCHEDULER ==================
+scheduler.add_job(send_report, "cron", hour=19, minute=30)
+scheduler.add_job(send_summary, "cron", hour=7, minute=0)
+
+# ================== MAIN ==================
 async def main():
-    scheduler.add_job(send_morning, "cron", hour=7, minute=0)
-    scheduler.add_job(send_evening, "cron", hour=19, minute=30)
     scheduler.start()
-
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
