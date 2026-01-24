@@ -17,8 +17,8 @@ from aiogram.fsm.storage.memory import MemoryStorage
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 # ================== CONFIG ==================
-API_TOKEN = "PASTE_BOT_TOKEN_HERE"
-GROUP_ID = -100XXXXXXXXXX   # guruh ID
+API_TOKEN = "8231063055:AAE6uspIbD0xVC8Q8PL6aBUEZMUAeL1X2QI"
+GROUP_ID = -1001877019294   # guruh ID
 
 ADMINS = {
     5732350707,
