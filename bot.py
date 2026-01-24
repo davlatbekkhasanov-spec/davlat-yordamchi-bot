@@ -1,33 +1,29 @@
 import asyncio
 import logging
-from datetime import datetime, time
-import pytz
-import aiosqlite
-
-from aiogram import Bot, Dispatcher, F
-from aiogram.types import (
-    Message, InlineKeyboardMarkup, InlineKeyboardButton
-)
+import sqlite3
+from datetime import datetime, date
+from aiogram import Bot, Dispatcher
 from aiogram.filters import Command
-from aiogram.enums import ParseMode
+from aiogram.types import Message, ReplyKeyboardMarkup, KeyboardButton
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
-# ================== CONFIG ==================
-BOT_TOKEN = "8231063055:AAE6uspIbD0xVC8Q8PL6aBUEZMUAeL1X2QI"
-GROUP_ID = -1001877019294  # GURUH ID
-TIMEZONE = pytz.timezone("Asia/Tashkent")
+# ================== SOZLAMALAR ==================
 
-ADMINS = {
+TOKEN = "8231063055:AAE6uspIbD0xVC8Q8PL6aBUEZMUAeL1X2QI"
+GROUP_ID = -1001877019294  # HISOBOT TASHLANADIGAN GURUH ID
+
+ADMINS = [
     5732350707,
     2624538,
     6991673998,
     1432810519
-}
+]
 
 EMPLOYEES = [
     "Sagdullaev Yunus",
     "Toxirov Muslimbek",
     "Ravshanov Oxunjon",
-    "Samadov To‘lqin",
+    "Samadov To'lqin",
     "Shernazarov Tolib",
     "Ruziboev Sindor",
     "Ruziboev Sardor",
@@ -36,7 +32,7 @@ EMPLOYEES = [
     "Rajabboev Pulat"
 ]
 
-WORKS = [
+CATEGORIES = [
     "Приход",
     "Перемещение",
     "Фото ТМЦ",
@@ -46,150 +42,174 @@ WORKS = [
     "Доставка",
     "Переоценка",
     "Акт пересортица",
-    "Пересчет товаров",
+    "Пересчет товаров"
 ]
 
-DB = "data.db"
+# ================== BOT ==================
 
-# ================== INIT ==================
-bot = Bot(BOT_TOKEN, parse_mode=ParseMode.HTML)
+bot = Bot(token=TOKEN)
 dp = Dispatcher()
+scheduler = AsyncIOScheduler()
+
 logging.basicConfig(level=logging.INFO)
 
-# ================== DB ==================
-async def init_db():
-    async with aiosqlite.connect(DB) as db:
-        await db.execute("""
-        CREATE TABLE IF NOT EXISTS stats (
-            date TEXT,
-            employee TEXT,
-            work TEXT,
-            value INTEGER
-        )
-        """)
-        await db.execute("""
-        CREATE TABLE IF NOT EXISTS meta (
-            key TEXT PRIMARY KEY,
-            value TEXT
-        )
-        """)
-        await db.commit()
+# ================== DATABASE ==================
 
-async def save_value(date, employee, work, value):
-    async with aiosqlite.connect(DB) as db:
-        await db.execute(
-            "INSERT INTO stats VALUES (?,?,?,?)",
-            (date, employee, work, value)
-        )
-        await db.commit()
+conn = sqlite3.connect("data.db")
+cur = conn.cursor()
 
-async def get_sum(from_date):
-    async with aiosqlite.connect(DB) as db:
-        cur = await db.execute("""
-        SELECT employee, work, SUM(value)
-        FROM stats
-        WHERE date >= ?
-        GROUP BY employee, work
-        """, (from_date,))
-        return await cur.fetchall()
+cur.execute("""
+CREATE TABLE IF NOT EXISTS reports (
+    day TEXT,
+    employee TEXT,
+    category TEXT,
+    value INTEGER
+)
+""")
 
-# ================== REPORT ==================
-async def build_report(from_date):
-    data = await get_sum(from_date)
-    report = {}
-    for emp, work, val in data:
-        report.setdefault(emp, {})[work] = val
+conn.commit()
 
-    text = f"📊 <b>JAMLANGAN HISOBOT</b>\n\n"
-    for emp in EMPLOYEES:
-        text += f"<b>{emp}</b>\n"
-        for w in WORKS:
-            v = report.get(emp, {}).get(w, 0)
-            text += f"{w}: ({v})\n"
-        text += "\n"
-    return text
+# ================== KLAVIATURALAR ==================
 
-# ================== KEYBOARDS ==================
-def employee_kb():
-    return InlineKeyboardMarkup(
-        inline_keyboard=[
-            [InlineKeyboardButton(text=e, callback_data=f"emp:{e}")]
-            for e in EMPLOYEES
-        ]
+def employees_kb():
+    return ReplyKeyboardMarkup(
+        keyboard=[[KeyboardButton(text=e)] for e in EMPLOYEES],
+        resize_keyboard=True
     )
 
-def works_kb(emp):
-    return InlineKeyboardMarkup(
-        inline_keyboard=[
-            [InlineKeyboardButton(text=w, callback_data=f"work:{emp}:{w}")]
-            for w in WORKS
-        ]
+def categories_kb():
+    return ReplyKeyboardMarkup(
+        keyboard=[[KeyboardButton(text=c)] for c in CATEGORIES],
+        resize_keyboard=True
     )
 
-# ================== HANDLERS ==================
+# ================== STATES ==================
+
+user_state = {}
+
+# ================== START ==================
+
 @dp.message(Command("start"))
-async def start(m: Message):
-    await m.answer("Xodimni tanlang:", reply_markup=employee_kb())
-
-@dp.callback_query(F.data.startswith("emp:"))
-async def choose_emp(c):
-    emp = c.data.split(":")[1]
-    await c.message.edit_text(
-        f"<b>{emp}</b>\nIsh turini tanlang:",
-        reply_markup=works_kb(emp)
+async def start(message: Message):
+    await message.answer(
+        "✅ Bot ishlayapti.\n\nXodimni tanlang:",
+        reply_markup=employees_kb()
     )
 
-@dp.callback_query(F.data.startswith("work:"))
-async def choose_work(c):
-    _, emp, work = c.data.split(":")
-    await c.message.edit_text(
-        f"{emp}\n<b>{work}</b>\nRaqam kiriting:"
-    )
-    dp.fsm.storage.data[c.from_user.id] = (emp, work)
+# ================== EMPLOYEE TANLASH ==================
 
-@dp.message(F.text.regexp(r"^\d+$"))
-async def save_number(m: Message):
-    if m.from_user.id not in dp.fsm.storage.data:
+@dp.message(lambda m: m.text in EMPLOYEES)
+async def select_employee(message: Message):
+    user_state[message.from_user.id] = {
+        "employee": message.text
+    }
+    await message.answer(
+        "📌 Ish turini tanlang:",
+        reply_markup=categories_kb()
+    )
+
+# ================== CATEGORY TANLASH ==================
+
+@dp.message(lambda m: m.text in CATEGORIES)
+async def select_category(message: Message):
+    state = user_state.get(message.from_user.id)
+    if not state:
         return
-    emp, work = dp.fsm.storage.data.pop(m.from_user.id)
-    today = datetime.now(TIMEZONE).strftime("%Y-%m-%d")
-    await save_value(today, emp, work, int(m.text))
-    await m.answer("✅ Saqlandi.\n/start bilan davom eting")
 
-# ================== SCHEDULER ==================
-async def scheduler():
-    sent_message_id = None
-    while True:
-        now = datetime.now(TIMEZONE)
+    state["category"] = message.text
+    await message.answer("✍️ Raqam kiriting:")
 
-        if now.time() == time(19, 30):
-            msg = await bot.send_message(
-                GROUP_ID,
-                "📝 <b>YANGI KUNLIK HISOBOT BOSHLANDI</b>\nTo‘ldirish 07:29 gacha"
-            )
-            sent_message_id = msg.message_id
+# ================== RAQAM KIRITISH ==================
 
-        if now.time() == time(7, 30):
-            month_start = now.replace(day=3).strftime("%Y-%m-%d")
-            text = await build_report(month_start)
-            await bot.send_message(GROUP_ID, text)
+@dp.message(lambda m: m.text.isdigit())
+async def save_number(message: Message):
+    state = user_state.get(message.from_user.id)
+    if not state:
+        return
 
-        await asyncio.sleep(60)
+    today = date.today().isoformat()
 
-# ================== TEST ==================
+    cur.execute(
+        "INSERT INTO reports VALUES (?, ?, ?, ?)",
+        (today, state["employee"], state["category"], int(message.text))
+    )
+    conn.commit()
+
+    await message.answer("✅ Saqlandi. /start bilan davom eting.")
+
+    user_state.pop(message.from_user.id, None)
+
+# ================== HISOBOTLAR ==================
+
+async def send_evening_report(chat_id: int):
+    today = date.today().isoformat()
+
+    text = f"📊 KUNLIK HISOBOT\n🕢 19:30\n🗓 {today}\n\n"
+
+    for emp in EMPLOYEES:
+        text += f"👤 {emp}\n"
+        for cat in CATEGORIES:
+            cur.execute("""
+            SELECT SUM(value) FROM reports
+            WHERE day = ? AND employee = ? AND category = ?
+            """, (today, emp, cat))
+            val = cur.fetchone()[0] or ""
+            text += f"  • {cat}: ({val})\n"
+        text += "\n"
+
+    await bot.send_message(chat_id, text)
+
+async def send_morning_report(chat_id: int):
+    cur.execute("""
+    SELECT employee, category, SUM(value)
+    FROM reports
+    GROUP BY employee, category
+    """)
+
+    rows = cur.fetchall()
+
+    text = "📈 JAMLANGAN HISOBOT\n🕢 07:30\n\n"
+
+    for emp in EMPLOYEES:
+        text += f"👤 {emp}\n"
+        for cat in CATEGORIES:
+            val = next((r[2] for r in rows if r[0] == emp and r[1] == cat), "")
+            text += f"  • {cat}: ({val})\n"
+        text += "\n"
+
+    await bot.send_message(chat_id, text)
+
+# ================== TEST BUYRUQLAR ==================
+
 @dp.message(Command("test1"))
-async def test1(m: Message):
-    await scheduler()
+async def test1(message: Message):
+    if message.from_user.id not in ADMINS:
+        return
+    await send_evening_report(message.chat.id)
 
 @dp.message(Command("test2"))
-async def test2(m: Message):
-    month_start = datetime.now(TIMEZONE).replace(day=3).strftime("%Y-%m-%d")
-    await m.answer(await build_report(month_start))
+async def test2(message: Message):
+    if message.from_user.id not in ADMINS:
+        return
+    await send_morning_report(message.chat.id)
 
-# ================== RUN ==================
+# ================== OY BOSHI TOZALASH ==================
+
+async def reset_month():
+    if datetime.now().day == 3:
+        cur.execute("DELETE FROM reports")
+        conn.commit()
+
+# ================== SCHEDULER ==================
+
+scheduler.add_job(send_evening_report, "cron", hour=19, minute=30, args=[GROUP_ID])
+scheduler.add_job(send_morning_report, "cron", hour=7, minute=30, args=[GROUP_ID])
+scheduler.add_job(reset_month, "cron", hour=0, minute=0)
+
+# ================== MAIN ==================
+
 async def main():
-    await init_db()
-    asyncio.create_task(scheduler())
+    scheduler.start()
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
