@@ -1,17 +1,21 @@
 import asyncio
 import logging
-from datetime import datetime, time
+from datetime import datetime
 
 from aiogram import Bot, Dispatcher, F
-from aiogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.enums import ParseMode
 from aiogram.filters import Command
-from aiogram.utils.keyboard import InlineKeyboardBuilder
-
+from aiogram.types import (
+    Message,
+    InlineKeyboardMarkup,
+    InlineKeyboardButton,
+    CallbackQuery,
+)
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 # ================== SOZLAMALAR ==================
-API_TOKEN = "8231063055:AAE6uspIbD0xVC8Q8PL6aBUEZMUAeL1X2QI"
+
+API_TOKEN = "BOT_TOKENNI_BU_YERGA_QO'Y"
 GROUP_ID = -1001234567890  # guruh ID
 
 ADMIN_IDS = {
@@ -26,11 +30,11 @@ EMPLOYEES = [
     "Toxirov Muslimbek",
     "Ravshanov Oxunjon",
     "Samadov To‘lqum",
-    "Sherazarov Tolib",
+    "Shernazarov Tolib",
     "Ruziboev Sindor",
     "Ruziboev Sardor",
     "Samandar Foto",
-    "Mustafayev Abdullo",
+    "Mustafoev Abdullo",
     "Rajabboev Pulat",
 ]
 
@@ -47,110 +51,156 @@ TASKS = [
     "Пересчет товаров",
 ]
 
-DATA = {}  # {date: {employee: {task: number}}}
-USER_STATE = {}  # user_id -> (employee, task, date)
-
-# ================== INIT ==================
 logging.basicConfig(level=logging.INFO)
+
 bot = Bot(API_TOKEN, parse_mode=ParseMode.HTML)
 dp = Dispatcher()
 scheduler = AsyncIOScheduler()
 
-# ================== KLAVIATURALAR ==================
-def employees_keyboard(date_key: str, test=False):
-    kb = InlineKeyboardBuilder()
-    for emp in EMPLOYEES:
-        kb.button(
-            text=emp,
-            callback_data=f"emp|{emp}|{date_key}|{int(test)}"
-        )
-    kb.adjust(1)
-    return kb.as_markup()
+# vaqtinchalik saqlash
+REPORT_DATA = {}
+WAITING_INPUT = {}
+
+# ================== YORDAMCHI FUNKSIYALAR ==================
+
+def today_key():
+    return datetime.now().strftime("%Y-%m-%d")
 
 
-def tasks_keyboard(emp: str, date_key: str):
-    kb = InlineKeyboardBuilder()
-    for task in TASKS:
-        kb.button(
-            text=f"{task}",
-            callback_data=f"task|{emp}|{task}|{date_key}"
-        )
-    kb.adjust(2)
-    return kb.as_markup()
-
-# ================== HISOBOT TEXT ==================
-def build_report(date_key: str, title: str):
+def build_report(date_key, title="KUNLIK HISOBOT"):
     text = f"📊 <b>{title} — {date_key}</b>\n\n"
-    day_data = DATA.get(date_key, {})
+    data = REPORT_DATA.get(date_key, {})
+
     for emp in EMPLOYEES:
         text += f"<b>{emp}</b>\n"
-        emp_data = day_data.get(emp, {})
-        for task in TASKS:
-            val = emp_data.get(task)
-            text += f"{task}: ({val if val is not None else ''})\n"
+        for t in TASKS:
+            val = data.get(emp, {}).get(t)
+            text += f"{t}: ({val if val is not None else ''})\n"
         text += "\n"
+
     return text
 
-# ================== HISOBOT YUBORISH ==================
-async def send_report(test=False):
-    date_key = datetime.now().strftime("%Y-%m-%d")
-    title = "TEST HISOBOT" if test else "KUNLIK HISOBOT"
 
-    await bot.send_message(
-        GROUP_ID,
-        build_report(date_key, title),
-        reply_markup=employees_keyboard(date_key, test)
-    )
+def employees_keyboard(date_key, test=False):
+    kb = InlineKeyboardMarkup(inline_keyboard=[])
+    for emp in EMPLOYEES:
+        kb.inline_keyboard.append([
+            InlineKeyboardButton(
+                text=emp,
+                callback_data=f"emp|{date_key}|{emp}|{'test' if test else 'real'}"
+            )
+        ])
+    return kb
 
-# ================== SCHEDULER ==================
-scheduler.add_job(send_report, "cron", hour=19, minute=30, args=[False])
-scheduler.add_job(send_report, "cron", hour=7, minute=0, args=[False])
 
-# ================== BUYRUQLAR ==================
+def tasks_keyboard(date_key, emp, mode):
+    kb = InlineKeyboardMarkup(inline_keyboard=[])
+    for t in TASKS:
+        kb.inline_keyboard.append([
+            InlineKeyboardButton(
+                text=t,
+                callback_data=f"task|{date_key}|{emp}|{t}|{mode}"
+            )
+        ])
+    return kb
+
+
+# ================== START ==================
+
 @dp.message(Command("start"))
-async def start_cmd(msg: Message):
+async def start(msg: Message):
     await msg.answer("✅ Bot ishlayapti.")
+
+
+# ================== TEST BUYRUQLAR ==================
 
 @dp.message(Command("test1"))
 async def test1(msg: Message):
-    await send_report(test=True)
+    date_key = today_key()
+    await bot.send_message(
+        GROUP_ID,
+        build_report(date_key, "TEST HISOBOT"),
+        reply_markup=employees_keyboard(date_key, test=True)
+    )
+
 
 @dp.message(Command("test2"))
 async def test2(msg: Message):
-    await send_report(test=True)
+    date_key = today_key()
+    await bot.send_message(
+        GROUP_ID,
+        build_report(date_key, "TEST HISOBOT"),
+        reply_markup=employees_keyboard(date_key, test=True)
+    )
+
+
+# ================== REAL HISOBOT ==================
+
+async def send_real_report():
+    date_key = today_key()
+    await bot.send_message(
+        GROUP_ID,
+        build_report(date_key),
+        reply_markup=employees_keyboard(date_key)
+    )
+
 
 # ================== CALLBACKLAR ==================
+
 @dp.callback_query(F.data.startswith("emp|"))
-async def emp_clicked(cb):
-    _, emp, date_key, test = cb.data.split("|")
-    await cb.message.answer(
-        f"<b>{emp}</b> uchun ishni tanlang:",
-        reply_markup=tasks_keyboard(emp, date_key)
+async def choose_employee(call: CallbackQuery):
+    _, date_key, emp, mode = call.data.split("|")
+    await call.message.answer(
+        f"<b>{emp}</b>\nIshni tanlang:",
+        reply_markup=tasks_keyboard(date_key, emp, mode)
     )
-    await cb.answer()
+    await call.answer()
+
 
 @dp.callback_query(F.data.startswith("task|"))
-async def task_clicked(cb):
-    _, emp, task, date_key = cb.data.split("|")
-    USER_STATE[cb.from_user.id] = (emp, task, date_key)
-    await bot.send_message(
-        cb.from_user.id,
-        f"<b>{emp}</b>\n<b>{task}</b>\n\nSonini kiriting:"
-    )
-    await cb.answer("✍️ Shaxsiy chatga yozing")
+async def choose_task(call: CallbackQuery):
+    _, date_key, emp, task, mode = call.data.split("|")
 
-# ================== RAQAM QABUL ==================
-@dp.message(F.text.regexp(r"^\d+$"))
-async def save_number(msg: Message):
-    uid = msg.from_user.id
-    if uid not in USER_STATE:
+    WAITING_INPUT[call.from_user.id] = {
+        "date": date_key,
+        "emp": emp,
+        "task": task,
+    }
+
+    await call.message.answer(
+        f"<b>{emp}</b>\n<b>{task}</b>\n\nRaqam kiriting:",
+    )
+    await call.answer()
+
+
+# ================== RAQAM QABUL QILISH ==================
+
+@dp.message()
+async def get_number(msg: Message):
+    if msg.from_user.id not in WAITING_INPUT:
         return
 
-    emp, task, date_key = USER_STATE.pop(uid)
-    DATA.setdefault(date_key, {}).setdefault(emp, {})[task] = int(msg.text)
+    if not msg.text.isdigit():
+        await msg.answer("❗️Faqat raqam kiriting")
+        return
+
+    info = WAITING_INPUT.pop(msg.from_user.id)
+    date_key = info["date"]
+    emp = info["emp"]
+    task = info["task"]
+
+    REPORT_DATA.setdefault(date_key, {}).setdefault(emp, {})[task] = int(msg.text)
+
     await msg.answer("✅ Saqlandi")
 
+
+# ================== SCHEDULER ==================
+
+scheduler.add_job(send_real_report, "cron", hour=7, minute=0)
+scheduler.add_job(send_real_report, "cron", hour=19, minute=30)
+
 # ================== MAIN ==================
+
 async def main():
     scheduler.start()
     await dp.start_polling(bot)
