@@ -15,7 +15,7 @@ from aiogram.fsm.storage.memory import MemoryStorage
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 # ================== CONFIG ==================
-API_TOKEN = "PUT_YOUR_BOT_TOKEN_HERE"
+API_TOKEN = "8231063055:AAE6uspIbD0xVC8Q8PL6aBUEZMUAeL1X2QI"
 
 ADMINS = {
     5732350707,
@@ -24,7 +24,7 @@ ADMINS = {
     1432810519
 }
 
-GROUP_CHAT_ID = -1001234567890  # 🔴 O'zingning guruh ID ni qo'y
+GROUP_CHAT_ID = -1001877019294  # 🔴 O'zingning guruh ID ni qo'y
 
 EMPLOYEES = [
     "Sagdullaev Yunus",
