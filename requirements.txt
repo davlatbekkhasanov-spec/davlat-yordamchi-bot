@@ -7,3 +7,4 @@ google-auth
 pandas
 apscheduler
 pytz
+apscheduler==3.10.4
