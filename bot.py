@@ -1,18 +1,19 @@
 import logging
+import asyncio
 from aiogram import Bot, Dispatcher, executor, types
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-from datetime import datetime
+from datetime import datetime, date
+from collections import defaultdict
 
 # =======================
 # 🔧 SOZLAMALAR
 # =======================
 
 API_TOKEN = "BOT_TOKENINGNI_BU_YERGA_QOʻY"
+GROUP_ID = -1001877019294
+OWNER_ID = 1432810519
 
-GROUP_ID = -1001877019294   # asosiy guruh
-OWNER_ID = 1432810519       # sen
-
-TEST_MODE = True            # ❗️TEST REJIM
+TEST_MODE = False  # ❗️SINOV UCHUN True QILIB TURASAN
 
 # =======================
 # 👥 XODIMLAR
@@ -34,17 +35,22 @@ EMPLOYEES = [
 FIELDS = [
     "Приход",
     "Перемещение",
+    "Фото тмц",
     "Уборка",
     "Фасовка",
-    "Доставка"
+    "Доставка",
 ]
 
 # =======================
-# 📦 XOTIRA (oddiy)
+# 📦 MA’LUMOTLAR
 # =======================
 
-user_states = {}   # kim nima kiritmoqda
-reports = {}       # natijalar
+user_states = {}
+daily_reports = defaultdict(lambda: defaultdict(lambda: defaultdict(int)))
+total_reports = defaultdict(lambda: defaultdict(int))
+
+# daily_reports[date][employee][field]
+# total_reports[employee][field]
 
 # =======================
 # 🚀 BOT
@@ -54,28 +60,20 @@ logging.basicConfig(level=logging.INFO)
 bot = Bot(token=API_TOKEN)
 dp = Dispatcher(bot)
 
-
 # =======================
 # ▶️ START
 # =======================
 
 @dp.message_handler(commands=["start"])
 async def start(msg: types.Message):
-    await msg.answer(
-        "👑 Salom xo‘jayin!\n"
-        "🧪 Bot TEST rejimida.\n\n"
-        "Sinash uchun 👉 /test_report"
-    )
-
+    await msg.answer("✅ Ombor AI bot ishga tushdi.")
 
 # =======================
-# 🧪 TEST REPORT
+# 🧾 SHABLON YUBORISH
 # =======================
 
-@dp.message_handler(commands=["test_report"])
-async def test_report(msg: types.Message):
-    if TEST_MODE and msg.from_user.id != OWNER_ID:
-        return
+async def send_daily_template():
+    chat_id = OWNER_ID if TEST_MODE else GROUP_ID
 
     for emp in EMPLOYEES:
         kb = InlineKeyboardMarkup(row_width=2)
@@ -87,67 +85,89 @@ async def test_report(msg: types.Message):
                 )
             )
 
-        await msg.answer(f"👤 {emp}\nBo‘limni tanlang:", reply_markup=kb)
-
+        await bot.send_message(
+            chat_id,
+            f"📋 HISOBOT\n👤 {emp}\nBo‘limni tanlang:",
+            reply_markup=kb
+        )
 
 # =======================
 # 🔘 TUGMA BOSILDI
 # =======================
 
 @dp.callback_query_handler()
-async def handle_button(call: types.CallbackQuery):
+async def button_handler(call: types.CallbackQuery):
     emp, field = call.data.split("|")
-
     user_states[call.from_user.id] = (emp, field)
-
-    await call.message.answer(
-        f"✏️ {emp}\n"
-        f"{field} uchun raqam kiriting:"
-    )
+    await call.message.answer(f"✏️ {emp}\n{field} uchun raqam kiriting:")
     await call.answer()
 
-
 # =======================
-# 🔢 RAQAM KIRITISH
+# 🔢 RAQAM QABUL
 # =======================
 
 @dp.message_handler(lambda m: m.text.isdigit())
-async def handle_number(msg: types.Message):
+async def number_handler(msg: types.Message):
     uid = msg.from_user.id
     if uid not in user_states:
         return
 
     emp, field = user_states.pop(uid)
+    today = date.today().isoformat()
 
-    reports.setdefault(emp, {})
-    reports[emp][field] = msg.text
+    value = int(msg.text)
+    daily_reports[today][emp][field] += value
+    total_reports[emp][field] += value
 
     await msg.answer(
-        f"✅ Saqlandi:\n"
-        f"{emp}\n"
-        f"{field} ( {msg.text} )"
+        f"✅ Saqlandi:\n{emp}\n{field} ( {value} )"
     )
 
-
 # =======================
-# 🧾 NATIJANI KO‘RISH
+# 📊 NATIJA E’LON QILISH
 # =======================
 
-@dp.message_handler(commands=["result"])
-async def show_result(msg: types.Message):
-    text = "📊 HISOBOT:\n\n"
-    for emp, data in reports.items():
+async def publish_results():
+    chat_id = OWNER_ID if TEST_MODE else GROUP_ID
+    yesterday = date.today().isoformat()
+
+    text = f"📊 HISOBOT ({yesterday})\n\n"
+
+    for emp in EMPLOYEES:
         text += f"👤 {emp}\n"
-        for f, v in data.items():
-            text += f"• {f} ( {v} )\n"
+        for f in FIELDS:
+            day_val = daily_reports[yesterday][emp].get(f, 0)
+            total_val = total_reports[emp].get(f, 0)
+            text += f"• {f}: {day_val} | Jami: {total_val}\n"
         text += "\n"
 
-    await msg.answer(text or "Hali ma’lumot yo‘q.")
+    await bot.send_message(chat_id, text)
 
+# =======================
+# ⏰ VAQT SCHEDULER
+# =======================
+
+async def scheduler():
+    while True:
+        now = datetime.utcnow()
+
+        # 19:30 UZ → 14:30 UTC
+        if now.hour == 14 and now.minute == 30:
+            await send_daily_template()
+            await asyncio.sleep(60)
+
+        # 07:00 UZ → 02:00 UTC
+        if now.hour == 2 and now.minute == 0:
+            await publish_results()
+            await asyncio.sleep(60)
+
+        await asyncio.sleep(20)
 
 # =======================
 # ▶️ RUN
 # =======================
 
 if __name__ == "__main__":
+    loop = asyncio.get_event_loop()
+    loop.create_task(scheduler())
     executor.start_polling(dp, skip_updates=True)
