@@ -1,9 +1,12 @@
-import logging
 import asyncio
-from aiogram import Bot, Dispatcher, executor, types
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+import logging
 from datetime import datetime, date
 from collections import defaultdict
+
+from aiogram import Bot, Dispatcher, types
+from aiogram.filters import Command
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.enums import ParseMode
 
 # =======================
 # 🔧 SOZLAMALAR
@@ -13,7 +16,7 @@ API_TOKEN = "BOT_TOKENINGNI_BU_YERGA_QOʻY"
 GROUP_ID = -1001877019294
 OWNER_ID = 1432810519
 
-TEST_MODE = False  # ❗️SINOV UCHUN True QILIB TURASAN
+TEST_MODE = True  # 🔴 avval TEST, keyin False qilamiz
 
 # =======================
 # 👥 XODIMLAR
@@ -49,64 +52,64 @@ user_states = {}
 daily_reports = defaultdict(lambda: defaultdict(lambda: defaultdict(int)))
 total_reports = defaultdict(lambda: defaultdict(int))
 
-# daily_reports[date][employee][field]
-# total_reports[employee][field]
-
 # =======================
 # 🚀 BOT
 # =======================
 
 logging.basicConfig(level=logging.INFO)
-bot = Bot(token=API_TOKEN)
-dp = Dispatcher(bot)
+
+bot = Bot(API_TOKEN, parse_mode=ParseMode.HTML)
+dp = Dispatcher()
 
 # =======================
 # ▶️ START
 # =======================
 
-@dp.message_handler(commands=["start"])
+@dp.message(Command("start"))
 async def start(msg: types.Message):
     await msg.answer("✅ Ombor AI bot ishga tushdi.")
 
 # =======================
-# 🧾 SHABLON YUBORISH
+# 🧾 SHABLON
 # =======================
 
 async def send_daily_template():
     chat_id = OWNER_ID if TEST_MODE else GROUP_ID
 
     for emp in EMPLOYEES:
-        kb = InlineKeyboardMarkup(row_width=2)
-        for f in FIELDS:
-            kb.add(
+        kb = InlineKeyboardMarkup(inline_keyboard=[
+            [
                 InlineKeyboardButton(
                     text=f,
                     callback_data=f"{emp}|{f}"
                 )
-            )
+            ] for f in FIELDS
+        ])
 
         await bot.send_message(
             chat_id,
-            f"📋 HISOBOT\n👤 {emp}\nBo‘limni tanlang:",
+            f"📋 <b>HISOBOT</b>\n👤 <b>{emp}</b>\nBo‘limni tanlang:",
             reply_markup=kb
         )
 
 # =======================
-# 🔘 TUGMA BOSILDI
+# 🔘 TUGMA
 # =======================
 
-@dp.callback_query_handler()
+@dp.callback_query()
 async def button_handler(call: types.CallbackQuery):
     emp, field = call.data.split("|")
     user_states[call.from_user.id] = (emp, field)
-    await call.message.answer(f"✏️ {emp}\n{field} uchun raqam kiriting:")
+    await call.message.answer(
+        f"✏️ <b>{emp}</b>\n<b>{field}</b> uchun raqam kiriting:"
+    )
     await call.answer()
 
 # =======================
-# 🔢 RAQAM QABUL
+# 🔢 RAQAM
 # =======================
 
-@dp.message_handler(lambda m: m.text.isdigit())
+@dp.message(lambda m: m.text and m.text.isdigit())
 async def number_handler(msg: types.Message):
     uid = msg.from_user.id
     if uid not in user_states:
@@ -114,37 +117,37 @@ async def number_handler(msg: types.Message):
 
     emp, field = user_states.pop(uid)
     today = date.today().isoformat()
-
     value = int(msg.text)
+
     daily_reports[today][emp][field] += value
     total_reports[emp][field] += value
 
     await msg.answer(
-        f"✅ Saqlandi:\n{emp}\n{field} ( {value} )"
+        f"✅ Saqlandi:\n<b>{emp}</b>\n{field} ( {value} )"
     )
 
 # =======================
-# 📊 NATIJA E’LON QILISH
+# 📊 NATIJA
 # =======================
 
 async def publish_results():
     chat_id = OWNER_ID if TEST_MODE else GROUP_ID
-    yesterday = date.today().isoformat()
+    today = date.today().isoformat()
 
-    text = f"📊 HISOBOT ({yesterday})\n\n"
+    text = f"📊 <b>HISOBOT ({today})</b>\n\n"
 
     for emp in EMPLOYEES:
-        text += f"👤 {emp}\n"
+        text += f"👤 <b>{emp}</b>\n"
         for f in FIELDS:
-            day_val = daily_reports[yesterday][emp].get(f, 0)
-            total_val = total_reports[emp].get(f, 0)
-            text += f"• {f}: {day_val} | Jami: {total_val}\n"
+            d = daily_reports[today][emp].get(f, 0)
+            t = total_reports[emp].get(f, 0)
+            text += f"• {f}: {d} | Jami: {t}\n"
         text += "\n"
 
     await bot.send_message(chat_id, text)
 
 # =======================
-# ⏰ VAQT SCHEDULER
+# ⏰ SCHEDULER (UTC)
 # =======================
 
 async def scheduler():
@@ -167,7 +170,9 @@ async def scheduler():
 # ▶️ RUN
 # =======================
 
+async def main():
+    asyncio.create_task(scheduler())
+    await dp.start_polling(bot)
+
 if __name__ == "__main__":
-    loop = asyncio.get_event_loop()
-    loop.create_task(scheduler())
-    executor.start_polling(dp, skip_updates=True)
+    asyncio.run(main())
