@@ -1,36 +1,32 @@
 import asyncio
 import logging
-from datetime import datetime
+import sqlite3
+from datetime import datetime, date, timedelta
+
 from aiogram import Bot, Dispatcher, F
+from aiogram.types import Message, CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.enums import ParseMode
-from aiogram.types import (
-    Message,
-    InlineKeyboardButton,
-    InlineKeyboardMarkup,
-    CallbackQuery
-)
+from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup, State
-from aiogram.fsm.storage.memory import MemoryStorage
+
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
-# ================== CONFIG ==================
-API_TOKEN = "8231063055:AAE6uspIbD0xVC8Q8PL6aBUEZMUAeL1X2QI"
-
-ADMINS = {
-    5732350707,
-    2624538,
-    6991673998,
-    1432810519
-}
-
-GROUP_CHAT_ID = -1001877019294  # 🔴 O'zingning guruh ID ni qo'y
+# ================= CONFIG =================
+BOT_TOKEN = "PUT_BOT_TOKEN_HERE"
+GROUP_ID = -1001234567890
 
 EMPLOYEES = [
     "Sagdullaev Yunus",
     "Toxirov Muslimbek",
+    "Ravshanov Oxunjon",
+    "Samadov To‘lqin",
+    "Shernazarov Tolib",
+    "Ruziboev Sindor",
+    "Ruziboev Sardor",
+    "Samandar Foto",
+    "Mustafoev Abdullo",
     "Rajabboev Pulat",
-    "Ravshanov Oxunjon"
 ]
 
 TASKS = [
@@ -43,176 +39,165 @@ TASKS = [
     "Доставка",
     "Переоценка",
     "Акт пересортица",
-    "Пересчет товаров"
+    "Пересчет товаров",
 ]
 
-# ================== STORAGE ==================
-report_data = {}
-report_message_id = None
-
-# ================== FSM ==================
-class ReportState(StatesGroup):
-    choose_employee = State()
-    choose_task = State()
-    enter_value = State()
-
-# ================== INIT ==================
+# ================= INIT =================
 logging.basicConfig(level=logging.INFO)
-bot = Bot(API_TOKEN, parse_mode=ParseMode.HTML)
+bot = Bot(BOT_TOKEN, parse_mode=ParseMode.HTML)
 dp = Dispatcher(storage=MemoryStorage())
 scheduler = AsyncIOScheduler()
 
-# ================== HELPERS ==================
-def build_main_menu():
-    return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="📝 Hisobot kiritish", callback_data="start_report")],
-        [InlineKeyboardButton(text="📊 Bugungi holat", callback_data="view_report")]
-    ])
+# ================= DATABASE =================
+db = sqlite3.connect("reports.db")
+cur = db.cursor()
 
-def employee_keyboard():
-    return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text=e, callback_data=f"emp:{e}")]
-        for e in EMPLOYEES
-    ] + [[InlineKeyboardButton(text="⬅️ Orqaga", callback_data="back_main")]])
+cur.execute("""
+CREATE TABLE IF NOT EXISTS reports (
+    work_date TEXT,
+    employee TEXT,
+    task TEXT,
+    value INTEGER
+)
+""")
 
-def task_keyboard():
-    return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text=t, callback_data=f"task:{t}")]
-        for t in TASKS
-    ] + [[InlineKeyboardButton(text="⬅️ Orqaga", callback_data="back_emp")]])
+cur.execute("""
+CREATE TABLE IF NOT EXISTS meta (
+    key TEXT PRIMARY KEY,
+    value TEXT
+)
+""")
 
-def build_report_text(title):
-    text = f"📊 <b>{title}</b>\n\n"
+db.commit()
+
+def set_meta(key, value):
+    cur.execute("REPLACE INTO meta (key, value) VALUES (?,?)", (key, value))
+    db.commit()
+
+def get_meta(key):
+    cur.execute("SELECT value FROM meta WHERE key=?", (key,))
+    r = cur.fetchone()
+    return r[0] if r else None
+
+# ================= FSM =================
+class InputFSM(StatesGroup):
+    waiting_value = State()
+
+# ================= HELPERS =================
+def current_work_date():
+    now = datetime.now()
+    if now.time() < datetime.strptime("07:30", "%H:%M").time():
+        return (date.today() - timedelta(days=1)).isoformat()
+    return date.today().isoformat()
+
+def build_report(for_date):
+    text = f"📊 <b>HISOBOT — {for_date}</b>\n\n"
     for emp in EMPLOYEES:
         text += f"<b>{emp}</b>\n"
-        for t in TASKS:
-            val = report_data.get(emp, {}).get(t, "")
-            text += f"{t}: ({val})\n"
+        for task in TASKS:
+            cur.execute(
+                "SELECT value FROM reports WHERE work_date=? AND employee=? AND task=?",
+                (for_date, emp, task)
+            )
+            r = cur.fetchone()
+            text += f"{task}: ({r[0] if r else ''})\n"
         text += "\n"
     return text
 
-async def update_group_report(title):
-    global report_message_id
-    text = build_report_text(title)
+def build_month_sum(year_month):
+    text = f"📈 <b>OY JAMLANMASI — {year_month}</b>\n\n"
+    for emp in EMPLOYEES:
+        text += f"<b>{emp}</b>\n"
+        for task in TASKS:
+            cur.execute("""
+            SELECT SUM(value) FROM reports
+            WHERE employee=? AND task=? AND substr(work_date,1,7)=?
+            """, (emp, task, year_month))
+            s = cur.fetchone()[0]
+            text += f"{task}: ({s if s else 0})\n"
+        text += "\n"
+    return text
 
-    if report_message_id:
-        await bot.edit_message_text(
-            chat_id=GROUP_CHAT_ID,
-            message_id=report_message_id,
-            text=text
-        )
-    else:
-        msg = await bot.send_message(GROUP_CHAT_ID, text)
-        report_message_id = msg.message_id
+def employee_kb():
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text=e, callback_data=f"emp|{e}")]
+        for e in EMPLOYEES
+    ])
 
-# ================== COMMANDS ==================
+def task_kb(emp):
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text=t, callback_data=f"task|{emp}|{t}")]
+        for t in TASKS
+    ])
+
+# ================= USER FLOW =================
 @dp.message(F.text == "/start")
-async def start_cmd(message: Message):
-    await message.answer(
-        "✅ Bot ishlayapti.\n\nQuyidan tanlang:",
-        reply_markup=build_main_menu()
+async def start(m: Message):
+    await m.answer(
+        "📝 Hisobot kiritish uchun xodimni tanlang:",
+        reply_markup=employee_kb()
     )
 
-@dp.message(F.text == "/test1")
-async def test1(message: Message):
-    await update_group_report("TEST HISOBOT — 07:00")
-
-@dp.message(F.text == "/test2")
-async def test2(message: Message):
-    await update_group_report("TEST HISOBOT — 19:30")
-
-# ================== CALLBACKS ==================
-@dp.callback_query(F.data == "start_report")
-async def start_report(cb: CallbackQuery, state: FSMContext):
-    await state.set_state(ReportState.choose_employee)
-    await cb.message.edit_text(
-        "👤 Xodimni tanlang:",
-        reply_markup=employee_keyboard()
+@dp.callback_query(F.data.startswith("emp|"))
+async def choose_emp(c: CallbackQuery, state: FSMContext):
+    emp = c.data.split("|")[1]
+    await state.update_data(emp=emp)
+    await c.message.edit_text(
+        f"<b>{emp}</b>\nIshni tanlang:",
+        reply_markup=task_kb(emp)
     )
 
-@dp.callback_query(F.data == "view_report")
-async def view_report(cb: CallbackQuery):
-    await cb.message.answer(
-        build_report_text("BUGUNGI HISOBOT")
-    )
-
-@dp.callback_query(F.data.startswith("emp:"))
-async def choose_employee(cb: CallbackQuery, state: FSMContext):
-    emp = cb.data.split(":", 1)[1]
-    await state.update_data(employee=emp)
-    await state.set_state(ReportState.choose_task)
-    await cb.message.edit_text(
-        f"👤 {emp}\n\n📌 Ish turini tanlang:",
-        reply_markup=task_keyboard()
-    )
-
-@dp.callback_query(F.data.startswith("task:"))
-async def choose_task(cb: CallbackQuery, state: FSMContext):
-    task = cb.data.split(":", 1)[1]
+@dp.callback_query(F.data.startswith("task|"))
+async def choose_task(c: CallbackQuery, state: FSMContext):
+    _, emp, task = c.data.split("|")
     await state.update_data(task=task)
-    await state.set_state(ReportState.enter_value)
-    await cb.message.edit_text(
-        f"✏️ <b>{task}</b>\n\nRaqam kiriting:"
+    await state.set_state(InputFSM.waiting_value)
+    await c.message.answer(
+        f"{emp}\n<b>{task}</b>\nRaqam kiriting:"
     )
 
-@dp.message(ReportState.enter_value)
-async def enter_value(message: Message, state: FSMContext):
+@dp.message(InputFSM.waiting_value)
+async def save_value(m: Message, state: FSMContext):
+    if not m.text.isdigit():
+        await m.answer("❌ Faqat raqam kiriting")
+        return
+
     data = await state.get_data()
-    emp = data["employee"]
-    task = data["task"]
+    work_date = current_work_date()
 
-    report_data.setdefault(emp, {})[task] = message.text
+    cur.execute("""
+    DELETE FROM reports WHERE work_date=? AND employee=? AND task=?
+    """, (work_date, data["emp"], data["task"]))
 
-    await update_group_report(
-        f"KUNLIK HISOBOT — {datetime.now().strftime('%Y-%m-%d')}"
-    )
+    cur.execute("""
+    INSERT INTO reports VALUES (?,?,?,?)
+    """, (work_date, data["emp"], data["task"], int(m.text)))
 
+    db.commit()
     await state.clear()
-    await message.answer(
-        "✅ Saqlandi.\n\nYana davom etamizmi?",
-        reply_markup=build_main_menu()
-    )
+    await m.answer("✅ Saqlandi. /start bosib davom etishingiz mumkin.")
 
-@dp.callback_query(F.data == "back_main")
-async def back_main(cb: CallbackQuery, state: FSMContext):
-    await state.clear()
-    await cb.message.edit_text(
-        "Asosiy menyu:",
-        reply_markup=build_main_menu()
-    )
+# ================= SCHEDULE =================
+async def morning_report():
+    wd = (date.today() - timedelta(days=1)).isoformat()
+    ym = wd[:7]
+    text = build_report(wd) + "\n\n" + build_month_sum(ym)
+    await bot.send_message(GROUP_ID, text)
 
-@dp.callback_query(F.data == "back_emp")
-async def back_emp(cb: CallbackQuery, state: FSMContext):
-    await state.set_state(ReportState.choose_employee)
-    await cb.message.edit_text(
-        "👤 Xodimni tanlang:",
-        reply_markup=employee_keyboard()
-    )
+async def open_new_day():
+    set_meta("current_day", date.today().isoformat())
 
-# ================== SCHEDULER ==================
-scheduler.add_job(
-    lambda: asyncio.create_task(
-        update_group_report(
-            f"KUNLIK HISOBOT — {datetime.now().strftime('%Y-%m-%d')} (07:00)"
-        )
-    ),
-    "cron",
-    hour=7,
-    minute=0
-)
+async def reset_month():
+    today = date.today()
+    if today.day == 3:
+        cur.execute("DELETE FROM reports")
+        db.commit()
 
-scheduler.add_job(
-    lambda: asyncio.create_task(
-        update_group_report(
-            f"KUNLIK HISOBOT — {datetime.now().strftime('%Y-%m-%d')} (19:30)"
-        )
-    ),
-    "cron",
-    hour=19,
-    minute=30
-)
+scheduler.add_job(open_new_day, "cron", hour=19, minute=30)
+scheduler.add_job(morning_report, "cron", hour=7, minute=30)
+scheduler.add_job(reset_month, "cron", hour=0, minute=0)
 
-# ================== START ==================
+# ================= MAIN =================
 async def main():
     scheduler.start()
     await dp.start_polling(bot)
