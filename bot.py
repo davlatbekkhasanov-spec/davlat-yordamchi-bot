@@ -1,28 +1,31 @@
 import asyncio
 import logging
 import os
-from datetime import datetime
 
 from aiogram import Bot, Dispatcher, F
 from aiogram.enums import ParseMode
-from aiogram.types import Message
+from aiogram.types import (
+    Message,
+    InlineKeyboardMarkup,
+    InlineKeyboardButton,
+    CallbackQuery,
+)
 from aiogram.filters import Command
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
-# ================== CONFIG ==================
+# ================= CONFIG =================
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 GROUP_ID = int(os.getenv("GROUP_ID", "0"))
 
 if not BOT_TOKEN:
-    raise RuntimeError("BOT_TOKEN environment variable is missing")
+    raise RuntimeError("BOT_TOKEN missing")
 
 logging.basicConfig(level=logging.INFO)
 
-# ================== BOT ==================
-bot = Bot(token=BOT_TOKEN, parse_mode=ParseMode.HTML)
+bot = Bot(BOT_TOKEN, parse_mode=ParseMode.HTML)
 dp = Dispatcher()
 
-# ================== DATA ==================
+# ================= DATA =================
 EMPLOYEES = [
     "Sagdullaev Yunus",
     "Toxirov Muslimbek",
@@ -41,82 +44,98 @@ FIELDS = [
     "Перемещение",
     "Фото тмц",
     "Уборка",
-    "Счет ТСД",
-    "Фасовка",
-    "Услуга",
-    "Выгрузка/отгрузка",
-    "Доставка",
-    "Переоценка",
-    "Акт пересортица",
-    "Пересчет товаров",
 ]
 
-# vaqtincha RAM da (keyin DB qilamiz)
+# reports[employee][field] = value
 reports = {}
 
-# ================== HELPERS ==================
-def build_template():
+# vaqtinchalik kim nimani kiritayapti
+waiting_input = {}
+
+# ================= HELPERS =================
+def build_keyboard(emp):
+    buttons = []
+    for f in FIELDS:
+        buttons.append([
+            InlineKeyboardButton(
+                text=f"✏️ {f}",
+                callback_data=f"edit|{emp}|{f}"
+            )
+        ])
+    return InlineKeyboardMarkup(inline_keyboard=buttons)
+
+def build_text():
     text = "📋 <b>KUNLIK HISOBOT</b>\n\n"
     for emp in EMPLOYEES:
         text += f"<b>{emp}</b>\n"
         for f in FIELDS:
-            text += f"{f}: ( )\n"
+            val = reports.get(emp, {}).get(f, "—")
+            text += f"{f}: ( {val} )\n"
         text += "\n"
     return text
 
-def build_summary():
-    text = "📊 <b>NATIJALAR</b>\n\n"
-    for emp, data in reports.items():
-        text += f"<b>{emp}</b>\n"
-        for k, v in data.items():
-            text += f"{k}: {v}\n"
-        text += "\n"
-    return text if reports else "❗️Ma’lumot kiritilmadi"
-
-# ================== COMMANDS ==================
+# ================= COMMANDS =================
 @dp.message(Command("start"))
-async def start_cmd(message: Message):
+async def start(message: Message):
     await message.answer(
-        "✅ Bot ishlayapti.\n"
-        "/test_report — test shablon\n"
-        "Hisobotlar har kuni 19:30 da yuboriladi."
+        "✅ Bot ishlayapti\n"
+        "/test_report — test shablon"
     )
 
 @dp.message(Command("test_report"))
 async def test_report(message: Message):
-    await message.answer(build_template())
+    msg = await bot.send_message(
+        GROUP_ID,
+        build_text(),
+        reply_markup=build_keyboard(EMPLOYEES[0])
+    )
+    # bitta xabarni hamma uchun ishlatamiz
+    dp["report_message_id"] = msg.message_id
 
-# ================== SCHEDULER TASKS ==================
-async def send_daily_template():
-    try:
-        await bot.send_message(GROUP_ID, build_template())
-    except Exception as e:
-        logging.error(f"Template error: {e}")
+# ================= CALLBACK =================
+@dp.callback_query(F.data.startswith("edit|"))
+async def edit_field(call: CallbackQuery):
+    _, emp, field = call.data.split("|")
 
-async def send_daily_summary():
-    try:
-        await bot.send_message(GROUP_ID, build_summary())
-        reports.clear()
-    except Exception as e:
-        logging.error(f"Summary error: {e}")
+    waiting_input[call.from_user.id] = (emp, field)
 
-# ================== TEXT HANDLER (NUMBER INPUT) ==================
-@dp.message(F.text.regexp(r"\d+"))
-async def handle_numbers(message: Message):
-    name = message.from_user.full_name
-    if name not in reports:
-        reports[name] = {}
+    await call.message.answer(
+        f"✍️ <b>{emp}</b>\n{field} uchun raqam kiriting:"
+    )
+    await call.answer()
 
-    reports[name]["Kiritilgan"] = reports[name].get("Kiritilgan", 0) + int(message.text)
-    await message.reply("✅ Qabul qilindi")
+# ================= NUMBER INPUT =================
+@dp.message(F.text.regexp(r"^\d+$"))
+async def save_number(message: Message):
+    uid = message.from_user.id
+    if uid not in waiting_input:
+        return
 
-# ================== MAIN ==================
+    emp, field = waiting_input.pop(uid)
+
+    reports.setdefault(emp, {})[field] = message.text
+
+    await bot.edit_message_text(
+        chat_id=GROUP_ID,
+        message_id=dp["report_message_id"],
+        text=build_text(),
+        reply_markup=build_keyboard(emp)
+    )
+
+    await message.answer("✅ Saqlandi")
+
+# ================= SCHEDULER =================
+async def send_daily():
+    msg = await bot.send_message(
+        GROUP_ID,
+        build_text(),
+        reply_markup=build_keyboard(EMPLOYEES[0])
+    )
+    dp["report_message_id"] = msg.message_id
+
 async def main():
     scheduler = AsyncIOScheduler(timezone="Asia/Tashkent")
-
-    scheduler.add_job(send_daily_template, "cron", hour=19, minute=30)
-    scheduler.add_job(send_daily_summary, "cron", hour=7, minute=0)
-
+    scheduler.add_job(send_daily, "cron", hour=19, minute=30)
     scheduler.start()
 
     await dp.start_polling(bot)
