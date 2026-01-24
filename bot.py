@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 
 from aiogram import Bot, Dispatcher, F
 from aiogram.types import Message
-from aiogram.filters import CommandStart
+from aiogram.filters import CommandStart, Command
 from dotenv import load_dotenv
 from openai import AsyncOpenAI
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
@@ -22,10 +22,14 @@ TZ = pytz.timezone("Asia/Tashkent")
 
 # ================= ROLES =================
 OWNERS = {1432810519, 2624538}
-def is_owner(uid): return uid in OWNERS
-def role(uid): return "XO‘JAYIN" if is_owner(uid) else "ISHCHI"
 
-# ================= AI (OLD SYSTEM) =================
+def is_owner(uid):
+    return uid in OWNERS
+
+def role(uid):
+    return "XO‘JAYIN" if is_owner(uid) else "ISHCHI"
+
+# ================= AI SYSTEM (OLD) =================
 CHAT_MEMORY = defaultdict(lambda: deque(maxlen=15))
 ai = AsyncOpenAI(api_key=OPENAI_API_KEY)
 
@@ -40,11 +44,13 @@ async def ask_ai(chat_id, uid, text):
     msgs = [{"role": "system", "content": SYSTEM_PROMPT}]
     msgs.extend(CHAT_MEMORY[chat_id])
     msgs.append({"role": "user", "content": f"ROL:{role(uid)}\n{text}"})
+
     r = await ai.chat.completions.create(
         model="gpt-4o-mini",
         messages=msgs,
         temperature=0.25
     )
+
     ans = r.choices[0].message.content.strip()
     CHAT_MEMORY[chat_id].append({"role": "user", "content": text})
     CHAT_MEMORY[chat_id].append({"role": "assistant", "content": ans})
@@ -54,7 +60,7 @@ async def ask_ai(chat_id, uid, text):
 bot = Bot(BOT_TOKEN)
 dp = Dispatcher()
 
-# ================= DAILY REPORT DATA =================
+# ================= DAILY REPORT =================
 EMPLOYEES = [
     "Sagdullaev Yunus",
     "Toxirov Muslimbek",
@@ -95,12 +101,11 @@ def save_data(data):
     with open(DATA_FILE, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
 
-# ================= SCHEDULER TASKS =================
+# ================= CORE FUNCTIONS =================
 async def send_daily_form():
-    now = datetime.now(TZ)
-    today = now.strftime("%Y-%m-%d")
-
+    today = datetime.now(TZ).strftime("%Y-%m-%d")
     data = load_data()
+
     data[today] = {"message_id": None, "answers": {}}
 
     text = f"📊 KUNLIK HISOBOT — {today}\n\n"
@@ -122,10 +127,7 @@ async def publish_results():
 
     text = f"📢 HISOBOT NATIJASI — {day}\n\n"
     for emp in EMPLOYEES:
-        if emp in answered:
-            text += f"✅ {emp}\n"
-        else:
-            text += f"❌ {emp}\n"
+        text += f"{'✅' if emp in answered else '❌'} {emp}\n"
 
     await bot.send_message(GROUP_ID, text)
 
@@ -134,10 +136,17 @@ async def publish_results():
 async def start(msg: Message):
     await msg.answer("🤖 Ombor AI ishga tushdi.")
 
+@dp.message(Command("test"))
+async def test_mode(msg: Message):
+    if not is_owner(msg.from_user.id):
+        return
+    await send_daily_form()
+    await msg.reply("🧪 TEST: Shablon yuborildi.")
+
 @dp.message(F.reply_to_message)
 async def collect_answer(msg: Message):
-    data = load_data()
     today = datetime.now(TZ).strftime("%Y-%m-%d")
+    data = load_data()
 
     if today not in data:
         return
