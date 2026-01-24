@@ -13,8 +13,8 @@ from aiogram.fsm.state import StatesGroup, State
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 # ================= CONFIG =================
-BOT_TOKEN = "8231063055:AAE6uspIbD0xVC8Q8PL6aBUEZMUAeL1X2QI"
-GROUP_ID = -1001877019294
+BOT_TOKEN = "PUT_YOUR_BOT_TOKEN"
+GROUP_ID = -1001234567890   # guruh ID
 
 EMPLOYEES = [
     "Sagdullaev Yunus",
@@ -42,6 +42,8 @@ TASKS = [
     "Пересчет товаров",
 ]
 
+DB_PATH = "reports.db"
+
 # ================= INIT =================
 logging.basicConfig(level=logging.INFO)
 bot = Bot(BOT_TOKEN, parse_mode=ParseMode.HTML)
@@ -49,76 +51,72 @@ dp = Dispatcher(storage=MemoryStorage())
 scheduler = AsyncIOScheduler()
 
 # ================= DATABASE =================
-db = sqlite3.connect("reports.db")
-cur = db.cursor()
+def db_exec(query, params=(), fetch=False):
+    conn = sqlite3.connect(DB_PATH)
+    cur = conn.cursor()
+    cur.execute(query, params)
+    data = cur.fetchall() if fetch else None
+    conn.commit()
+    conn.close()
+    return data
 
-cur.execute("""
-CREATE TABLE IF NOT EXISTS reports (
-    work_date TEXT,
-    employee TEXT,
-    task TEXT,
-    value INTEGER
-)
-""")
-
-cur.execute("""
-CREATE TABLE IF NOT EXISTS meta (
-    key TEXT PRIMARY KEY,
-    value TEXT
-)
-""")
-
-db.commit()
-
-def set_meta(key, value):
-    cur.execute("REPLACE INTO meta (key, value) VALUES (?,?)", (key, value))
-    db.commit()
-
-def get_meta(key):
-    cur.execute("SELECT value FROM meta WHERE key=?", (key,))
-    r = cur.fetchone()
-    return r[0] if r else None
+def init_db():
+    db_exec("""
+    CREATE TABLE IF NOT EXISTS reports (
+        work_date TEXT,
+        employee TEXT,
+        task TEXT,
+        value INTEGER
+    )
+    """)
+    db_exec("""
+    CREATE TABLE IF NOT EXISTS meta (
+        key TEXT PRIMARY KEY,
+        value TEXT
+    )
+    """)
 
 # ================= FSM =================
 class InputFSM(StatesGroup):
     waiting_value = State()
 
 # ================= HELPERS =================
-def current_work_date():
-    now = datetime.now()
+def get_work_date(now=None):
+    now = now or datetime.now()
     if now.time() < datetime.strptime("07:30", "%H:%M").time():
         return (date.today() - timedelta(days=1)).isoformat()
     return date.today().isoformat()
 
-def build_report(for_date):
-    text = f"📊 <b>HISOBOT — {for_date}</b>\n\n"
+def build_day_report(work_date):
+    text = f"📊 <b>KUNLIK HISOBOT — {work_date}</b>\n\n"
     for emp in EMPLOYEES:
         text += f"<b>{emp}</b>\n"
         for task in TASKS:
-            cur.execute(
+            r = db_exec(
                 "SELECT value FROM reports WHERE work_date=? AND employee=? AND task=?",
-                (for_date, emp, task)
+                (work_date, emp, task),
+                fetch=True
             )
-            r = cur.fetchone()
-            text += f"{task}: ({r[0] if r else ''})\n"
+            text += f"{task}: ({r[0][0] if r else ''})\n"
         text += "\n"
     return text
 
-def build_month_sum(year_month):
+def build_month_report(year_month):
     text = f"📈 <b>OY JAMLANMASI — {year_month}</b>\n\n"
     for emp in EMPLOYEES:
         text += f"<b>{emp}</b>\n"
         for task in TASKS:
-            cur.execute("""
-            SELECT SUM(value) FROM reports
-            WHERE employee=? AND task=? AND substr(work_date,1,7)=?
-            """, (emp, task, year_month))
-            s = cur.fetchone()[0]
-            text += f"{task}: ({s if s else 0})\n"
+            r = db_exec(
+                "SELECT SUM(value) FROM reports WHERE employee=? AND task=? AND substr(work_date,1,7)=?",
+                (emp, task, year_month),
+                fetch=True
+            )
+            total = r[0][0] if r and r[0][0] else 0
+            text += f"{task}: ({total})\n"
         text += "\n"
     return text
 
-def employee_kb():
+def emp_kb():
     return InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text=e, callback_data=f"emp|{e}")]
         for e in EMPLOYEES
@@ -133,65 +131,71 @@ def task_kb(emp):
 # ================= USER FLOW =================
 @dp.message(F.text == "/start")
 async def start(m: Message):
-    await m.answer(
-        "📝 Hisobot kiritish uchun xodimni tanlang:",
-        reply_markup=employee_kb()
-    )
+    await m.answer("📝 Xodimni tanlang:", reply_markup=emp_kb())
+
+@dp.message(F.text == "/today")
+async def today(m: Message):
+    wd = get_work_date()
+    await m.answer(build_day_report(wd))
+
+@dp.message(F.text == "/test_open")
+async def test_open(m: Message):
+    await m.answer("🧪 TEST: Yangi kun ochildi (19:30)")
+    await open_new_day()
+
+@dp.message(F.text == "/test_close")
+async def test_close(m: Message):
+    await m.answer("🧪 TEST: Kun yopildi (07:30)")
+    await morning_report()
 
 @dp.callback_query(F.data.startswith("emp|"))
 async def choose_emp(c: CallbackQuery, state: FSMContext):
     emp = c.data.split("|")[1]
     await state.update_data(emp=emp)
-    await c.message.edit_text(
-        f"<b>{emp}</b>\nIshni tanlang:",
-        reply_markup=task_kb(emp)
-    )
+    await c.message.edit_text(f"<b>{emp}</b>\nIshni tanlang:", reply_markup=task_kb(emp))
 
 @dp.callback_query(F.data.startswith("task|"))
 async def choose_task(c: CallbackQuery, state: FSMContext):
     _, emp, task = c.data.split("|")
     await state.update_data(task=task)
     await state.set_state(InputFSM.waiting_value)
-    await c.message.answer(
-        f"{emp}\n<b>{task}</b>\nRaqam kiriting:"
-    )
+    await c.message.answer(f"{emp}\n<b>{task}</b>\nRaqam kiriting:")
 
 @dp.message(InputFSM.waiting_value)
 async def save_value(m: Message, state: FSMContext):
     if not m.text.isdigit():
-        await m.answer("❌ Faqat raqam kiriting")
+        await m.answer("❌ Faqat raqam")
         return
 
     data = await state.get_data()
-    work_date = current_work_date()
+    wd = get_work_date()
 
-    cur.execute("""
-    DELETE FROM reports WHERE work_date=? AND employee=? AND task=?
-    """, (work_date, data["emp"], data["task"]))
+    db_exec(
+        "DELETE FROM reports WHERE work_date=? AND employee=? AND task=?",
+        (wd, data["emp"], data["task"])
+    )
+    db_exec(
+        "INSERT INTO reports VALUES (?,?,?,?)",
+        (wd, data["emp"], data["task"], int(m.text))
+    )
 
-    cur.execute("""
-    INSERT INTO reports VALUES (?,?,?,?)
-    """, (work_date, data["emp"], data["task"], int(m.text)))
-
-    db.commit()
     await state.clear()
-    await m.answer("✅ Saqlandi. /start bosib davom etishingiz mumkin.")
+    await m.answer("✅ Saqlandi. /start bilan davom eting.")
 
 # ================= SCHEDULE =================
+async def open_new_day():
+    pass  # logika get_work_date orqali yuradi
+
 async def morning_report():
     wd = (date.today() - timedelta(days=1)).isoformat()
     ym = wd[:7]
-    text = build_report(wd) + "\n\n" + build_month_sum(ym)
+    text = build_day_report(wd) + "\n\n" + build_month_report(ym)
     await bot.send_message(GROUP_ID, text)
-
-async def open_new_day():
-    set_meta("current_day", date.today().isoformat())
 
 async def reset_month():
     today = date.today()
     if today.day == 3:
-        cur.execute("DELETE FROM reports")
-        db.commit()
+        db_exec("DELETE FROM reports")
 
 scheduler.add_job(open_new_day, "cron", hour=19, minute=30)
 scheduler.add_job(morning_report, "cron", hour=7, minute=30)
@@ -199,6 +203,7 @@ scheduler.add_job(reset_month, "cron", hour=0, minute=0)
 
 # ================= MAIN =================
 async def main():
+    init_db()
     scheduler.start()
     await dp.start_polling(bot)
 
