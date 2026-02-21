@@ -26,7 +26,7 @@ EMPLOYEES = [
     "Samadov To'lqin",
     "Shernazarov Tolib",
     "Ruziboev Sindor",
-    "Ruziboev Sardor",
+    "Ravshanov Ziyodullo",
     "Samandar Foto",
     "Mustafoev Abdullo",
     "Rajabboev Pulat"
