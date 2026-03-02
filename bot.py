@@ -11,7 +11,7 @@ from aiogram.types import Message, ReplyKeyboardMarkup, KeyboardButton, ReplyKey
 
 
 # ============================================================
-# CONFIG
+# КОНФИГ
 # ============================================================
 
 logging.basicConfig(level=logging.INFO)
@@ -32,7 +32,7 @@ EMPLOYEES = [
     "Shernazarov Tolib",
     "Ruziboev Sindor",
     "Ravshanov Ziyodullo",
-    "Samandar Foto",
+    "Yadullaev Umidjon",
     "Mustafoev Abdullo",
     "Rajabboev Pulat"
 ]
@@ -59,14 +59,14 @@ EMPLOYEE_PINS = {
     "Shernazarov Tolib": "5555",
     "Ruziboev Sindor": "6666",
     "Ravshanov Ziyodullo": "7777",
-    "Samandar Foto": "8888",
+    "Yadullaev Umidjon": "8888",
     "Mustafoev Abdullo": "9999",
     "Rajabboev Pulat": "0000",
 }
 
 
 # ============================================================
-# BOT
+# БОТ
 # ============================================================
 
 bot = Bot(token=TOKEN)
@@ -87,18 +87,15 @@ conn.commit()
 
 db_lock = asyncio.Lock()
 
-
 async def db_exec(query: str, params: tuple = ()):
     async with db_lock:
         cur.execute(query, params)
         conn.commit()
 
-
 async def db_fetchone(query: str, params: tuple = ()):
     async with db_lock:
         cur.execute(query, params)
         return cur.fetchone()
-
 
 async def db_fetchall(query: str, params: tuple = ()):
     async with db_lock:
@@ -159,7 +156,7 @@ async def seed_pins():
 
 
 # ============================================================
-# KEYBOARDS
+# КЛАВИАТУРА
 # ============================================================
 
 def categories_kb():
@@ -167,7 +164,6 @@ def categories_kb():
         keyboard=[[KeyboardButton(text=c)] for c in CATEGORIES] + [[KeyboardButton(text="❌ Бекор қилиш")]],
         resize_keyboard=True
     )
-
 
 def after_save_kb():
     return ReplyKeyboardMarkup(
@@ -178,7 +174,6 @@ def after_save_kb():
         resize_keyboard=True
     )
 
-
 def delete_date_kb():
     return ReplyKeyboardMarkup(
         keyboard=[
@@ -188,7 +183,6 @@ def delete_date_kb():
         resize_keyboard=True
     )
 
-
 def employees_kb(with_all: bool = False):
     kb = [[KeyboardButton(text=e)] for e in EMPLOYEES]
     if with_all:
@@ -196,13 +190,11 @@ def employees_kb(with_all: bool = False):
     kb.append([KeyboardButton(text="❌ Бекор қилиш")])
     return ReplyKeyboardMarkup(keyboard=kb, resize_keyboard=True)
 
-
 def delete_category_kb():
     kb = [[KeyboardButton(text=c)] for c in CATEGORIES]
     kb.append([KeyboardButton(text="✅ Ҳамма категория")])
     kb.append([KeyboardButton(text="❌ Бекор қилиш")])
     return ReplyKeyboardMarkup(keyboard=kb, resize_keyboard=True)
-
 
 def confirm_kb():
     return ReplyKeyboardMarkup(
@@ -214,28 +206,27 @@ def confirm_kb():
 
 
 # ============================================================
-# HELPERS / STATE
+# HELPERS
 # ============================================================
 
 user_state: dict[int, dict] = {}
 
-
 def is_private(m: Message) -> bool:
     return m.chat.type == "private"
-
 
 def is_admin(user_id: int) -> bool:
     return user_id in ADMINS
 
-
 def get_period_key(d: date | None = None) -> str:
-    """Период ҳар ой 2-санада бошланади. 1-сана -> олдинги ой периодида."""
+    """
+    Период ҳар ой 2-санада бошланади.
+    1-сана -> олдинги ой периодида.
+    """
     d = d or date.today()
     if d.day >= 2:
         return d.strftime("%Y-%m")
     prev = d.replace(day=1) - timedelta(days=1)
     return prev.strftime("%Y-%m")
-
 
 def motivational(delta: int) -> str:
     if delta >= 10:
@@ -248,59 +239,16 @@ def motivational(delta: int) -> str:
         return "🫶 Ҳеч гап йўқ. Бугун сал пастроқ, эртага қайтариб оламиз!"
     return "🙂 Бугун сал камроқ. Руҳни туширмаймиз — темпни яна ошириб кетамиз!"
 
+def box(lines: list[str], title: str | None = None) -> str:
+    lines = [html.escape("" if x is None else str(x)) for x in lines]
+    if title:
+        lines = [html.escape(title), *lines]
 
-def parse_iso_date(s: str) -> str | None:
-    s = (s or "").strip()
-    try:
-        datetime.strptime(s, "%Y-%m-%d")
-        return s
-    except Exception:
-        return None
-
-
-def fair_grade_from_totals(employee_total: int, totals: list[int]) -> tuple[str, str]:
-    """Адолатли баҳо: жамоа ичидаги кунлик натижага нисбатан (percentile)."""
-    if not totals:
-        return ("—", "Ҳали маълумот йўқ.")
-    sorted_totals = sorted(totals)
-    n = len(sorted_totals)
-    if n == 1:
-        return ("A", "Яккасиз — яхши темп!")
-
-    if employee_total == 0:
-        return ("D", "Бугун ҳали старт бўлмади. Бирта иш билан очиб кетамиз 💪")
-
-    rank = 0
-    for v in sorted_totals:
-        if employee_total >= v:
-            rank += 1
-    percentile = rank / n
-
-    if percentile >= 0.90:
-        return ("A+", "Лидер! Шу темпни ушлаб турсак, жуда катта натижа бўлади 🔥")
-    if percentile >= 0.70:
-        return ("A", "Жуда яхши! Барқарорликни сақласак, лидерликка чиқасиз 👏")
-    if percentile >= 0.45:
-        return ("B", "Нормал темп. Озгина босим — натижа яна юқори бўлади 💪")
-    if percentile >= 0.25:
-        return ("C", "Ўртача. Бир-икки йўналишни кучайтирсак, тез ўсиш бўлади 🙂")
-    return ("D", "Бугун пастроқ. Руҳни туширмаймиз — эртага қайтарамиз 🫶")
-
-
-# ---------------- STYLE 1 FRAME ----------------
-def frame_premium(lines: list[str], title: str) -> str:
-    """Telegram HTML + <pre> учун Premium Minimal рамка (STYLE 1)."""
-    safe_lines = [html.escape("" if x is None else str(x)) for x in lines]
-    title = html.escape(title)
-
-    width = max([len(title)] + [len(x) for x in safe_lines] + [0])
-    top = "┌" + "─" * (width + 2) + "┐"
-    mid_title = "│ " + title.center(width) + " │"
-    sep = "├" + "─" * (width + 2) + "┤"
-    body = ["│ " + ln.ljust(width) + " │" for ln in safe_lines]
-    bottom = "└" + "─" * (width + 2) + "┘"
-    return "<pre>" + "\n".join([top, mid_title, sep, *body, bottom]) + "</pre>"
-
+    width = max([len(x) for x in lines] + [0])
+    top = "┏" + "━" * (width + 2) + "┓"
+    mid = ["┃ " + ln.ljust(width) + " ┃" for ln in lines]
+    bottom = "┗" + "━" * (width + 2) + "┛"
+    return "<pre>" + "\n".join([top, *mid, bottom]) + "</pre>"
 
 async def safe_group_send(html_text: str):
     try:
@@ -309,11 +257,10 @@ async def safe_group_send(html_text: str):
         logging.exception("Гуруҳга юборишда хатолик: %s", e)
 
 
-# DB helpers
+# DB query helpers
 async def get_linked_employee(tg_id: int) -> str | None:
     row = await db_fetchone("SELECT employee FROM employee_links WHERE tg_id = ?", (tg_id,))
     return row["employee"] if row else None
-
 
 async def sum_day(day_iso: str, employee: str, category: str) -> int:
     row = await db_fetchone("""
@@ -322,14 +269,12 @@ async def sum_day(day_iso: str, employee: str, category: str) -> int:
     """, (day_iso, employee, category))
     return int(row["s"] or 0)
 
-
 async def sum_day_total(day_iso: str, employee: str) -> int:
     row = await db_fetchone("""
         SELECT COALESCE(SUM(value),0) AS s FROM reports
         WHERE day = ? AND employee = ?
     """, (day_iso, employee))
     return int(row["s"] or 0)
-
 
 async def sum_period(period: str, employee: str, category: str) -> int:
     row = await db_fetchone("""
@@ -338,14 +283,12 @@ async def sum_period(period: str, employee: str, category: str) -> int:
     """, (period, employee, category))
     return int(row["s"] or 0)
 
-
 async def sum_period_total(period: str, employee: str) -> int:
     row = await db_fetchone("""
         SELECT COALESCE(SUM(value),0) AS s FROM reports
         WHERE period = ? AND employee = ?
     """, (period, employee))
     return int(row["s"] or 0)
-
 
 async def day_has_any(day_iso: str, employee: str, category: str) -> bool:
     row = await db_fetchone("""
@@ -355,7 +298,6 @@ async def day_has_any(day_iso: str, employee: str, category: str) -> bool:
     """, (day_iso, employee, category))
     return row is not None
 
-
 async def get_plan(period: str, employee: str, category: str) -> int | None:
     row = await db_fetchone("""
         SELECT plan_value FROM monthly_plans
@@ -363,9 +305,50 @@ async def get_plan(period: str, employee: str, category: str) -> int | None:
     """, (period, employee, category))
     return int(row["plan_value"]) if row else None
 
+def parse_iso_date(s: str) -> str | None:
+    s = s.strip()
+    try:
+        # YYYY-MM-DD
+        datetime.strptime(s, "%Y-%m-%d")
+        return s
+    except Exception:
+        return None
+
+def fair_grade_from_totals(employee_total: int, totals: list[int]) -> tuple[str, str]:
+    """
+    Адолатли баҳолаш: жамоа ичидаги кунлик натижаларга нисбатан процентил.
+    totals: барча ходимларнинг total’и
+    """
+    if not totals:
+        return ("—", "Ҳали маълумот йўқ.")
+    sorted_totals = sorted(totals)
+    n = len(sorted_totals)
+    if n == 1:
+        return ("A", "Яккасиз — яхши темп!")
+
+    # rank (0..n-1)
+    rank = 0
+    for v in sorted_totals:
+        if employee_total >= v:
+            rank += 1
+    percentile = rank / n  # 0..1
+
+    if employee_total == 0:
+        return ("D", "Бугун ҳали старт бўлмади. Бирта иш билан очиб кетамиз 💪")
+
+    if percentile >= 0.90:
+        return ("A+", "Лидер! Шу темпни ушлаб турсак, жуда катта натижа бўлади 🔥")
+    if percentile >= 0.70:
+        return ("A", "Жуда яхши! Барқарорликни сақласак, лидерликка чиқасиз 👏")
+    if percentile >= 0.45:
+        return ("B", "Нормал темп. Озгина босим — натижа яна юқори бўлади 💪")
+    if percentile >= 0.25:
+        return ("C", "Ўртача. Ҳозирдан бир-икки йўналишни кучайтирсак, тез ўсиш бўлади 🙂")
+    return ("D", "Бугун пастроқ. Руҳни туширмаймиз — эртага қайтарамиз 🫶")
+
 
 # ============================================================
-# LINK / START / CANCEL
+# /link /start /cancel
 # ============================================================
 
 @dp.message(Command("link"))
@@ -430,7 +413,7 @@ async def cancel_btn(message: Message):
 
 
 # ============================================================
-# CATEGORY -> NUMBER (NO GROUP SPAM)
+# Категория -> Сон (ГУРУҲГА СПАМ ЙЎҚ)
 # ============================================================
 
 @dp.message(lambda m: is_private(m) and m.text in CATEGORIES)
@@ -523,14 +506,13 @@ async def finalize_report(message: Message):
     yday_iso = (today - timedelta(days=1)).isoformat()
     period = get_period_key(today)
 
-    # session agregatsiya
     agg: dict[str, int] = {}
     for it in state["session"]:
         agg[it["category"]] = agg.get(it["category"], 0) + int(it["added"])
 
     best_cat, best_add = max(agg.items(), key=lambda x: x[1])
 
-    # umumiy baho (faqat ishlatilgan kategoriyalar bo'yicha)
+    # умумий баҳо (фақат иштирок этган категориялар бўйича)
     today_total = 0
     yday_total = 0
     for cat in agg.keys():
@@ -572,7 +554,7 @@ async def finalize_report(message: Message):
     lines.append(f"⭐ Энг кучли йўналиш: {best_cat} (+{best_add})")
     lines.append(f"🔥 Умумий баҳо: {overall_text}")
 
-    await safe_group_send(frame_premium(lines, title="КУНЛИК ҲИСОБОТ (ЯКУН)"))
+    await safe_group_send(box(lines, title="КУНЛИК ҲИСОБОТ (ЯКУН)"))
 
     await message.answer("✅ Якунланди. /start билан янги ҳисобот бошланг.", reply_markup=ReplyKeyboardRemove())
     user_state.pop(message.from_user.id, None)
@@ -584,7 +566,7 @@ async def undo_btn(message: Message):
 
 
 # ============================================================
-# /me (employee)
+# /me (ходим)
 # ============================================================
 
 @dp.message(Command("me"))
@@ -622,11 +604,11 @@ async def me_cmd(message: Message):
             ytxt = "кеча йўқ"
         lines.append(f"• {cat}: бугун {t} ({ytxt}) | период {p}")
 
-    await message.answer(frame_premium(lines, title="МЕНИНГ СТАТИСТИКАМ"), parse_mode="HTML")
+    await message.answer(box(lines, title="МЕНИНГ СТАТИСТИКАМ"), parse_mode="HTML")
 
 
 # ============================================================
-# /undo (employee)
+# /undo (ходим)
 # ============================================================
 
 @dp.message(Command("undo"))
@@ -658,7 +640,6 @@ async def undo_cmd(message: Message):
 
     await db_exec("DELETE FROM reports WHERE id = ?", (rid,))
 
-    # sessionдан ҳам олиб ташлаш
     st = user_state.get(message.from_user.id)
     if st and st.get("session"):
         for i in range(len(st["session"]) - 1, -1, -1):
@@ -667,13 +648,13 @@ async def undo_cmd(message: Message):
                 break
 
     await message.answer(
-        frame_premium([f"Бекор қилинди: {cat}", f"-{val} | {day_iso}", f"Вақт: {created_at}"], title="УНДО"),
+        box([f"Бекор қилинди: {cat}", f"-{val} | {day_iso}", f"Вақт: {created_at}"], title="УНДО"),
         parse_mode="HTML"
     )
 
 
 # ============================================================
-# ADMIN: /status (no zeros, fair grade)
+# АДМИН: /status (0 ларсиз, адолатли баҳолаш)
 # ============================================================
 
 @dp.message(Command("status"))
@@ -685,50 +666,58 @@ async def status_cmd(message: Message):
     today_iso = today.isoformat()
     period = get_period_key(today)
 
-    team_totals = [await sum_day_total(today_iso, emp) for emp in EMPLOYEES]
+    # жамоа totals (bugun) — процентил учун
+    team_totals = []
+    for emp in EMPLOYEES:
+        team_totals.append(await sum_day_total(today_iso, emp))
 
-    lines = [
-        f"📅 Сана: {today_iso}",
-        f"🗓 Период (2-сана): {period}",
-        ""
-    ]
+    blocks = []
+    blocks.append(f"📅 Сана: {today_iso}")
+    blocks.append(f"🗓 Период (2-сана): {period}")
+    blocks.append("")
 
-    any_out = False
+    # ҳар ходим
     for emp in EMPLOYEES:
         total_today = await sum_day_total(today_iso, emp)
+        grade, comment = fair_grade_from_totals(total_today, team_totals)
+
+        # 0 бўлса — умуман чиқармасин десанг, бу ерда continue қиламиз.
+        # Сен “0лар кк эмас” дединг — демак total_today==0 бўлса ходимни чиқармаймиз.
         if total_today == 0:
             continue
 
-        any_out = True
-        grade, comment = fair_grade_from_totals(total_today, team_totals)
-
-        # strongest category today
-        best_cat = None
-        best_val = 0
-        non_zero_lines = []
+        # non-zero categories
+        lines_emp = []
         for cat in CATEGORIES:
             v = await sum_day(today_iso, emp, cat)
             if v > 0:
-                non_zero_lines.append(f"• {cat}: {v}")
-                if v > best_val:
-                    best_val, best_cat = v, cat
+                lines_emp.append(f"• {cat}: {v}")
 
-        lines.append(f"👤 {emp}")
-        lines.append(f"Бугун жами: {total_today} | Баҳо: {grade}")
+        # strongest cat today
+        best_cat = None
+        best_val = 0
+        for cat in CATEGORIES:
+            v = await sum_day(today_iso, emp, cat)
+            if v > best_val:
+                best_val = v
+                best_cat = cat if v > 0 else None
+
+        blocks.append(f"👤 {emp}")
+        blocks.append(f"Бугун жами: {total_today} | Баҳо: {grade}")
         if best_cat:
-            lines.append(f"⭐ Кучли йўналиш: {best_cat} ({best_val})")
-        lines.extend(non_zero_lines)
-        lines.append(f"Изоҳ: {comment}")
-        lines.append("")
+            blocks.append(f"⭐ Кучли йўналиш: {best_cat} ({best_val})")
+        blocks.extend(lines_emp)
+        blocks.append(f"Изоҳ: {comment}")
+        blocks.append("")
 
-    if not any_out:
-        lines.append("Ҳали ҳеч кимдан маълумот киритилмаган.")
+    if len(blocks) <= 3:
+        blocks.append("Ҳали ҳеч кимдан маълумот киритилмаган.")
 
-    await message.answer(frame_premium(lines, title="АДМИН СТАТУС"), parse_mode="HTML")
+    await message.answer(box(blocks, title="АДМИН СТАТУС"), parse_mode="HTML")
 
 
 # ============================================================
-# ADMIN: interactive delete /delete
+# АДМИН: ХАТО ҲИСОБОТНИ ЎЧИРИШ (ИНТЕРАКТИВ) /delete
 # ============================================================
 
 @dp.message(Command("delete"))
@@ -736,14 +725,17 @@ async def delete_start(message: Message):
     if not is_admin(message.from_user.id):
         return
     if not is_private(message):
+        # админга қулай: личкада ишлатсин
         await message.answer("Бу командани личкада ишлатинг: /delete")
         return
 
-    user_state[message.from_user.id] = {"admin_delete": {"step": "date_choice"}}
+    user_state[message.from_user.id] = {
+        "admin_delete": {"step": "date_choice"}
+    }
     await message.answer("Қайси санадаги хатони ўчирамиз?", reply_markup=delete_date_kb())
 
 
-@dp.message(lambda m: is_private(m) and m.text in {"📌 Бугун", "📌 Кеча", "🗓 Бошқа сана"})
+@dp.message(lambda m: is_private(m) and m.text in {"📌 Бугун", "📌 Кеча", "🗓 Бошқа сана"} )
 async def delete_date_pick(message: Message):
     st = user_state.get(message.from_user.id, {})
     ad = st.get("admin_delete")
@@ -813,10 +805,7 @@ async def delete_category_pick(message: Message):
     cat = ad["category"] or "ҲАММА КАТЕГОРИЯ"
 
     await message.answer(
-        frame_premium(
-            [f"Сана: {day_iso}", f"Ходим: {emp}", f"Категория: {cat}", "", "Шу маълумот ўчирилсинми?"],
-            title="ЎЧИРИШ ТАСДИҒИ"
-        ),
+        box([f"Сана: {day_iso}", f"Ходим: {emp}", f"Категория: {cat}", "", "Шу маълумот ўчирилсинми?"], title="ЎЧИРИШ ТАСДИҒИ"),
         parse_mode="HTML",
         reply_markup=confirm_kb()
     )
@@ -835,6 +824,18 @@ async def delete_confirm(message: Message):
     emp = ad["employee"]
     cat = ad["category"]
 
+    # Build delete query
+    q = "DELETE FROM reports WHERE day = ?"
+    params = [day_iso]
+
+    if emp is not None:
+        q += " AND employee = ?"
+        params.append(emp)
+    if cat is not None:
+        q += " AND category = ?"
+        params.append(cat)
+
+    # count before delete
     count_q = "SELECT COUNT(*) AS c FROM reports WHERE day = ?"
     count_params = [day_iso]
     if emp is not None:
@@ -847,22 +848,10 @@ async def delete_confirm(message: Message):
     row = await db_fetchone(count_q, tuple(count_params))
     before = int(row["c"] or 0)
 
-    q = "DELETE FROM reports WHERE day = ?"
-    params = [day_iso]
-    if emp is not None:
-        q += " AND employee = ?"
-        params.append(emp)
-    if cat is not None:
-        q += " AND category = ?"
-        params.append(cat)
-
     await db_exec(q, tuple(params))
 
     await message.answer(
-        frame_premium(
-            [f"Ўчирилди: {before} та ёзув", f"Сана: {day_iso}", f"Ходим: {emp or 'ҲАММА'}", f"Категория: {cat or 'ҲАММА'}"],
-            title="ТАЙЁР ✅"
-        ),
+        box([f"Ўчирилди: {before} та ёзув", f"Сана: {day_iso}", f"Ходим: {emp or 'ҲАММА'}", f"Категория: {cat or 'ҲАММА'}"], title="ТАЙЁР ✅"),
         parse_mode="HTML",
         reply_markup=ReplyKeyboardRemove()
     )
@@ -870,7 +859,7 @@ async def delete_confirm(message: Message):
 
 
 # ============================================================
-# ADMIN: quick delete /del YYYY-MM-DD | Employee/ALL | Category/ALL
+# АДМИН: ТЕЗКОР ЎЧИРИШ /del YYYY-MM-DD | Employee | Category/ALL
 # ============================================================
 
 @dp.message(Command("del"))
@@ -878,17 +867,13 @@ async def del_quick(message: Message):
     if not is_admin(message.from_user.id):
         return
     if not is_private(message):
-        await message.answer("Бу командани личкада ишлатинг: /del YYYY-MM-DD | Employee/ALL | Category/ALL")
+        await message.answer("Бу командани личкада ишлатинг: /del YYYY-MM-DD | Employee | Category/ALL")
         return
 
     txt = message.text.replace("/del", "", 1).strip()
     parts = [p.strip() for p in txt.split("|")] if "|" in txt else []
     if len(parts) < 2:
-        await message.answer(
-            "Формат:\n"
-            "/del YYYY-MM-DD | Employee/ALL | Category/ALL\n"
-            "Мисол:\n/del 2026-03-02 | Rajabboev Pulat | Пересчет товаров"
-        )
+        await message.answer("Формат:\n/del YYYY-MM-DD | Employee | Category/ALL\nМисол:\n/del 2026-03-02 | Rajabboev Pulat | Пересчет товаров")
         return
 
     day_iso = parse_iso_date(parts[0])
@@ -903,10 +888,8 @@ async def del_quick(message: Message):
     emp_val = None if emp == "ALL" else emp
 
     cat_val = None
-    cat_display = "ALL"
     if len(parts) >= 3:
         cat = parts[2]
-        cat_display = cat
         if cat == "ALL":
             cat_val = None
         elif cat not in CATEGORIES:
@@ -939,16 +922,13 @@ async def del_quick(message: Message):
     await db_exec(q, tuple(params))
 
     await message.answer(
-        frame_premium(
-            [f"Ўчирилди: {before} та ёзув", f"Сана: {day_iso}", f"Ходим: {emp}", f"Категория: {cat_display}"],
-            title="ТЕЗКОР /del ✅"
-        ),
+        box([f"Ўчирилди: {before} та ёзув", f"Сана: {day_iso}", f"Ходим: {emp}", f"Категория: {parts[2] if len(parts)>=3 else 'ALL'}"], title="ТЕЗКОР /del ✅"),
         parse_mode="HTML"
     )
 
 
 # ============================================================
-# ADMIN: /report /top /leaders /stats
+# АДМИН: /report /top /leaders /stats (old)
 # ============================================================
 
 @dp.message(Command("report"))
@@ -987,7 +967,7 @@ async def report_cmd(message: Message):
     if len(lines) == 1:
         lines.append("Ҳали маълумот йўқ.")
 
-    await message.answer(frame_premium(lines, title="АДМИН /report"), parse_mode="HTML")
+    await message.answer(box(lines, title="АДМИН /report"), parse_mode="HTML")
 
 
 @dp.message(Command("top"))
@@ -1034,7 +1014,7 @@ async def top_cmd(message: Message):
     lines.append("")
     lines.append("Изоҳ: паст натижа — ёмон дегани эмас. Мақсад: барқарор ўсиш 🤝")
 
-    await message.answer(frame_premium(lines, title="АДМИН /top"), parse_mode="HTML")
+    await message.answer(box(lines, title="АДМИН /top"), parse_mode="HTML")
 
 
 @dp.message(Command("leaders"))
@@ -1069,7 +1049,7 @@ async def leaders_cmd(message: Message):
                     best_val, best_emp = v, emp
             lines.append(f"{cat}: {best_emp} ({best_val})" if best_val > 0 else f"{cat}: —")
 
-    await message.answer(frame_premium(lines, title="АДМИН /leaders"), parse_mode="HTML")
+    await message.answer(box(lines, title="АДМИН /leaders"), parse_mode="HTML")
 
 
 @dp.message(Command("stats"))
@@ -1079,6 +1059,7 @@ async def stats_cmd(message: Message):
 
     today = date.today()
     today_iso = today.isoformat()
+    yday_iso = (today - timedelta(days=1)).isoformat()
     period = get_period_key(today)
 
     totals = [(emp, await sum_period_total(period, emp)) for emp in EMPLOYEES]
@@ -1096,7 +1077,7 @@ async def stats_cmd(message: Message):
 
     lines = [
         f"Период (2-сана): {period}",
-        f"📅 Бугун: {today_iso}",
+        f"Бугун: {today_iso} | Кеча: {yday_iso}",
         ""
     ]
     lines.append("📌 Период бўйича умумий (Top 10):")
@@ -1107,11 +1088,11 @@ async def stats_cmd(message: Message):
     lines.append("⭐ Ким қаерда кучли (период):")
     lines.extend(strong_lines if strong_lines else ["Ҳали маълумот йўқ."])
 
-    await message.answer(frame_premium(lines, title="АДМИН /stats"), parse_mode="HTML")
+    await message.answer(box(lines, title="АДМИН /stats"), parse_mode="HTML")
 
 
 # ============================================================
-# ADMIN: RESET + PLAN
+# АДМИН: RESET + PLAN
 # ============================================================
 
 @dp.message(Command("reset_today"))
@@ -1120,8 +1101,7 @@ async def reset_today(message: Message):
         return
     today_iso = date.today().isoformat()
     await db_exec("DELETE FROM reports WHERE day = ?", (today_iso,))
-    await message.answer(frame_premium([f"Бугун: {today_iso}", "Маълумотлар 0 қилинди ✅"], title="RESET TODAY"), parse_mode="HTML")
-
+    await message.answer(box([f"Бугун: {today_iso}", "Маълумотлар 0 қилинди ✅"], title="RESET TODAY"), parse_mode="HTML")
 
 @dp.message(Command("reset_yesterday"))
 async def reset_yesterday(message: Message):
@@ -1129,8 +1109,7 @@ async def reset_yesterday(message: Message):
         return
     yday_iso = (date.today() - timedelta(days=1)).isoformat()
     await db_exec("DELETE FROM reports WHERE day = ?", (yday_iso,))
-    await message.answer(frame_premium([f"Кеча: {yday_iso}", "Маълумотлар 0 қилинди ✅"], title="RESET YESTERDAY"), parse_mode="HTML")
-
+    await message.answer(box([f"Кеча: {yday_iso}", "Маълумотлар 0 қилинди ✅"], title="RESET YESTERDAY"), parse_mode="HTML")
 
 @dp.message(Command("reset_period"))
 async def reset_period(message: Message):
@@ -1138,15 +1117,14 @@ async def reset_period(message: Message):
         return
     period = get_period_key(date.today())
     await db_exec("DELETE FROM reports WHERE period = ?", (period,))
-    await message.answer(frame_premium([f"Период: {period}", "Маълумотлар 0 қилинди ✅"], title="RESET PERIOD"), parse_mode="HTML")
-
+    await message.answer(box([f"Период: {period}", "Маълумотлар 0 қилинди ✅"], title="RESET PERIOD"), parse_mode="HTML")
 
 @dp.message(Command("reset_all"))
 async def reset_all(message: Message):
     if not is_admin(message.from_user.id):
         return
     await db_exec("DELETE FROM reports")
-    await message.answer(frame_premium(["Ҳамма маълумотлар ўчди ✅"], title="RESET ALL"), parse_mode="HTML")
+    await message.answer(box(["Ҳамма маълумотлар ўчди ✅"], title="RESET ALL"), parse_mode="HTML")
 
 
 @dp.message(Command("setplan"))
@@ -1184,7 +1162,7 @@ async def setplan_cmd(message: Message):
     """, (period, emp, cat, plan_val))
 
     await message.answer(
-        frame_premium([f"Период: {period}", f"{emp}", f"{cat}", f"План = {plan_val}"], title="PLAN SET"),
+        box([f"Период: {period}", f"{emp}", f"{cat}", f"План = {plan_val}"], title="PLAN SET"),
         parse_mode="HTML"
     )
 
