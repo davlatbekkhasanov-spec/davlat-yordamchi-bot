@@ -13,7 +13,7 @@ from aiogram.types import Message, ReplyKeyboardMarkup, KeyboardButton, ReplyKey
 
 TOKEN = os.getenv("8231063055:AAE6uspIbD0xVC8Q8PL6aBUEZMUAeL1X2QI")
 if not TOKEN:
-    raise RuntimeError("BOT_TOKEN env topilmadi! Railway Variables ga BOT_TOKEN qo'ying.")
+    raise RuntimeError("8231063055:AAE6uspIbD0xVC8Q8PL6aBUEZMUAeL1X2QI")
 
 GROUP_ID = int(os.getenv("GROUP_ID", "-1001877019294"))
 
