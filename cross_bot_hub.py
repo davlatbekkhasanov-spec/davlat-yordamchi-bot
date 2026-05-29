@@ -7,8 +7,10 @@ import logging
 import os
 import sqlite3
 from datetime import datetime
+from zoneinfo import ZoneInfo
 
 log = logging.getLogger(__name__)
+TZ = ZoneInfo(os.getenv("TZ", "Asia/Tashkent"))
 
 DB_PATH = os.getenv("DB_PATH", "data.db").strip() or "data.db"
 HUB_SECRET = os.getenv("YORDAMCHI_HUB_SECRET", "").strip()
@@ -71,7 +73,7 @@ async def record_event(
         return
     day_s = str(day or "").strip()[:10]
     if len(day_s) != 10:
-        day_s = datetime.now().strftime("%Y-%m-%d")
+        day_s = datetime.now(TZ).date().isoformat()
 
     async with _lock:
         cur = _conn.cursor()

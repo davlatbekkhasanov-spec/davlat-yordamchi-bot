@@ -4,12 +4,17 @@ import logging
 import sqlite3
 from datetime import datetime, date, timedelta
 import html
+from zoneinfo import ZoneInfo
 
 from aiogram import Bot, Dispatcher
 from aiogram.filters import Command
 from aiogram.types import Message, ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemove
 
-from cross_bot_hub import build_appendix_lines_async, init_schema as init_cross_bot_schema
+from cross_bot_hub import (
+    build_appendix_lines_async,
+    init_schema as init_cross_bot_schema,
+    record_event,
+)
 from employee_tg_map import TG_EMPLOYEE
 from hub_ingest import start_ingest_server
 
@@ -25,8 +30,14 @@ if not TOKEN:
     raise RuntimeError("BOT_TOKEN is empty. Set Railway variable BOT_TOKEN.")
 
 GROUP_ID = int(os.getenv("GROUP_ID", "-1001877019294"))
+INGEST_CHAT_ID = int(os.getenv("YORDAMCHI_INGEST_CHAT_ID", "0") or "0")
+TZ = ZoneInfo(os.getenv("TZ", "Asia/Tashkent"))
 
 ADMINS = {5732350707, 2624538, 6991673998, 1432810519}
+
+
+def today_local() -> date:
+    return datetime.now(TZ).date()
 
 EMPLOYEES = [
     "Sagdullaev Yunus",
@@ -505,7 +516,7 @@ async def finalize_report(message: Message):
         return
 
     emp = state["employee"]
-    today = date.today()
+    today = today_local()
     today_iso = today.isoformat()
     yday_iso = (today - timedelta(days=1)).isoformat()
     period = get_period_key(today)
@@ -1173,6 +1184,37 @@ async def setplan_cmd(message: Message):
         box([f"Период: {period}", f"{emp}", f"{cat}", f"План = {plan_val}"], title="PLAN SET"),
         parse_mode="HTML"
     )
+
+
+# ============================================================
+# Hub: Telegram ingest (Worker rejimida HTTP o'rniga)
+# ============================================================
+
+@dp.message(
+    lambda m: INGEST_CHAT_ID
+    and m.chat
+    and m.chat.id == INGEST_CHAT_ID
+    and (m.text or "").startswith("HUB|")
+)
+async def hub_telegram_ingest(message: Message):
+    try:
+        parts = (message.text or "").strip().split("|", 4)
+        if len(parts) < 5 or parts[0] != "HUB":
+            return
+        day_s, tg_s, bot_key, summary = parts[1], parts[2], parts[3], parts[4]
+        await record_event(
+            tg_id=int(tg_s),
+            day=day_s,
+            bot_key=bot_key,
+            summary=summary,
+        )
+        logging.info("Hub telegram ingest ok: tg=%s bot=%s", tg_s, bot_key)
+        try:
+            await message.delete()
+        except Exception:
+            pass
+    except Exception as e:
+        logging.warning("Hub telegram ingest xato: %s", e)
 
 
 # ============================================================
