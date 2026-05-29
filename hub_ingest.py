@@ -1,4 +1,4 @@
-"""HTTP: boshqa botlar event yuboradi (ixtiyoriy, YORDAMCHI_HUB_SECRET kerak)."""
+"""HTTP: ingest + brauzer preview."""
 
 from __future__ import annotations
 
@@ -8,6 +8,7 @@ import os
 from aiohttp import web
 
 from cross_bot_hub import hub_secret_ok, record_event
+from preview_web import register_preview_routes
 
 log = logging.getLogger(__name__)
 
@@ -45,20 +46,21 @@ def make_app() -> web.Application:
     app = web.Application()
     app.router.add_post("/ingest", handle_ingest)
     app.router.add_get("/health", handle_health)
+    register_preview_routes(app)
     return app
 
 
 async def start_ingest_server() -> web.AppRunner | None:
-    secret = os.getenv("YORDAMCHI_HUB_SECRET", "").strip()
-    if not secret:
-        log.info("Hub ingest o'chirilgan (YORDAMCHI_HUB_SECRET yo'q)")
-        return None
-
     port = int(os.getenv("PORT", os.getenv("HUB_PORT", "8080")) or 8080)
     app = make_app()
     runner = web.AppRunner(app)
     await runner.setup()
     site = web.TCPSite(runner, "0.0.0.0", port)
     await site.start()
-    log.info("Hub ingest listening on :%s /ingest", port)
+    secret = os.getenv("YORDAMCHI_HUB_SECRET", "").strip()
+    log.info(
+        "HTTP :%s — /health /preview /preview.png%s",
+        port,
+        " /ingest" if secret else " (ingest o'chiq: SECRET yo'q)",
+    )
     return runner

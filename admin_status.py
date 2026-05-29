@@ -16,11 +16,15 @@ from cross_bot_hub import BOT_LABELS, count_employee_links, hub_stats_today
 from yordamchi_push import today_iso
 
 BTN_ADMIN_STATUS = "📊 Tizim holati"
+BTN_PREVIEW_REPORT = "👁 Hisobot ko'rish"
 
 
 def admin_status_kb() -> ReplyKeyboardMarkup:
     return ReplyKeyboardMarkup(
-        keyboard=[[KeyboardButton(text=BTN_ADMIN_STATUS)]],
+        keyboard=[
+            [KeyboardButton(text=BTN_ADMIN_STATUS)],
+            [KeyboardButton(text=BTN_PREVIEW_REPORT)],
+        ],
         resize_keyboard=True,
     )
 

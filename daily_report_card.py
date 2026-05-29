@@ -486,3 +486,51 @@ def render_daily_report_png(data: DailyReportCardData, avatar: bytes | None = No
     buf = BytesIO()
     img.save(buf, format="PNG", compress_level=1)
     return buf.getvalue()
+
+
+def build_demo_card_data() -> DailyReportCardData:
+    """Brauzer /preview va admin namuna uchun."""
+    return DailyReportCardData(
+        day_iso="2026-05-29",
+        employee="Mustafoev Abdullo",
+        period="2026-05",
+        best_cat="Счет ТСД",
+        best_add=6,
+        overall_text="Кеча маълумот йўқ. Бугун яхши старт! 💪",
+        categories=[
+            CategoryRow("Приход", 5, 5, 5, 5),
+            CategoryRow("Перемещение", 5, 5, 5, 5),
+            CategoryRow("Фото ТМЦ", 5, 5, 5, 5),
+            CategoryRow("Счет ТСД", 6, 6, 6, 6),
+            CategoryRow("Фасовка", 5, 5, 5, 5),
+            CategoryRow("АРМ диспетчер", 5, 5, 5, 5),
+        ],
+        bots=[
+            BotRow("omborga", "OMBORGA KIRITISH", "Reys 4, yuk 209m, ish 0:27, dam 0:16", 18, "reys 4  ·  ish vaqti 0:27", "jami vaqt 0:43"),
+            BotRow("ombor", "OMBOR XIZMAT", "#1 Xizmat: bajarildi, 54 soniya", 22, "ish vaqti 0:54", "son 54"),
+            BotRow("yuk", "YUK JARAYONI", "Yuk #1: ish vaqti 0:39", 17, "ish vaqti 0:39", ""),
+            BotRow("sklad", "SKLAD NAZORAT", "Papka Datery: sanaldi 1, joy 1, xato 0, kun 2/36", 5, "Papka Datery: sanaldi 1...", ""),
+            BotRow("ishxona", "ISHXONA NAZORAT", "Shikoyat (Mustafoev Abdullo): Test2", 0, "Shikoyat (Mustafoev Abdullo): Test2", ""),
+        ],
+        cat_total=31,
+        bot_total=62,
+        grand_total=93,
+        total_work="03:27:16",
+        period_sum=31,
+        rank=1,
+        rank_total=9,
+        leaders=[
+            LeaderRow(1, "Mustafoev Abdullo", 93, "3:27", 100),
+            LeaderRow(2, "Ravshanov Oxunjon", 45, "2:10", 48),
+            LeaderRow(3, "Sagdullaev Yunus", 38, "1:55", 41),
+        ],
+        work_log=[
+            ("Omborga kiritish", "0:27"),
+            ("Ombor xizmat", "0:54"),
+            ("Yuk jarayoni", "0:39"),
+        ],
+    )
+
+
+def render_demo_preview_png() -> bytes:
+    return render_daily_report_png(build_demo_card_data())

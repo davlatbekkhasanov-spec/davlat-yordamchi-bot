@@ -16,10 +16,15 @@ from cross_bot_hub import (
     init_schema as init_cross_bot_schema,
     record_event,
 )
-from daily_report_card import build_card_data, render_daily_report_png
+from daily_report_card import (
+    build_card_data,
+    build_demo_card_data,
+    render_daily_report_png,
+    render_demo_preview_png,
+)
 from employee_tg_map import TG_EMPLOYEE
 from hub_ingest import start_ingest_server
-from admin_status import BTN_ADMIN_STATUS, admin_status_kb, handle_admin_status
+from admin_status import BTN_ADMIN_STATUS, BTN_PREVIEW_REPORT, admin_status_kb, handle_admin_status
 
 
 # ============================================================
@@ -190,7 +195,7 @@ async def seed_pins():
 def categories_kb(user_id: int | None = None):
     rows = [[KeyboardButton(text=c)] for c in CATEGORIES] + [[KeyboardButton(text="❌ Бекор қилиш")]]
     if user_id and is_admin(user_id):
-        rows.append([KeyboardButton(text=BTN_ADMIN_STATUS)])
+        rows.append([KeyboardButton(text=BTN_ADMIN_STATUS), KeyboardButton(text=BTN_PREVIEW_REPORT)])
     return ReplyKeyboardMarkup(keyboard=rows, resize_keyboard=True)
 
 
@@ -198,6 +203,7 @@ def after_save_kb(user_id: int | None = None):
     rows = [
         [KeyboardButton(text="➕ Яна категория"), KeyboardButton(text="✅ Якунлаш")],
         [KeyboardButton(text="↩️ Ундо"), KeyboardButton(text="❌ Бекор қилиш")],
+        [KeyboardButton(text=BTN_PREVIEW_REPORT)],
     ]
     if user_id and is_admin(user_id):
         rows.append([KeyboardButton(text=BTN_ADMIN_STATUS)])
@@ -319,6 +325,99 @@ async def employee_tg_map() -> dict[str, int]:
     for tg_id, name in TG_EMPLOYEE.items():
         out.setdefault(name, int(tg_id))
     return out
+
+
+async def _session_agg(uid: int, emp: str, state: dict | None) -> dict[str, int]:
+    session = (state or {}).get("session") or []
+    if session:
+        agg: dict[str, int] = {}
+        for it in session:
+            agg[it["category"]] = agg.get(it["category"], 0) + int(it["added"])
+        return agg
+    today_iso = today_local().isoformat()
+    agg = {}
+    for cat in CATEGORIES:
+        v = await sum_day(today_iso, emp, cat)
+        if v > 0:
+            agg[cat] = v
+    return agg
+
+
+async def build_report_png_for_user(uid: int, emp: str, agg: dict[str, int]) -> tuple[bytes, object] | None:
+    if not agg:
+        return None
+    today = today_local()
+    today_iso = today.isoformat()
+    yday_iso = (today - timedelta(days=1)).isoformat()
+    period = get_period_key(today)
+    best_cat, best_add = max(agg.items(), key=lambda x: x[1])
+
+    today_total = 0
+    yday_total = 0
+    for cat in agg.keys():
+        today_total += await sum_day(today_iso, emp, cat)
+        if await day_has_any(yday_iso, emp, cat):
+            yday_total += await sum_day(yday_iso, emp, cat)
+
+    if yday_total == 0:
+        overall_text = "Кеча маълумот йўқ. Бугун яхши старт! 💪"
+    else:
+        overall_delta = today_total - yday_total
+        overall_text = f"Кечага нисбатан: {overall_delta:+d}. {motivational(overall_delta)}"
+
+    avatar = await fetch_user_avatar(uid)
+    etg_map = await employee_tg_map()
+    card = await build_card_data(
+        employee=emp,
+        day_iso=today_iso,
+        period=period,
+        yday_iso=yday_iso,
+        session_agg=agg,
+        categories=CATEGORIES,
+        tg_id=uid,
+        best_cat=best_cat,
+        best_add=best_add,
+        overall_text=overall_text,
+        employees=EMPLOYEES,
+        sum_day=sum_day,
+        sum_period=sum_period,
+        get_plan=get_plan,
+        sum_day_total=sum_day_total,
+        employee_tg_map=etg_map,
+    )
+    png = render_daily_report_png(card, avatar=avatar)
+    return png, card
+
+
+async def send_report_preview(message: Message, *, demo: bool = False) -> None:
+    uid = message.from_user.id if message.from_user else 0
+    if demo:
+        png = render_demo_preview_png()
+        card = build_demo_card_data()
+        note = "📎 Namuna (demo). Haqiqiy hisobot — kategoriya kiritib 👁 bosing."
+    else:
+        state = user_state.get(uid, {})
+        emp = state.get("employee") or await get_linked_employee(uid)
+        if not emp:
+            await message.answer("Avval /link va /start bosing.")
+            return
+        agg = await _session_agg(uid, emp, state)
+        built = await build_report_png_for_user(uid, emp, agg)
+        if not built:
+            png = render_demo_preview_png()
+            card = build_demo_card_data()
+            note = "⚠️ Hali ma'lumot yo'q — namuna ko'rinishi. Kategoriya qo'shing yoki /preview_demo"
+        else:
+            png, card = built
+            note = f"👁 Preview · {emp} · +{card.grand_total} ochko (guruhga hali yuborilmadi)"
+    await message.answer_photo(
+        BufferedInputFile(png, filename="preview.png"),
+        caption=note,
+    )
+    domain = os.getenv("RAILWAY_PUBLIC_DOMAIN", "").strip()
+    if domain:
+        url = domain if domain.startswith("http") else f"https://{domain}"
+        await message.answer(f"🌐 Brauzerda namuna: {url}/preview")
 
 
 # DB query helpers
@@ -607,32 +706,14 @@ async def finalize_report(message: Message):
     sent_card = False
     if tg_id:
         try:
-            avatar = await fetch_user_avatar(tg_id)
-            etg_map = await employee_tg_map()
-            card = await build_card_data(
-                employee=emp,
-                day_iso=today_iso,
-                period=period,
-                yday_iso=yday_iso,
-                session_agg=agg,
-                categories=CATEGORIES,
-                tg_id=tg_id,
-                best_cat=best_cat,
-                best_add=best_add,
-                overall_text=overall_text,
-                employees=EMPLOYEES,
-                sum_day=sum_day,
-                sum_period=sum_period,
-                get_plan=get_plan,
-                sum_day_total=sum_day_total,
-                employee_tg_map=etg_map,
-            )
-            png = render_daily_report_png(card, avatar=avatar)
-            await safe_group_send_photo(
-                png,
-                caption=f"📊 {emp} · {today_iso} · +{card.grand_total} ochko",
-            )
-            sent_card = True
+            built = await build_report_png_for_user(tg_id, emp, agg)
+            if built:
+                png, card = built
+                await safe_group_send_photo(
+                    png,
+                    caption=f"📊 {emp} · {today_iso} · +{card.grand_total} ochko",
+                )
+                sent_card = True
         except Exception as e:
             logging.exception("PNG hisobot xato, matn fallback: %s", e)
 
@@ -1302,6 +1383,25 @@ async def admin_status_btn(message: Message):
         )
         return
     await handle_admin_status(message, bot)
+
+
+@dp.message(Command("preview"))
+async def preview_cmd(message: Message):
+    if not is_private(message):
+        return
+    await send_report_preview(message, demo=False)
+
+
+@dp.message(Command("preview_demo"))
+async def preview_demo_cmd(message: Message):
+    if not is_private(message):
+        return
+    await send_report_preview(message, demo=True)
+
+
+@dp.message(lambda m: is_private(m) and m.text == BTN_PREVIEW_REPORT)
+async def preview_btn(message: Message):
+    await send_report_preview(message, demo=False)
 
 
 # ============================================================
