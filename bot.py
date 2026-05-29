@@ -3,18 +3,20 @@ import asyncio
 import logging
 import sqlite3
 from datetime import datetime, date, timedelta
+from io import BytesIO
 import html
 from zoneinfo import ZoneInfo
 
 from aiogram import Bot, Dispatcher
 from aiogram.filters import Command
-from aiogram.types import Message, ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemove
+from aiogram.types import BufferedInputFile, Message, ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemove
 
 from cross_bot_hub import (
     build_appendix_lines_async,
     init_schema as init_cross_bot_schema,
     record_event,
 )
+from daily_report_card import build_card_data, render_daily_report_png
 from employee_tg_map import TG_EMPLOYEE
 from hub_ingest import start_ingest_server
 from admin_status import BTN_ADMIN_STATUS, admin_status_kb, handle_admin_status
@@ -282,6 +284,41 @@ async def safe_group_send(html_text: str):
         await bot.send_message(GROUP_ID, html_text, parse_mode="HTML")
     except Exception as e:
         logging.exception("Гуруҳга юборишда хатолик: %s", e)
+
+
+async def safe_group_send_photo(png: bytes, caption: str = ""):
+    try:
+        await bot.send_photo(
+            GROUP_ID,
+            BufferedInputFile(png, filename="kunlik_hisobot.png"),
+            caption=caption[:1024] if caption else None,
+        )
+    except Exception as e:
+        logging.exception("Гуруҳга PNG юборишда хатолик: %s", e)
+        raise
+
+
+async def fetch_user_avatar(user_id: int) -> bytes | None:
+    try:
+        photos = await bot.get_user_profile_photos(user_id, limit=1)
+        if not photos.photos:
+            return None
+        file = await bot.get_file(photos.photos[0][-1].file_id)
+        if not file.file_path:
+            return None
+        buf = BytesIO()
+        await bot.download_file(file.file_path, buf)
+        return buf.getvalue()
+    except Exception:
+        return None
+
+
+async def employee_tg_map() -> dict[str, int]:
+    rows = await db_fetchall("SELECT tg_id, employee FROM employee_links")
+    out = {r["employee"]: int(r["tg_id"]) for r in rows}
+    for tg_id, name in TG_EMPLOYEE.items():
+        out.setdefault(name, int(tg_id))
+    return out
 
 
 # DB query helpers
@@ -565,39 +602,67 @@ async def finalize_report(message: Message):
         overall_delta = today_total - yday_total
         overall_text = f"Кечага нисбатан: {overall_delta:+d}. {motivational(overall_delta)}"
 
-    lines = [
-        f"📅 Сана: {today_iso}",
-        f"👤 Ходим: {emp}",
-        f"🗓 Период (2-сана): {period}",
-        ""
-    ]
-
-    for cat in CATEGORIES:
-        if cat not in agg:
-            continue
-        added = agg[cat]
-        t_sum = await sum_day(today_iso, emp, cat)
-        p_sum = await sum_period(period, emp, cat)
-
-        if await day_has_any(yday_iso, emp, cat):
-            y_sum = await sum_day(yday_iso, emp, cat)
-            delta = t_sum - y_sum
-            ytxt = f"{delta:+d}"
-        else:
-            ytxt = "йўқ"
-
-        lines.append(f"• {cat}:  +{added}")
-        lines.append(f"  Бугун: {t_sum} | Период: {p_sum} | Кеча: {ytxt}")
-
-    lines.append("")
-    lines.append(f"⭐ Энг кучли йўналиш: {best_cat} (+{best_add})")
-    lines.append(f"🔥 Умумий баҳо: {overall_text}")
-
     tg_id = message.from_user.id if message.from_user else 0
-    if tg_id:
-        lines.extend(await build_appendix_lines_async(tg_id, today_iso))
 
-    await safe_group_send(box(lines, title="КУНЛИК ҲИСОБОТ (ЯКУН)"))
+    sent_card = False
+    if tg_id:
+        try:
+            avatar = await fetch_user_avatar(tg_id)
+            etg_map = await employee_tg_map()
+            card = await build_card_data(
+                employee=emp,
+                day_iso=today_iso,
+                period=period,
+                yday_iso=yday_iso,
+                session_agg=agg,
+                categories=CATEGORIES,
+                tg_id=tg_id,
+                best_cat=best_cat,
+                best_add=best_add,
+                overall_text=overall_text,
+                employees=EMPLOYEES,
+                sum_day=sum_day,
+                sum_period=sum_period,
+                get_plan=get_plan,
+                sum_day_total=sum_day_total,
+                employee_tg_map=etg_map,
+            )
+            png = render_daily_report_png(card, avatar=avatar)
+            await safe_group_send_photo(
+                png,
+                caption=f"📊 {emp} · {today_iso} · +{card.bot_total} ochko (botlar)",
+            )
+            sent_card = True
+        except Exception as e:
+            logging.exception("PNG hisobot xato, matn fallback: %s", e)
+
+    if not sent_card:
+        lines = [
+            f"📅 Сана: {today_iso}",
+            f"👤 Ходим: {emp}",
+            f"🗓 Период (2-сана): {period}",
+            "",
+        ]
+        for cat in CATEGORIES:
+            if cat not in agg:
+                continue
+            added = agg[cat]
+            t_sum = await sum_day(today_iso, emp, cat)
+            p_sum = await sum_period(period, emp, cat)
+            if await day_has_any(yday_iso, emp, cat):
+                y_sum = await sum_day(yday_iso, emp, cat)
+                delta = t_sum - y_sum
+                ytxt = f"{delta:+d}"
+            else:
+                ytxt = "йўқ"
+            lines.append(f"• {cat}:  +{added}")
+            lines.append(f"  Бугун: {t_sum} | Период: {p_sum} | Кеча: {ytxt}")
+        lines.append("")
+        lines.append(f"⭐ Энг кучли йўналиш: {best_cat} (+{best_add})")
+        lines.append(f"🔥 Умумий баҳо: {overall_text}")
+        if tg_id:
+            lines.extend(await build_appendix_lines_async(tg_id, today_iso))
+        await safe_group_send(box(lines, title="КУНЛИК ҲИСОБОТ (ЯКУН)"))
 
     await message.answer("✅ Якунланди. /start билан янги ҳисобот бошланг.", reply_markup=ReplyKeyboardRemove())
     user_state.pop(message.from_user.id, None)
