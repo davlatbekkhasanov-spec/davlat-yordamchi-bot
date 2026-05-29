@@ -6,7 +6,7 @@ ENV PYTHONUNBUFFERED=1 \
     MISE_PYTHON_GITHUB_ATTESTATIONS=false
 
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends fonts-dejavu-core \
+    && apt-get install -y --no-install-recommends fonts-dejavu-core libfreetype6 \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .

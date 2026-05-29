@@ -40,12 +40,18 @@ _DEMO_HTML = """<!DOCTYPE html>
 
 
 async def handle_preview_page(_request: web.Request) -> web.Response:
-    return web.Response(text=_DEMO_HTML, content_type="text/html; charset=utf-8")
+    try:
+        return web.Response(text=_DEMO_HTML, content_type="text/html; charset=utf-8")
+    except Exception as e:
+        return web.Response(text=f"preview error: {e}", status=500)
 
 
 async def handle_preview_png(_request: web.Request) -> web.Response:
-    png = render_demo_preview_png()
-    return web.Response(body=png, content_type="image/png")
+    try:
+        png = render_demo_preview_png()
+        return web.Response(body=png, content_type="image/png")
+    except Exception as e:
+        return web.Response(text=f"preview png error: {e}", status=500)
 
 
 def register_preview_routes(app: web.Application) -> None:
