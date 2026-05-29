@@ -630,7 +630,7 @@ async def finalize_report(message: Message):
             png = render_daily_report_png(card, avatar=avatar)
             await safe_group_send_photo(
                 png,
-                caption=f"📊 {emp} · {today_iso} · +{card.bot_total} ochko (botlar)",
+                caption=f"📊 {emp} · {today_iso} · +{card.grand_total} ochko",
             )
             sent_card = True
         except Exception as e:
