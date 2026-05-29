@@ -1,4 +1,4 @@
-"""Kunlik yakuniy hisobot — premium PNG dashboard."""
+"""Kunlik yakuniy hisobot — referens dizayn."""
 
 from __future__ import annotations
 
@@ -12,19 +12,32 @@ from PIL import Image, ImageDraw, ImageFont
 
 from cross_bot_hub import BOT_LABELS, fetch_latest_by_bot
 
-SCALE = 2
-W = 740 * SCALE
-M = 22 * SCALE
+W, H = 1520, 2280
+M = 24
 FONT_DIR = Path(__file__).resolve().parent / "assets" / "fonts"
 
 BOT_ORDER = ("omborga", "ombor", "yuk", "sklad", "ishxona")
 BOT_BADGE = {
-    "omborga": ("OM", (0, 180, 220)),
-    "ombor": ("OX", (255, 140, 60)),
-    "yuk": ("YJ", (120, 200, 90)),
-    "sklad": ("SN", (170, 120, 255)),
-    "ishxona": ("IN", (255, 90, 120)),
+    "omborga": ("OM", (0, 175, 210)),
+    "ombor": ("OX", (255, 130, 45)),
+    "yuk": ("YJ", (95, 195, 85)),
+    "sklad": ("SN", (155, 110, 240)),
+    "ishxona": ("IN", (240, 85, 110)),
 }
+
+# Ranglar (referens)
+BG = (7, 12, 32)
+PANEL = (12, 22, 48)
+PANEL2 = (16, 28, 58)
+TEAL = (0, 168, 188)
+TEAL_D = (0, 118, 138)
+ACCENT = (65, 225, 195)
+GOLD = (255, 200, 70)
+WHITE = (248, 250, 255)
+MUTED = (125, 142, 172)
+GREEN = (55, 235, 145)
+ORANGE = (255, 160, 55)
+TRACK = (28, 42, 68)
 
 
 @dataclass
@@ -42,8 +55,7 @@ class BotRow:
     label: str
     summary: str
     score: int
-    line1: str
-    line2: str
+    metrics: list[tuple[str, str]]
 
 
 @dataclass
@@ -77,32 +89,30 @@ class DailyReportCardData:
 
 
 def _load_fonts():
-    reg_paths = [
+    reg = next((p for p in [
         FONT_DIR / "NotoSans-Regular.ttf",
         Path("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"),
         Path("C:/Windows/Fonts/arial.ttf"),
-    ]
-    bold_paths = [
+    ] if p.is_file()), None)
+    bold = next((p for p in [
         FONT_DIR / "NotoSans-Bold.ttf",
         Path("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"),
         Path("C:/Windows/Fonts/arialbd.ttf"),
-    ]
-    reg = next((p for p in reg_paths if p.is_file()), None)
-    bold = next((p for p in bold_paths if p.is_file()), None)
-    s = SCALE
+    ] if p.is_file()), None)
     if not reg or not bold:
         d = ImageFont.load_default()
-        return d, d, d, d, d
+        return d, d, d, d, d, d
     return (
-        ImageFont.truetype(str(bold), 34 * s),
-        ImageFont.truetype(str(bold), 22 * s),
-        ImageFont.truetype(str(bold), 18 * s),
-        ImageFont.truetype(str(reg), 16 * s),
-        ImageFont.truetype(str(reg), 13 * s),
+        ImageFont.truetype(str(bold), 36),
+        ImageFont.truetype(str(bold), 52),
+        ImageFont.truetype(str(bold), 22),
+        ImageFont.truetype(str(bold), 18),
+        ImageFont.truetype(str(reg), 16),
+        ImageFont.truetype(str(reg), 13),
     )
 
 
-def _truncate(text: str, n: int = 38) -> str:
+def _truncate(text: str, n: int = 36) -> str:
     t = str(text or "").strip()
     return t if len(t) <= n else t[: n - 1] + "…"
 
@@ -137,20 +147,24 @@ def _fmt_short(seconds: int) -> str:
     return f"{m:02d}:{s:02d}"
 
 
+def _fmt_clock(seconds: int) -> str:
+    seconds = max(0, int(seconds))
+    m, s = divmod(seconds, 60)
+    return f"{m:02d}:{s:02d}"
+
+
 def score_bot_summary(key: str, summary: str) -> tuple[int, int]:
     s = summary or ""
     sl = s.lower()
     if key == "omborga":
         reys = int(re.search(r"reys\s*(\d+)", sl).group(1)) if re.search(r"reys\s*(\d+)", sl) else 0
-        ish = _parse_hms(s)
-        if "ish" in sl:
-            m = re.search(r"ish\s+([\d:]+)", sl)
-            if m:
-                ish = _parse_hms(m.group(1))
-        mins = max(1, ish // 60) if ish else 0
+        ish_m = re.search(r"ish\s+([\d:]+)", sl)
         dam_m = re.search(r"dam\s+([\d:]+)", sl)
-        total_sec = ish + (_parse_hms(dam_m.group(1)) if dam_m else 0)
-        return reys * 3 + mins // 2, total_sec
+        ish = _parse_hms(ish_m.group(1)) if ish_m else _parse_hms(s)
+        dam = _parse_hms(dam_m.group(1)) if dam_m else 0
+        total = ish + dam
+        mins = max(1, ish // 60) if ish else 0
+        return reys * 3 + mins // 2, total
     if key == "ombor":
         sec = _parse_hms(s)
         if not sec and re.search(r"(\d+)\s*son", sl):
@@ -165,30 +179,30 @@ def score_bot_summary(key: str, summary: str) -> tuple[int, int]:
     return 0, 0
 
 
-def _bot_lines(key: str, summary: str, work_sec: int) -> tuple[str, str]:
+def _bot_metrics(key: str, summary: str, work_sec: int) -> list[tuple[str, str]]:
     s = summary or ""
     sl = s.lower()
     if not s:
-        return "event yo'q", ""
+        return [("holat", "event yo'q")]
     if key == "omborga":
         reys = re.search(r"reys\s*(\d+)", sl)
-        r = reys.group(1) if reys else "0"
         ish_m = re.search(r"ish\s+([\d:]+)", sl)
-        dam_m = re.search(r"dam\s+([\d:]+)", sl)
+        r = reys.group(1) if reys else "0"
         ish = ish_m.group(1) if ish_m else _fmt_short(work_sec)
-        jami = work_sec
-        if dam_m:
-            jami = _parse_hms(ish_m.group(1) if ish_m else "0") + _parse_hms(dam_m.group(1))
-        return f"reys {r}  ·  ish vaqti {ish}", f"jami vaqt {_fmt_short(jami)}"
+        return [
+            ("reys", r),
+            ("ish vaqti", ish if ":" in ish else _fmt_hms(_parse_hms(ish))),
+            ("jami vaqt", _fmt_short(work_sec)),
+        ]
     if key == "ombor":
-        return f"ish vaqti {_fmt_short(work_sec)}", f"son {work_sec // 1 if work_sec else 0}"
+        return [("ish vaqti", _fmt_hms(work_sec)), ("son", str(work_sec))]
     if key == "yuk":
-        return f"ish vaqti {_fmt_short(work_sec)}", ""
+        return [("ish vaqti", _fmt_short(work_sec))]
     if key == "sklad":
-        return _truncate(s, 44), ""
+        return [("ma'lumot", _truncate(s, 28))]
     if key == "ishxona":
-        return _truncate(s, 44), ""
-    return _truncate(s, 44), ""
+        return [("shikoyat", _truncate(s, 28))]
+    return [("info", _truncate(s, 28))]
 
 
 async def build_card_data(
@@ -218,7 +232,6 @@ async def build_card_data(
         best_add=best_add,
         overall_text=overall_text,
     )
-
     period_sum = 0
     cat_total = 0
     for cat in categories:
@@ -231,32 +244,27 @@ async def build_card_data(
         plan = await get_plan(period, employee, cat)
         norm = int(plan) if plan else today
         period_sum += per
-        data.categories.append(
-            CategoryRow(name=cat, added=added, today=today, period=per, norm=norm)
-        )
+        data.categories.append(CategoryRow(name=cat, added=added, today=today, period=per, norm=norm))
 
     data.cat_total = cat_total
     data.period_sum = period_sum
-
     events = await fetch_latest_by_bot(tg_id, day_iso) if tg_id else {}
     total_work_sec = 0
     for key in BOT_ORDER:
         summary = events.get(key, "")
         score, wsec = score_bot_summary(key, summary)
-        total_work_sec += wsec if wsec else 0
-        l1, l2 = _bot_lines(key, summary, wsec)
+        total_work_sec += wsec
         data.bots.append(
             BotRow(
                 key=key,
                 label=BOT_LABELS.get(key, key).upper(),
                 summary=summary,
                 score=score,
-                line1=l1,
-                line2=l2,
+                metrics=_bot_metrics(key, summary, wsec),
             )
         )
         if summary and wsec:
-            data.work_log.append((BOT_LABELS.get(key, key), _fmt_short(wsec)))
+            data.work_log.append((BOT_LABELS.get(key, key), _fmt_clock(wsec)))
         data.bot_total += score
 
     data.total_work = _fmt_hms(total_work_sec)
@@ -284,204 +292,179 @@ async def build_card_data(
     active = len([s for s in scores if s[1] > 0])
     for i, (name, pts, wsec) in enumerate(scores[:9], 1):
         pct = int(100 * pts / max_sc) if max_sc else 0
-        data.leaders.append(
-            LeaderRow(rank=i, name=name, score=pts, work_time=_fmt_short(wsec), pct=pct)
-        )
+        data.leaders.append(LeaderRow(rank=i, name=name, score=pts, work_time=_fmt_clock(wsec), pct=pct))
         if name == employee:
             data.rank = i
     data.rank_total = active or len(scores)
     return data
 
 
-def _rounded_panel(draw, box, fill, outline=None, radius=14, width=2):
+def _panel(draw, box, fill=PANEL, outline=(38, 58, 92), radius=14, width=2):
     draw.rounded_rectangle(box, radius=radius, fill=fill, outline=outline, width=width)
 
 
-def _progress_bar(draw, x, y, w, h, pct, fill, track):
-    draw.rounded_rectangle((x, y, x + w, y + h), radius=h // 2, fill=track)
-    fw = max(4, int(w * max(0, min(100, pct)) / 100))
+def _bar(draw, x, y, w, h, pct, fill=TEAL):
+    draw.rounded_rectangle((x, y, x + w, y + h), radius=h // 2, fill=TRACK)
+    fw = max(6, int(w * max(0, min(100, pct)) / 100))
     draw.rounded_rectangle((x, y, x + fw, y + h), radius=h // 2, fill=fill)
 
 
-def _badge(draw, x, y, size, abbr, color, font):
-    draw.ellipse((x, y, x + size, y + size), fill=color)
-    tw = draw.textlength(abbr, font=font)
-    draw.text((x + (size - tw) / 2, y + size * 0.22), abbr, fill=(255, 255, 255), font=font)
+def _metric_chip(draw, x, y, w, h, label, value, fonts):
+    _, _, _, f_b, f_r, f_s = fonts
+    _panel(draw, (x, y, x + w, y + h), fill=PANEL2, outline=(45, 65, 95), radius=8, width=1)
+    draw.text((x + 8, y + 6), label, fill=MUTED, font=f_s)
+    draw.text((x + 8, y + 22), value, fill=WHITE, font=f_b)
 
 
 def render_daily_report_png(data: DailyReportCardData, avatar: bytes | None = None) -> bytes:
-    f_huge, f_title, f_head, f_body, f_small = _load_fonts()
-    s = SCALE
+    fonts = _load_fonts()
+    f_title, f_score, f_head, f_bold, f_body, f_small = fonts
 
-    row_h = 28 * s
-    cat_rows = max(len(data.categories), 1)
-    top_h = 56 * s + cat_rows * row_h + 56 * s
-    bot_h = 56 * s + len(BOT_ORDER) * (72 * s) + 48 * s
-    bottom_h = 56 * s + max(len(data.leaders), 4) * 34 * s + 40 * s
-    header_h = 96 * s
-    H = M * 2 + header_h + top_h + bot_h + bottom_h + 24 * s
-
-    bg = (8, 14, 36)
-    panel = (14, 24, 52)
-    panel2 = (18, 32, 62)
-    teal = (0, 168, 188)
-    teal2 = (0, 130, 155)
-    accent = (70, 230, 200)
-    gold = (255, 205, 80)
-    white = (248, 250, 255)
-    muted = (130, 148, 178)
-    green = (60, 235, 150)
-    orange = (255, 165, 70)
-    track = (32, 48, 78)
-
-    img = Image.new("RGB", (W, H), bg)
+    img = Image.new("RGB", (W, H), BG)
     draw = ImageDraw.Draw(img)
-    _rounded_panel(draw, (M, M, W - M, H - M), bg, outline=teal, radius=18 * s, width=3)
+    _panel(draw, (M, M, W - M, H - M), fill=BG, outline=TEAL, radius=18, width=3)
 
-    # ── Header ──
-    hy = M + header_h
-    _rounded_panel(draw, (M + 6 * s, M + 6 * s, W - M - 6 * s, hy), teal, radius=14 * s)
-    draw.text((M + 24 * s, M + 18 * s), "КУНЛИК ҲИСОБОТ (ЯКУН)", fill=white, font=f_huge)
-    draw.text((M + 24 * s, M + 58 * s), f"📅  {data.day_iso}     👤  {data.employee}", fill=white, font=f_body)
-    draw.text((M + 24 * s, M + 78 * s), f"🗓  Период (2-сана): {data.period}", fill=(220, 240, 255), font=f_small)
+    # Header
+    hdr_b = M + 108
+    draw.rounded_rectangle((M + 6, M + 6, W - M - 6, hdr_b), radius=14, fill=TEAL_D)
+    draw.rounded_rectangle((M + 6, M + 6, W - M - 6, hdr_b - 28), radius=14, fill=TEAL)
+    draw.text((M + 28, M + 18), "КУНЛИК ҲИСОБОТ (ЯКУН)", fill=WHITE, font=f_title)
+    draw.text((M + 28, M + 58), f"📅  {data.day_iso}     👤  {data.employee}", fill=WHITE, font=f_body)
+    draw.text((M + 28, M + 80), f"🗓  Период (2-сана): {data.period}", fill=(220, 240, 255), font=f_small)
 
-    av_size = 72 * s
     if avatar:
         try:
-            av = Image.open(BytesIO(avatar)).convert("RGB").resize((av_size, av_size))
-            mask = Image.new("L", (av_size, av_size), 0)
-            ImageDraw.Draw(mask).ellipse((0, 0, av_size, av_size), fill=255)
-            img.paste(av, (W - M - av_size - 16 * s, M + 14 * s), mask)
-            draw.ellipse(
-                (W - M - av_size - 18 * s, M + 12 * s, W - M - 14 * s, M + av_size + 16 * s),
-                outline=gold,
-                width=3 * s,
-            )
+            avs = 80
+            av = Image.open(BytesIO(avatar)).convert("RGB").resize((avs, avs))
+            mask = Image.new("L", (avs, avs), 0)
+            ImageDraw.Draw(mask).ellipse((0, 0, avs, avs), fill=255)
+            ax = W - M - avs - 20
+            img.paste(av, (ax, M + 14), mask)
+            draw.ellipse((ax - 3, M + 11, ax + avs + 3, M + avs + 17), outline=GOLD, width=3)
         except Exception:
             pass
 
-    y = hy + 16 * s
-    inner_w = W - 2 * M - 24 * s
-    lx = M + 12 * s
+    y = hdr_b + 18
+    lx = M + 14
+    inner = W - 2 * M - 28
 
-    # ── Top 3 columns ──
-    col3_w = 200 * s
-    col2_w = 210 * s
-    col1_w = inner_w - col2_w - col3_w - 24 * s
-    col2_x = lx + col1_w + 12 * s
-    col3_x = col2_x + col2_w + 12 * s
+    # Top row heights
+    top_h = 300
+    c1w = int(inner * 0.46)
+    c2w = int(inner * 0.28)
+    c3w = inner - c1w - c2w - 24
+    c2x = lx + c1w + 12
+    c3x = c2x + c2w + 12
 
-    _rounded_panel(draw, (lx, y, lx + col1_w, y + top_h), panel, outline=(40, 70, 110), radius=12 * s)
-    draw.text((lx + 16 * s, y + 14 * s), "📊  ФАОЛИЯТ ВА КЎРСАТКИЧЛАР", fill=accent, font=f_head)
+    _panel(draw, (lx, y, lx + c1w, y + top_h))
+    draw.text((lx + 16, y + 12), "📊  ФАОЛИЯТ ВА КЎРСАТКИЧЛАР", fill=ACCENT, font=f_head)
 
-    ty = y + 48 * s
-    headers = ("ФАОЛИЯТ", "ОЧКО", "БУГУН", "ПЕРИОД", "НОРМА")
-    hx = [lx + 14 * s, lx + col1_w - 220 * s, lx + col1_w - 165 * s, lx + col1_w - 110 * s, lx + col1_w - 58 * s]
-    for i, h in enumerate(headers):
-        draw.text((hx[i], ty), h, fill=muted, font=f_small)
-    ty += 22 * s
-    draw.line((lx + 12 * s, ty, lx + col1_w - 12 * s, ty), fill=track, width=2)
-    ty += 10 * s
+    ty = y + 46
+    cols_x = [lx + 14, lx + c1w - 248, lx + c1w - 188, lx + c1w - 128, lx + c1w - 68]
+    for i, h in enumerate(("ФАОЛИЯТ", "ОЧКО", "БУГУН", "ПЕРИОД", "НОРМА")):
+        draw.text((cols_x[i], ty), h, fill=MUTED, font=f_small)
+    ty += 24
+    draw.line((lx + 10, ty, lx + c1w - 10, ty), fill=TRACK, width=2)
+    ty += 10
 
-    for row in data.categories:
-        draw.text((hx[0], ty), _truncate(row.name, 24), fill=white, font=f_small)
-        draw.text((hx[1], ty), f"+{row.added}", fill=green, font=f_body)
-        draw.text((hx[2], ty), str(row.today), fill=white, font=f_small)
-        draw.text((hx[3], ty), str(row.period), fill=white, font=f_small)
-        draw.text((hx[4], ty), str(row.norm), fill=muted, font=f_small)
-        ty += row_h
+    for row in data.categories[:10]:
+        draw.text((cols_x[0], ty), _truncate(row.name, 22), fill=WHITE, font=f_small)
+        draw.text((cols_x[1], ty), f"+{row.added}", fill=GREEN, font=f_bold)
+        draw.text((cols_x[2], ty), str(row.today), fill=WHITE, font=f_small)
+        draw.text((cols_x[3], ty), str(row.period), fill=WHITE, font=f_small)
+        draw.text((cols_x[4], ty), str(row.norm), fill=MUTED, font=f_small)
+        ty += 26
 
-    ty += 6 * s
-    draw.text((lx + 14 * s, ty), f"⭐  {data.best_cat} (+{data.best_add})", fill=gold, font=f_small)
-    ty += 22 * s
-    draw.text((lx + 14 * s, ty), f"🔥  {_truncate(data.overall_text, 52)}", fill=orange, font=f_small)
+    draw.text((lx + 14, y + top_h - 52), f"⭐  {data.best_cat} (+{data.best_add})", fill=GOLD, font=f_small)
+    draw.text((lx + 14, y + top_h - 28), f"🔥  {_truncate(data.overall_text, 48)}", fill=ORANGE, font=f_small)
 
-    _rounded_panel(draw, (col2_x, y, col2_x + col2_w, y + top_h), panel, outline=(40, 70, 110), radius=12 * s)
-    draw.text((col2_x + 14 * s, y + 14 * s), "📋  ОЧКО ҲИСОБЛАШ ТИЗИМИ", fill=accent, font=f_head)
-    rules = [
+    _panel(draw, (c2x, y, c2x + c2w, y + top_h))
+    draw.text((c2x + 14, y + 12), "📋  ОЧКО ҲИСОБЛАШ", fill=ACCENT, font=f_head)
+    ry = y + 48
+    for rule in (
         "• To'liq va sifatli ish — +5",
         "• TSD faol — +6",
         "• Xato/kamchilik — minus",
         "• Boshqa botlar — vaqt/reys",
-    ]
-    ry = y + 52 * s
-    for rule in rules:
-        draw.text((col2_x + 14 * s, ry), rule, fill=muted, font=f_body)
-        ry += 30 * s
-    ry += 12 * s
-    draw.text((col2_x + 14 * s, ry), f"Yordamchi: +{data.cat_total}", fill=green, font=f_head)
-    ry += 28 * s
-    draw.text((col2_x + 14 * s, ry), f"Boshqa botlar: +{data.bot_total}", fill=green, font=f_head)
+    ):
+        draw.text((c2x + 14, ry), rule, fill=MUTED, font=f_body)
+        ry += 28
+    ry += 8
+    draw.text((c2x + 14, ry), f"Yordamchi: +{data.cat_total}", fill=GREEN, font=f_bold)
+    ry += 26
+    draw.text((c2x + 14, ry), f"Boshqa botlar: +{data.bot_total}", fill=GREEN, font=f_bold)
 
-    _rounded_panel(draw, (col3_x, y, col3_x + col3_w, y + top_h), panel2, outline=accent, radius=12 * s, width=2)
-    draw.text((col3_x + 16 * s, y + 16 * s), "ЖАМИ ОЧКО", fill=muted, font=f_body)
-    gt = f"+{data.grand_total}"
-    draw.text((col3_x + 16 * s, y + 44 * s), gt, fill=green, font=f_huge)
-    draw.text((col3_x + 16 * s, y + 96 * s), "БУГУН", fill=accent, font=f_title)
-    draw.text((col3_x + 16 * s, y + 128 * s), f"📅  Период: {data.period_sum}", fill=white, font=f_small)
-    draw.text((col3_x + 16 * s, y + 152 * s), f"⏱  Ish vaqti: {data.total_work}", fill=white, font=f_small)
-    draw.text((col3_x + 16 * s, y + 176 * s), "⏸  Kechikish: yo'q", fill=muted, font=f_small)
+    # Score box — referens: katta raqam = bot ochko
+    _panel(draw, (c3x, y, c3x + c3w, y + top_h), fill=PANEL2, outline=ACCENT, radius=14, width=2)
+    draw.rectangle((c3x + 8, y + 8, c3x + c3w - 8, y + top_h - 8), outline=(0, 90, 105), width=1)
+    draw.text((c3x + 18, y + 16), "ЖАМИ ОЧКО", fill=MUTED, font=f_body)
+    draw.text((c3x + 18, y + 42), f"+{data.bot_total}", fill=GREEN, font=f_score)
+    draw.text((c3x + 18, y + 108), "БУГУН", fill=ACCENT, font=f_head)
+    draw.text((c3x + 18, y + 138), f"📅  Период: {data.period_sum}", fill=WHITE, font=f_small)
+    draw.text((c3x + 18, y + 160), f"⏱  Ish vaqti: {data.total_work}", fill=WHITE, font=f_small)
+    draw.text((c3x + 18, y + 182), "⏸  Kechikish: yo'q", fill=MUTED, font=f_small)
     if data.rank:
-        draw.text((col3_x + 16 * s, y + 204 * s), f"🏆  Bugungi o'rin: {data.rank}-", fill=gold, font=f_body)
-        draw.text((col3_x + 16 * s, y + 228 * s), f"    ({data.rank_total} xodim)", fill=gold, font=f_small)
+        draw.text((c3x + 18, y + 210), f"🏆  {data.rank}-o'rin ({data.rank_total} xodim)", fill=GOLD, font=f_bold)
+    draw.text((c3x + 18, y + 238), f"Jami: +{data.grand_total}", fill=MUTED, font=f_small)
 
-    y += top_h + 16 * s
+    y += top_h + 16
 
-    # ── Boshqa botlar ──
-    _rounded_panel(draw, (lx, y, W - M - 12 * s, y + bot_h), panel, outline=(40, 70, 110), radius=12 * s)
-    draw.text((lx + 16 * s, y + 14 * s), "🤖  БОШҚА БОТЛАР (БУГУН)", fill=accent, font=f_head)
-    by = y + 52 * s
+    # Bots section — referens: har bir qator chip ustunlari
+    bot_sec_h = 430
+    _panel(draw, (lx, y, W - M - 14, y + bot_sec_h))
+    draw.text((lx + 16, y + 12), "🤖  БОШҚА БОТЛАР (БУГУН)", fill=ACCENT, font=f_head)
+
+    by = y + 50
+    row_h = 68
     for bot in data.bots:
-        card_y1, card_y2 = by, by + 64 * s
-        _rounded_panel(draw, (lx + 12 * s, card_y1, W - M - 24 * s, card_y2), panel2, outline=(35, 55, 90), radius=10 * s)
-        abbr, color = BOT_BADGE.get(bot.key, ("??", teal))
-        _badge(draw, lx + 24 * s, card_y1 + 12 * s, 40 * s, abbr, color, f_head)
-        tx = lx + 76 * s
-        draw.text((tx, card_y1 + 8 * s), bot.label, fill=accent, font=f_body)
-        draw.text((tx, card_y1 + 28 * s), bot.line1, fill=white, font=f_small)
-        if bot.line2:
-            draw.text((tx, card_y1 + 44 * s), bot.line2, fill=muted, font=f_small)
+        _panel(draw, (lx + 10, by, W - M - 24, by + row_h), fill=PANEL2, outline=(35, 52, 82), radius=10, width=1)
+        abbr, col = BOT_BADGE.get(bot.key, ("??", TEAL))
+        draw.ellipse((lx + 22, by + 14, lx + 62, by + 54), fill=col)
+        tw = draw.textlength(abbr, font=f_bold)
+        draw.text((lx + 42 - tw / 2, by + 22), abbr, fill=WHITE, font=f_bold)
+        draw.text((lx + 74, by + 10), bot.label, fill=ACCENT, font=f_bold)
+
+        mx = lx + 290
+        chip_w = 130
+        gap = 10
+        for i, (lbl, val) in enumerate(bot.metrics[:4]):
+            _metric_chip(draw, mx + i * (chip_w + gap), by + 10, chip_w, 48, lbl, val, fonts)
+
         sc = f"+{bot.score}" if bot.score else "+0"
-        sc_col = green if bot.score else muted
-        sw = draw.textlength(sc, font=f_title)
-        draw.text((W - M - 36 * s - sw, card_y1 + 20 * s), sc, fill=sc_col, font=f_title)
-        by += 72 * s
+        sw = draw.textlength(sc, font=f_head)
+        draw.text((W - M - 40 - sw, by + 22), sc, fill=GREEN if bot.score else MUTED, font=f_head)
+        by += row_h + 8
 
-    draw.text((lx + 16 * s, by + 4 * s), f"📌  JAMI BOSHQ BOTLARDAN: +{data.bot_total}", fill=gold, font=f_head)
-    y += bot_h + 16 * s
+    draw.text((lx + 16, y + bot_sec_h - 32), f"📌  JAMI BOSHQ BOTLARDAN: +{data.bot_total}", fill=GOLD, font=f_head)
+    y += bot_sec_h + 14
 
-    # ── Bottom: reyting + ishlar ──
-    half = (inner_w - 12 * s) // 2
-    rx = lx + half + 12 * s
-    _rounded_panel(draw, (lx, y, lx + half, y + bottom_h), panel, outline=(40, 70, 110), radius=12 * s)
-    _rounded_panel(draw, (rx, y, W - M - 12 * s, y + bottom_h), panel, outline=(40, 70, 110), radius=12 * s)
+    # Bottom
+    bot_h = H - M - y - 10
+    half = (inner - 12) // 2
+    rx = lx + half + 12
 
-    draw.text((lx + 16 * s, y + 14 * s), "📈  КУНЛИК ФОЙДАЛИЛИК РЕЙТИНГИ", fill=accent, font=f_head)
-    draw.text((rx + 16 * s, y + 14 * s), "✅  БАЖАРИЛГАН ИШЛАР (БУГУН)", fill=accent, font=f_head)
+    _panel(draw, (lx, y, lx + half, y + bot_h))
+    _panel(draw, (rx, y, W - M - 14, y + bot_h))
+    draw.text((lx + 16, y + 12), "📈  КУНЛИК ФОЙДАЛИЛИК РЕЙТИНГИ", fill=ACCENT, font=f_head)
+    draw.text((rx + 16, y + 12), "✅  БАЖАРИЛГАН ИШЛАР (БУГУН)", fill=ACCENT, font=f_head)
 
-    ly = y + 50 * s
-    bar_w = half - 120 * s
+    ly = y + 48
     for lead in data.leaders:
         medal = "🥇" if lead.rank == 1 else "🥈" if lead.rank == 2 else "🥉" if lead.rank == 3 else f"{lead.rank}."
-        nc = gold if lead.name == data.employee else white
-        draw.text((lx + 14 * s, ly), f"{medal} {_truncate(lead.name, 16)}", fill=nc, font=f_small)
-        draw.text((lx + half - 58 * s, ly), f"+{lead.score}", fill=green, font=f_small)
-        draw.text((lx + half - 28 * s, ly), f"{lead.pct}%", fill=orange if lead.pct >= 70 else muted, font=f_small)
-        _progress_bar(draw, lx + 14 * s, ly + 18 * s, bar_w, 8 * s, lead.pct, teal, track)
-        ly += 34 * s
+        nc = GOLD if lead.name == data.employee else WHITE
+        draw.text((lx + 14, ly), f"{medal} {_truncate(lead.name, 18)}", fill=nc, font=f_small)
+        draw.text((lx + half - 72, ly), f"+{lead.score}", fill=GREEN, font=f_small)
+        draw.text((lx + half - 38, ly), lead.work_time or "00:00", fill=MUTED, font=f_small)
+        draw.text((lx + half - 8, ly), f"{lead.pct}%", fill=ORANGE if lead.pct >= 70 else MUTED, font=f_small)
+        _bar(draw, lx + 14, ly + 20, half - 100, 10, lead.pct)
+        ly += 38
 
-    wy = y + 50 * s
-    if data.work_log:
-        for label, wt in data.work_log[:8]:
-            draw.text((rx + 16 * s, wy), f"•  {label}", fill=white, font=f_body)
-            draw.text((rx + 220 * s, wy), wt, fill=accent, font=f_body)
-            wy += 32 * s
-    else:
-        draw.text((rx + 16 * s, wy), "Boshqa botlardan ish yo'q", fill=muted, font=f_body)
-        wy += 28 * s
-        for row in data.categories[:5]:
-            draw.text((rx + 16 * s, wy), f"•  {row.name}: +{row.added}", fill=white, font=f_small)
-            wy += 26 * s
+    wy = y + 48
+    items = data.work_log or [(r.name, f"+{r.added}") for r in data.categories[:6]]
+    for label, wt in items[:8]:
+        draw.text((rx + 16, wy), f"•  {label}", fill=WHITE, font=f_body)
+        draw.text((rx + 260, wy), wt, fill=ACCENT, font=f_bold)
+        wy += 32
 
     buf = BytesIO()
     img.save(buf, format="PNG", compress_level=1)
@@ -489,7 +472,6 @@ def render_daily_report_png(data: DailyReportCardData, avatar: bytes | None = No
 
 
 def build_demo_card_data() -> DailyReportCardData:
-    """Brauzer /preview va admin namuna uchun."""
     return DailyReportCardData(
         day_iso="2026-05-29",
         employee="Mustafoev Abdullo",
@@ -506,11 +488,13 @@ def build_demo_card_data() -> DailyReportCardData:
             CategoryRow("АРМ диспетчер", 5, 5, 5, 5),
         ],
         bots=[
-            BotRow("omborga", "OMBORGA KIRITISH", "Reys 4, yuk 209m, ish 0:27, dam 0:16", 18, "reys 4  ·  ish vaqti 0:27", "jami vaqt 0:43"),
-            BotRow("ombor", "OMBOR XIZMAT", "#1 Xizmat: bajarildi, 54 soniya", 22, "ish vaqti 0:54", "son 54"),
-            BotRow("yuk", "YUK JARAYONI", "Yuk #1: ish vaqti 0:39", 17, "ish vaqti 0:39", ""),
-            BotRow("sklad", "SKLAD NAZORAT", "Papka Datery: sanaldi 1, joy 1, xato 0, kun 2/36", 5, "Papka Datery: sanaldi 1...", ""),
-            BotRow("ishxona", "ISHXONA NAZORAT", "Shikoyat (Mustafoev Abdullo): Test2", 0, "Shikoyat (Mustafoev Abdullo): Test2", ""),
+            BotRow("omborga", "OMBORGA KIRITISH", "Reys 4, yuk 209m, ish 0:27, dam 0:16", 18,
+                   [("reys", "4"), ("ish vaqti", "0:27:16"), ("jami vaqt", "0:43:16")]),
+            BotRow("ombor", "OMBOR XIZMAT", "#1 bajarildi, 54 soniya", 22,
+                   [("ish vaqti", "0:54:12"), ("son", "54")]),
+            BotRow("yuk", "YUK JARAYONI", "Yuk #1: ish vaqti 0:39", 17, [("ish vaqti", "0:39:45")]),
+            BotRow("sklad", "SKLAD NAZORAT", "Papka Datery: sanaldi 1", 5, [("ma'lumot", "sanaldi 1")]),
+            BotRow("ishxona", "ISHXONA NAZORAT", "Shikoyat: Test2", 0, [("shikoyat", "Test2")]),
         ],
         cat_total=31,
         bot_total=62,
@@ -520,15 +504,11 @@ def build_demo_card_data() -> DailyReportCardData:
         rank=1,
         rank_total=9,
         leaders=[
-            LeaderRow(1, "Mustafoev Abdullo", 93, "3:27", 100),
-            LeaderRow(2, "Ravshanov Oxunjon", 45, "2:10", 48),
-            LeaderRow(3, "Sagdullaev Yunus", 38, "1:55", 41),
+            LeaderRow(1, "Mustafoev Abdullo", 93, "03:27", 100),
+            LeaderRow(2, "Ravshanov Oxunjon", 45, "02:10", 48),
+            LeaderRow(3, "Sagdullaev Yunus", 38, "01:55", 41),
         ],
-        work_log=[
-            ("Omborga kiritish", "0:27"),
-            ("Ombor xizmat", "0:54"),
-            ("Yuk jarayoni", "0:39"),
-        ],
+        work_log=[("Ombor xizmat", "00:54"), ("Omborga kiritish", "00:27"), ("Yuk jarayoni", "00:39")],
     )
 
 
