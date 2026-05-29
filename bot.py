@@ -9,6 +9,10 @@ from aiogram import Bot, Dispatcher
 from aiogram.filters import Command
 from aiogram.types import Message, ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemove
 
+from cross_bot_hub import build_appendix_lines_async, init_schema as init_cross_bot_schema
+from employee_tg_map import TG_EMPLOYEE
+from hub_ingest import start_ingest_server
+
 
 # ============================================================
 # КОНФИГ
@@ -18,7 +22,7 @@ logging.basicConfig(level=logging.INFO)
 
 TOKEN = os.getenv("BOT_TOKEN")
 if not TOKEN:
-    raise RuntimeError("8231063055:AAE6uspIbD0xVC8Q8PL6aBUEZMUAeL1X2QI")
+    raise RuntimeError("BOT_TOKEN is empty. Set Railway variable BOT_TOKEN.")
 
 GROUP_ID = int(os.getenv("GROUP_ID", "-1001877019294"))
 
@@ -553,6 +557,10 @@ async def finalize_report(message: Message):
     lines.append("")
     lines.append(f"⭐ Энг кучли йўналиш: {best_cat} (+{best_add})")
     lines.append(f"🔥 Умумий баҳо: {overall_text}")
+
+    tg_id = message.from_user.id if message.from_user else 0
+    if tg_id:
+        lines.extend(await build_appendix_lines_async(tg_id, today_iso))
 
     await safe_group_send(box(lines, title="КУНЛИК ҲИСОБОТ (ЯКУН)"))
 
@@ -1172,8 +1180,19 @@ async def setplan_cmd(message: Message):
 # ============================================================
 
 async def main():
+    init_cross_bot_schema()
     await seed_pins()
-    await dp.start_polling(bot)
+    for tg_id, emp_name in TG_EMPLOYEE.items():
+        await db_exec(
+            "INSERT OR REPLACE INTO employee_links(tg_id, employee) VALUES (?, ?)",
+            (int(tg_id), emp_name),
+        )
+    hub_runner = await start_ingest_server()
+    try:
+        await dp.start_polling(bot)
+    finally:
+        if hub_runner:
+            await hub_runner.cleanup()
 
 if __name__ == "__main__":
     asyncio.run(main())
