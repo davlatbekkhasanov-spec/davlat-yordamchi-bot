@@ -47,6 +47,7 @@ class CategoryRow:
     today: int
     period: int
     norm: int
+    yesterday: str = "йўқ"
 
 
 @dataclass
@@ -86,6 +87,11 @@ class DailyReportCardData:
     rank_total: int = 0
     leaders: list[LeaderRow] = field(default_factory=list)
     work_log: list[tuple[str, str]] = field(default_factory=list)
+    summary_text: str = ""
+    recommendation_text: str = ""
+    work_ish_time: str = "00:00"
+    work_dam_time: str = "00:00"
+    footer_date: str = ""
 
 
 def _load_fonts():
@@ -209,6 +215,33 @@ def _bot_metrics(key: str, summary: str, work_sec: int) -> list[tuple[str, str]]
     return [("info", _truncate(s, 28))]
 
 
+def _fmt_footer_date(day_iso: str) -> str:
+    try:
+        y, m, d = day_iso.split("-")
+        return f"{d}.{m}.{y}"
+    except Exception:
+        return day_iso
+
+
+def _parse_work_rest(events: dict[str, str]) -> tuple[str, str]:
+    summary = events.get("omborga", "") or ""
+    sl = summary.lower()
+    ish_m = re.search(r"ish\s+([\d:]+)", sl)
+    dam_m = re.search(r"dam\s+([\d:]+)", sl)
+    ish = ish_m.group(1) if ish_m else "00:00"
+    dam = dam_m.group(1) if dam_m else "00:00"
+    return ish, dam
+
+
+def _build_summary_text(data: "DailyReportCardData") -> tuple[str, str]:
+    summary = (
+        "Бугунги кун давомида барча асосий фаолиятлар белгиланган режимда бajarilди. "
+        f"{data.best_cat} ва АРМ диспетчер йўналишlarida юқори натижа қайд этилди. "
+        "Хизмат сўрови ўз вақтида бajarilди. Юк жараёни ва склад назоратида хатolar aniqlanmadi."
+    )
+    rec = "Меҳнат унумдорлиги яхши даражада, шу тарзда давом эттириш тавсия этилади."
+    return summary, rec
+
 async def build_card_data(
     *,
     employee: str,
@@ -227,6 +260,7 @@ async def build_card_data(
     get_plan: Callable[..., Awaitable[int | None]],
     sum_day_total: Callable[..., Awaitable[int]],
     employee_tg_map: dict[str, int],
+    day_has_any: Callable[..., Awaitable[bool]] | None = None,
 ) -> DailyReportCardData:
     data = DailyReportCardData(
         day_iso=day_iso,
@@ -248,7 +282,17 @@ async def build_card_data(
         plan = await get_plan(period, employee, cat)
         norm = int(plan) if plan else today
         period_sum += per
-        data.categories.append(CategoryRow(name=cat, added=added, today=today, period=per, norm=norm))
+        ytxt = "йўқ"
+        if day_has_any:
+            if await day_has_any(yday_iso, employee, cat):
+                ytxt = str(await sum_day(yday_iso, employee, cat))
+        else:
+            yday = await sum_day(yday_iso, employee, cat)
+            if yday:
+                ytxt = str(yday)
+        data.categories.append(
+            CategoryRow(name=cat, added=added, today=today, period=per, norm=norm, yesterday=ytxt)
+        )
 
     data.cat_total = cat_total
     data.period_sum = period_sum
@@ -300,6 +344,9 @@ async def build_card_data(
         if name == employee:
             data.rank = i
     data.rank_total = active or len(scores)
+    data.work_ish_time, data.work_dam_time = _parse_work_rest(events)
+    data.footer_date = _fmt_footer_date(day_iso)
+    data.summary_text, data.recommendation_text = _build_summary_text(data)
     return data
 
 
@@ -476,7 +523,8 @@ def render_daily_report_png(data: DailyReportCardData, avatar: bytes | None = No
 
 
 def build_demo_card_data() -> DailyReportCardData:
-    return DailyReportCardData(
+    y = "йўқ"
+    data = DailyReportCardData(
         day_iso="2026-05-29",
         employee="Mustafoev Abdullo",
         period="2026-05",
@@ -484,21 +532,23 @@ def build_demo_card_data() -> DailyReportCardData:
         best_add=6,
         overall_text="Кеча маълумот йўқ. Бугун яхши старт! 💪",
         categories=[
-            CategoryRow("Приход", 5, 5, 5, 5),
-            CategoryRow("Перемещение", 5, 5, 5, 5),
-            CategoryRow("Фото ТМЦ", 5, 5, 5, 5),
-            CategoryRow("Счет ТСД", 6, 6, 6, 6),
-            CategoryRow("Фасовка", 5, 5, 5, 5),
-            CategoryRow("АРМ диспетчер", 5, 5, 5, 5),
+            CategoryRow("Приход", 5, 5, 5, 5, y),
+            CategoryRow("Перемещение", 5, 5, 5, 5, y),
+            CategoryRow("Фото ТМЦ", 5, 5, 5, 5, y),
+            CategoryRow("Счет ТСД", 6, 6, 6, 6, y),
+            CategoryRow("Фасовка", 5, 5, 5, 5, y),
+            CategoryRow("АРМ диспетчер", 6, 6, 6, 6, y),
+            CategoryRow("Исправление пересортицы", 5, 5, 5, 5, y),
+            CategoryRow("Переоценка", 5, 5, 5, 5, y),
+            CategoryRow("Пересчет товаров", 5, 5, 5, 5, y),
+            CategoryRow("Места хр", 5, 5, 5, 5, y),
         ],
         bots=[
-            BotRow("omborga", "OMBORGA KIRITISH", "Reys 4, yuk 209m, ish 0:27, dam 0:16", 18,
-                   [("reys", "4"), ("ish vaqti", "0:27:16"), ("jami vaqt", "0:43:16")]),
-            BotRow("ombor", "OMBOR XIZMAT", "#1 bajarildi, 54 soniya", 22,
-                   [("ish vaqti", "0:54:12"), ("son", "54")]),
-            BotRow("yuk", "YUK JARAYONI", "Yuk #1: ish vaqti 0:39", 17, [("ish vaqti", "0:39:45")]),
-            BotRow("sklad", "SKLAD NAZORAT", "Papka Datery: sanaldi 1", 5, [("ma'lumot", "sanaldi 1")]),
-            BotRow("ishxona", "ISHXONA NAZORAT", "Shikoyat: Test2", 0, [("shikoyat", "Test2")]),
+            BotRow("omborga", "OMBORGA", "Reys: 4, yuk 209m, ish 0:27, dam 0:16", 18, []),
+            BotRow("ombor", "OMBOR", "#1 🙋 Хизмат сўрови: бajarilди, 54 soniya", 22, []),
+            BotRow("yuk", "YUK", "Yuk #1: ish vaqti 0:39", 17, []),
+            BotRow("sklad", "SKLAD", "Papka Datery: sanaldi 1, joy 1, xato 0, kun 2/36", 5, []),
+            BotRow("ishxona", "ISHXONA", "Shikoyat (Mustafoev Abdullo): Test2", 0, []),
         ],
         cat_total=31,
         bot_total=62,
@@ -507,13 +557,12 @@ def build_demo_card_data() -> DailyReportCardData:
         period_sum=31,
         rank=1,
         rank_total=9,
-        leaders=[
-            LeaderRow(1, "Mustafoev Abdullo", 93, "03:27", 100),
-            LeaderRow(2, "Ravshanov Oxunjon", 45, "02:10", 48),
-            LeaderRow(3, "Sagdullaev Yunus", 38, "01:55", 41),
-        ],
-        work_log=[("Ombor xizmat", "00:54"), ("Omborga kiritish", "00:27"), ("Yuk jarayoni", "00:39")],
+        work_ish_time="01:51",
+        work_dam_time="00:16",
+        footer_date="29.05.2026",
     )
+    data.summary_text, data.recommendation_text = _build_summary_text(data)
+    return data
 
 
 def render_demo_preview_png() -> bytes:

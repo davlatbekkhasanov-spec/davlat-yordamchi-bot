@@ -1,8 +1,9 @@
-"""HTML hisobot (referens dizayn)."""
+"""HTML hisobot — korporativ A4."""
 
 from __future__ import annotations
 
 import base64
+import re
 from pathlib import Path
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
@@ -12,25 +13,20 @@ from daily_report_card import DailyReportCardData
 
 ASSETS = Path(__file__).resolve().parent / "assets" / "report"
 
-METRIC_LABELS = {
-    "reys": "Reys",
-    "ish vaqti": "Ish",
-    "ish": "Ish",
-    "dam": "Dam",
-    "jami vaqt": "Jami vaqt",
-    "son": "Son",
-    "holat": "Holat",
-    "ma'lumot": "Ma'lumot",
-    "shikoyat": "Shikoyat",
-    "info": "Info",
+BOT_TITLES = {
+    "omborga": "ОМБОРГА КИРИТИШ",
+    "ombor": "ОМБОР ХИЗМАТ",
+    "yuk": "ЮК ЖАРАЁНИ",
+    "sklad": "СКЛАД НАЗОРАТ",
+    "ishxona": "ИШХОНА НАЗОРАТ",
 }
 
-BOT_TITLES = {
-    "omborga": "Омборга киритиш",
-    "ombor": "Омбор хизмат",
-    "yuk": "Юк жараёни",
-    "sklad": "Склад nazorat",
-    "ishxona": "Ишxona nazorat",
+BOT_ICONS = {
+    "omborga": "🚛",
+    "ombor": "📦",
+    "yuk": "🛒",
+    "sklad": "📋",
+    "ishxona": "🔧",
 }
 
 
@@ -53,26 +49,53 @@ def _image_mime(data: bytes) -> str:
     return "image/jpeg"
 
 
+def _format_bot_body(key: str, summary: str, metrics: list[tuple[str, str]]) -> str:
+    if summary and summary.strip():
+        return summary.strip()
+    if not metrics:
+        return "Ma'lumot yo'q"
+    parts = []
+    for label, value in metrics:
+        parts.append(f"{label}: {value}")
+    return ", ".join(parts)
+
+
+def _format_omborga_body(summary: str) -> str:
+    if not summary:
+        return "Ma'lumot yo'q"
+    sl = summary.lower()
+    reys = re.search(r"reys\s*(\d+)", sl)
+    yuk = re.search(r"yuk\s*(\d+)", sl)
+    ish = re.search(r"ish\s+([\d:]+)", sl)
+    dam = re.search(r"dam\s+([\d:]+)", sl)
+    bits = []
+    if reys:
+        bits.append(f"Reys: {reys.group(1)}")
+    if yuk:
+        bits.append(f"yuk {yuk.group(1)}m")
+    if ish:
+        bits.append(f"ish {ish.group(1)}")
+    if dam:
+        bits.append(f"dam {dam.group(1)}")
+    return ", ".join(bits) if bits else summary
+
+
 def build_report_html(data: DailyReportCardData, avatar: bytes | None = None) -> str:
     avatar_b64 = base64.b64encode(avatar).decode("ascii") if avatar else None
     avatar_mime = _image_mime(avatar) if avatar else "image/jpeg"
 
     bots = []
     for bot in data.bots:
-        title = BOT_TITLES.get(bot.key, BOT_LABELS.get(bot.key, bot.label))
-        metrics = [(METRIC_LABELS.get(k, k), v) for k, v in bot.metrics]
-        bots.append({"title": title, "metrics": metrics, "score": bot.score})
-
-    leaders = []
-    for lead in data.leaders:
-        leaders.append(
+        title = BOT_TITLES.get(bot.key, BOT_LABELS.get(bot.key, bot.label).upper())
+        if bot.key == "omborga":
+            body = _format_omborga_body(bot.summary)
+        else:
+            body = _format_bot_body(bot.key, bot.summary, bot.metrics)
+        bots.append(
             {
-                "rank": lead.rank,
-                "name": lead.name,
-                "score": lead.score,
-                "work_time": lead.work_time or "00:00",
-                "pct": lead.pct,
-                "is_self": lead.name == data.employee,
+                "title": title,
+                "icon": BOT_ICONS.get(bot.key, "📌"),
+                "body": body,
             }
         )
 
@@ -85,16 +108,12 @@ def build_report_html(data: DailyReportCardData, avatar: bytes | None = None) ->
         "best_cat": data.best_cat,
         "best_add": data.best_add,
         "overall_text": data.overall_text,
-        "cat_total": data.cat_total,
-        "bot_total": data.bot_total,
-        "grand_total": data.grand_total,
-        "total_work": data.total_work,
-        "period_sum": data.period_sum,
-        "rank": data.rank,
-        "rank_total": data.rank_total,
+        "summary_text": data.summary_text,
+        "recommendation_text": data.recommendation_text,
+        "work_ish_time": data.work_ish_time,
+        "work_dam_time": data.work_dam_time,
+        "footer_date": data.footer_date,
         "bots": bots,
-        "leaders": leaders,
-        "work_log": data.work_log,
         "avatar_b64": avatar_b64,
         "avatar_mime": avatar_mime,
     }

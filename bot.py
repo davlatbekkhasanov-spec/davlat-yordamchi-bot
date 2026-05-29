@@ -403,6 +403,7 @@ async def build_report_png_for_user(uid: int, emp: str, agg: dict[str, int]) -> 
         get_plan=get_plan,
         sum_day_total=sum_day_total,
         employee_tg_map=etg_map,
+        day_has_any=day_has_any,
     )
     png = await render_report_png(card, avatar=avatar)
     return png, card
