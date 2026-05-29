@@ -142,3 +142,31 @@ def hub_secret_ok(provided: str) -> bool:
     if not HUB_SECRET:
         return False
     return str(provided or "").strip() == HUB_SECRET
+
+
+async def count_employee_links() -> int:
+    async with _lock:
+        cur = _conn.cursor()
+        cur.execute("SELECT COUNT(*) AS c FROM employee_links")
+        row = cur.fetchone()
+    return int(row["c"]) if row else 0
+
+
+async def hub_stats_today(day: str) -> dict[str, tuple[int, str | None]]:
+    """bot_key → (event_soni, oxirgi vaqt)."""
+    async with _lock:
+        cur = _conn.cursor()
+        cur.execute(
+            """
+            SELECT bot_key, COUNT(*) AS cnt, MAX(created_at) AS last_at
+            FROM cross_bot_events
+            WHERE day = ?
+            GROUP BY bot_key
+            """,
+            (day,),
+        )
+        rows = cur.fetchall()
+    out: dict[str, tuple[int, str | None]] = {}
+    for row in rows:
+        out[row["bot_key"]] = (int(row["cnt"]), row["last_at"])
+    return out

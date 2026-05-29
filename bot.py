@@ -17,7 +17,7 @@ from cross_bot_hub import (
 )
 from employee_tg_map import TG_EMPLOYEE
 from hub_ingest import start_ingest_server
-from hub_test import BTN_HUB_TEST, handle_admin_hub_test
+from admin_status import BTN_ADMIN_STATUS, admin_status_kb, handle_admin_status
 
 
 # ============================================================
@@ -34,7 +34,17 @@ GROUP_ID = int(os.getenv("GROUP_ID", "-1001877019294"))
 INGEST_CHAT_ID = int(os.getenv("YORDAMCHI_INGEST_CHAT_ID", "0") or "0")
 TZ = ZoneInfo(os.getenv("TZ", "Asia/Tashkent"))
 
-ADMINS = {5732350707, 2624538, 6991673998, 1432810519}
+def _parse_admin_ids() -> set[int]:
+    raw = os.getenv("ADMIN_IDS", "").strip()
+    out = {5732350707, 2624538, 6991673998, 1432810519}
+    for part in raw.replace(";", ",").split(","):
+        part = part.strip()
+        if part.isdigit():
+            out.add(int(part))
+    return out
+
+
+ADMINS = _parse_admin_ids()
 
 
 def today_local() -> date:
@@ -178,7 +188,7 @@ async def seed_pins():
 def categories_kb(user_id: int | None = None):
     rows = [[KeyboardButton(text=c)] for c in CATEGORIES] + [[KeyboardButton(text="❌ Бекор қилиш")]]
     if user_id and is_admin(user_id):
-        rows.append([KeyboardButton(text=BTN_HUB_TEST)])
+        rows.append([KeyboardButton(text=BTN_ADMIN_STATUS)])
     return ReplyKeyboardMarkup(keyboard=rows, resize_keyboard=True)
 
 
@@ -188,7 +198,7 @@ def after_save_kb(user_id: int | None = None):
         [KeyboardButton(text="↩️ Ундо"), KeyboardButton(text="❌ Бекор қилиш")],
     ]
     if user_id and is_admin(user_id):
-        rows.append([KeyboardButton(text=BTN_HUB_TEST)])
+        rows.append([KeyboardButton(text=BTN_ADMIN_STATUS)])
     return ReplyKeyboardMarkup(keyboard=rows, resize_keyboard=True)
 
 def delete_date_kb():
@@ -398,13 +408,22 @@ async def start(message: Message):
     if not is_private(message):
         return
 
-    emp = await get_linked_employee(message.from_user.id)
+    uid = message.from_user.id
+    emp = await get_linked_employee(uid)
     if not emp:
-        await message.answer(
-            "Сиз ҳали уланмагансиз.\nАдмин берган PIN билан уланинг:\n<b>/link 1234</b>",
-            parse_mode="HTML",
-            reply_markup=ReplyKeyboardRemove()
-        )
+        if is_admin(uid):
+            await message.answer(
+                "Сиз админсиз. PIN bilan ham ulanishingiz mumkin: <b>/link 1234</b>\n\n"
+                "Tizim holatini ko'rish uchun tugmani bosing 👇",
+                parse_mode="HTML",
+                reply_markup=admin_status_kb(),
+            )
+        else:
+            await message.answer(
+                "Сиз ҳали уланмагансиз.\nАдмин берган PIN билан уланинг:\n<b>/link 1234</b>",
+                parse_mode="HTML",
+                reply_markup=ReplyKeyboardRemove(),
+            )
         return
 
     user_state[message.from_user.id] = {"employee": emp, "session": []}
@@ -1192,21 +1211,32 @@ async def setplan_cmd(message: Message):
 
 
 # ============================================================
-# Admin: hub test
+# Admin: tizim holati
 # ============================================================
 
-@dp.message(Command("test_hub"))
-async def hub_test_cmd(message: Message):
-    if not is_private(message) or not is_admin(message.from_user.id):
+@dp.message(Command("status_system", "tizim"))
+async def admin_status_cmd(message: Message):
+    if not is_private(message):
         return
-    await handle_admin_hub_test(message)
-
-
-@dp.message(lambda m: is_private(m) and m.text == BTN_HUB_TEST)
-async def hub_test_btn(message: Message):
     if not is_admin(message.from_user.id):
+        await message.answer(
+            f"Faqat admin.\nSizning ID: <code>{message.from_user.id}</code>\n"
+            "Railway da ADMIN_IDS ga qo'shing.",
+            parse_mode="HTML",
+        )
         return
-    await handle_admin_hub_test(message)
+    await handle_admin_status(message, bot)
+
+
+@dp.message(lambda m: is_private(m) and m.text == BTN_ADMIN_STATUS)
+async def admin_status_btn(message: Message):
+    if not is_admin(message.from_user.id):
+        await message.answer(
+            f"Faqat admin.\nSizning ID: <code>{message.from_user.id}</code>",
+            parse_mode="HTML",
+        )
+        return
+    await handle_admin_status(message, bot)
 
 
 # ============================================================
