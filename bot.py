@@ -17,6 +17,7 @@ from cross_bot_hub import (
 )
 from employee_tg_map import TG_EMPLOYEE
 from hub_ingest import start_ingest_server
+from hub_test import BTN_HUB_TEST, handle_admin_hub_test
 
 
 # ============================================================
@@ -174,20 +175,21 @@ async def seed_pins():
 # КЛАВИАТУРА
 # ============================================================
 
-def categories_kb():
-    return ReplyKeyboardMarkup(
-        keyboard=[[KeyboardButton(text=c)] for c in CATEGORIES] + [[KeyboardButton(text="❌ Бекор қилиш")]],
-        resize_keyboard=True
-    )
+def categories_kb(user_id: int | None = None):
+    rows = [[KeyboardButton(text=c)] for c in CATEGORIES] + [[KeyboardButton(text="❌ Бекор қилиш")]]
+    if user_id and is_admin(user_id):
+        rows.append([KeyboardButton(text=BTN_HUB_TEST)])
+    return ReplyKeyboardMarkup(keyboard=rows, resize_keyboard=True)
 
-def after_save_kb():
-    return ReplyKeyboardMarkup(
-        keyboard=[
-            [KeyboardButton(text="➕ Яна категория"), KeyboardButton(text="✅ Якунлаш")],
-            [KeyboardButton(text="↩️ Ундо"), KeyboardButton(text="❌ Бекор қилиш")]
-        ],
-        resize_keyboard=True
-    )
+
+def after_save_kb(user_id: int | None = None):
+    rows = [
+        [KeyboardButton(text="➕ Яна категория"), KeyboardButton(text="✅ Якунлаш")],
+        [KeyboardButton(text="↩️ Ундо"), KeyboardButton(text="❌ Бекор қилиш")],
+    ]
+    if user_id and is_admin(user_id):
+        rows.append([KeyboardButton(text=BTN_HUB_TEST)])
+    return ReplyKeyboardMarkup(keyboard=rows, resize_keyboard=True)
 
 def delete_date_kb():
     return ReplyKeyboardMarkup(
@@ -409,7 +411,7 @@ async def start(message: Message):
     await message.answer(
         f"✅ Салом, <b>{html.escape(emp)}</b>!\n📌 Категорияни танланг:",
         parse_mode="HTML",
-        reply_markup=categories_kb()
+        reply_markup=categories_kb(message.from_user.id)
     )
 
 
@@ -495,7 +497,7 @@ async def save_number(message: Message):
         f"{motivational(mot_delta)}\n"
         f"Энди нима қиламиз?",
         parse_mode="HTML",
-        reply_markup=after_save_kb()
+        reply_markup=after_save_kb(message.from_user.id)
     )
 
 
@@ -505,7 +507,10 @@ async def again_category(message: Message):
     if not state:
         await message.answer("Аввал /start босинг.")
         return
-    await message.answer("📌 Категорияни танланг:", reply_markup=categories_kb())
+    await message.answer(
+        "📌 Категорияни танланг:",
+        reply_markup=categories_kb(message.from_user.id),
+    )
 
 
 @dp.message(lambda m: is_private(m) and m.text == "✅ Якунлаш")
@@ -1184,6 +1189,24 @@ async def setplan_cmd(message: Message):
         box([f"Период: {period}", f"{emp}", f"{cat}", f"План = {plan_val}"], title="PLAN SET"),
         parse_mode="HTML"
     )
+
+
+# ============================================================
+# Admin: hub test
+# ============================================================
+
+@dp.message(Command("test_hub"))
+async def hub_test_cmd(message: Message):
+    if not is_private(message) or not is_admin(message.from_user.id):
+        return
+    await handle_admin_hub_test(message)
+
+
+@dp.message(lambda m: is_private(m) and m.text == BTN_HUB_TEST)
+async def hub_test_btn(message: Message):
+    if not is_admin(message.from_user.id):
+        return
+    await handle_admin_hub_test(message)
 
 
 # ============================================================
