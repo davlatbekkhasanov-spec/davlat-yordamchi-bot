@@ -27,19 +27,25 @@ async def _ensure_playwright() -> bool:
         return False
 
 
-async def html_to_png(html: str, *, width: int = 1500) -> bytes:
+async def html_to_png(html: str, *, width: int = 1100, timeout: float = 25.0) -> bytes:
     from playwright.async_api import async_playwright
 
-    async with async_playwright() as p:
-        browser = await p.chromium.launch(args=["--no-sandbox", "--disable-dev-shm-usage"])
-        try:
-            page = await browser.new_page(viewport={"width": width, "height": 900})
-            await page.set_content(html, wait_until="load")
-            height = await page.evaluate("() => document.documentElement.scrollHeight")
-            await page.set_viewport_size({"width": width, "height": max(height, 900)})
-            return await page.screenshot(full_page=True, type="png")
-        finally:
-            await browser.close()
+    async def _shot() -> bytes:
+        async with async_playwright() as p:
+            browser = await p.chromium.launch(
+                headless=True,
+                args=["--no-sandbox", "--disable-dev-shm-usage", "--disable-gpu"],
+            )
+            try:
+                page = await browser.new_page(viewport={"width": width, "height": 900})
+                await page.set_content(html, wait_until="load")
+                height = await page.evaluate("() => document.documentElement.scrollHeight")
+                await page.set_viewport_size({"width": width, "height": max(height, 900)})
+                return await page.screenshot(full_page=True, type="png")
+            finally:
+                await browser.close()
+
+    return await asyncio.wait_for(_shot(), timeout=timeout)
 
 
 async def render_report_png(data: DailyReportCardData, avatar: bytes | None = None) -> bytes:
@@ -48,7 +54,7 @@ async def render_report_png(data: DailyReportCardData, avatar: bytes | None = No
         try:
             return await html_to_png(html)
         except Exception as e:
-            log.exception("HTML→PNG xato, PIL fallback: %s", e)
+            log.warning("HTML→PNG xato, PIL fallback: %s", e)
     return await asyncio.to_thread(render_daily_report_png, data, avatar)
 
 
