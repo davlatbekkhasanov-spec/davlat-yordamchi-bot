@@ -392,7 +392,7 @@ def render_daily_report_png(data: DailyReportCardData, avatar: bytes | None = No
         ty += row_h
 
     ty += 6 * s
-    draw.text((lx + 14 * s, ty), f"⭐  Энг кuchli: {data.best_cat} (+{data.best_add})", fill=gold, font=f_small)
+    draw.text((lx + 14 * s, ty), f"⭐  {data.best_cat} (+{data.best_add})", fill=gold, font=f_small)
     ty += 22 * s
     draw.text((lx + 14 * s, ty), f"🔥  {_truncate(data.overall_text, 52)}", fill=orange, font=f_small)
 
