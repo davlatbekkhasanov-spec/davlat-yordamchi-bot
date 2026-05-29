@@ -8,17 +8,32 @@ body {
   background: #ffffff;
   color: #111111;
   font-family: "DejaVu Sans", Arial, sans-serif;
-  font-size: 18px;
-  line-height: 1.45;
+  font-size: 17px;
+  line-height: 1.4;
+  width: 1240px;
+  height: 1754px;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+html {
+  width: 1240px;
+  height: 1754px;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
 }
 
 .page {
   width: 1240px;
-  min-height: 1754px;
-  margin: 0 auto;
-  padding: 36px 42px 32px;
+  height: 1754px;
+  margin: 0;
+  padding: 28px 36px 24px;
   background: #ffffff;
   position: relative;
+  overflow: hidden;
+  box-sizing: border-box;
 }
 
 /* HEADER */
@@ -183,9 +198,9 @@ body {
 
 .data-table tbody td {
   border: 1px solid #d7e1ef;
-  padding: 9px 8px;
-  font-size: 17px;
-  height: 42px;
+  padding: 7px 6px;
+  font-size: 16px;
+  height: 36px;
   vertical-align: middle;
   text-align: center;
 }

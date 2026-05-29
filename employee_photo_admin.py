@@ -27,16 +27,33 @@ def photo_upload_kb() -> ReplyKeyboardMarkup:
     )
 
 
+def _norm_name(name: str) -> str:
+    s = name.lower().strip()
+    for ch in ("'", "'", "`", "ʻ", "ʼ", "’"):
+        s = s.replace(ch, "")
+    return " ".join(s.split())
+
+
 async def resolve_employee_tg_id(name: str, employee_tg_map: dict[str, int]) -> int | None:
     if name in employee_tg_map:
         return employee_tg_map[name]
-    for tg_id, emp in TG_EMPLOYEE.items():
-        if emp == name:
-            return int(tg_id)
-    low = name.lower()
+    target = _norm_name(name)
     for emp, tg_id in employee_tg_map.items():
-        if emp.lower() == low:
+        if _norm_name(emp) == target:
             return tg_id
+    for tg_id, emp in TG_EMPLOYEE.items():
+        if _norm_name(emp) == target:
+            return int(tg_id)
+    tp = target.split()
+    if len(tp) >= 2:
+        for tg_id, emp in TG_EMPLOYEE.items():
+            ep = _norm_name(emp).split()
+            if len(ep) >= 2 and tp[0] == ep[0] and tp[-1] == ep[-1]:
+                return int(tg_id)
+        for emp, tg_id in employee_tg_map.items():
+            ep = _norm_name(emp).split()
+            if len(ep) >= 2 and tp[0] == ep[0] and tp[-1] == ep[-1]:
+                return tg_id
     return None
 
 

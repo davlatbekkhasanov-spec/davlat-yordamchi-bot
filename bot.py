@@ -338,6 +338,10 @@ async def get_employee_photo(user_id: int) -> bytes | None:
     return await fetch_user_avatar(user_id)
 
 
+async def _persist_employee_photo(tg_id: int, data: bytes) -> None:
+    await save_photo(db_exec, tg_id, data)
+
+
 async def employee_tg_map() -> dict[str, int]:
     rows = await db_fetchall("SELECT tg_id, employee FROM employee_links")
     out = {r["employee"]: int(r["tg_id"]) for r in rows}
@@ -598,7 +602,54 @@ async def cancel_cmd(message: Message):
     await message.answer("Бекор қилинди. /start", reply_markup=ReplyKeyboardRemove())
 
 
-@dp.message(lambda m: is_private(m) and m.text == "❌ Бекор қилиш")
+# ============================================================
+# Admin: xodim rasmi (boshqa handlerlar oldin)
+# ============================================================
+
+@dp.message(lambda m: is_private(m) and m.text == BTN_ADMIN_PHOTO and is_admin(m.from_user.id))
+async def admin_photo_start(message: Message):
+    await start_photo_upload(message, EMPLOYEES)
+
+
+@dp.message(
+    lambda m: is_private(m)
+    and is_admin(m.from_user.id)
+    and m.from_user
+    and m.from_user.id in admin_photo_state
+)
+async def admin_photo_flow(message: Message):
+    uid = message.from_user.id if message.from_user else 0
+    st = admin_photo_state.get(uid, {})
+
+    if await handle_photo_cancel(message, admin_status_kb):
+        return
+    if st.get("step") == "employee" and message.photo:
+        await message.answer("Avval ro'yxatdan xodimni tanlang.")
+        return
+    if message.photo and await handle_photo_upload(
+        message,
+        bot,
+        save_photo=_persist_employee_photo,
+        admin_status_kb=admin_status_kb,
+    ):
+        return
+    if st.get("step") == "upload" and message.text:
+        await message.answer("📷 Endi rasm yuboring (foto file).")
+        return
+    if message.text:
+        await handle_photo_employee_pick(
+            message,
+            employees=EMPLOYEES,
+            employee_tg_map=await employee_tg_map(),
+            admin_status_kb=admin_status_kb,
+        )
+
+
+@dp.message(
+    lambda m: is_private(m)
+    and m.text == "❌ Бекор қилиш"
+    and not (m.from_user and m.from_user.id in admin_photo_state)
+)
 async def cancel_btn(message: Message):
     user_state.pop(message.from_user.id, None)
     await message.answer("Бекор қилинди. /start", reply_markup=ReplyKeyboardRemove())
@@ -983,7 +1034,11 @@ async def delete_date_manual(message: Message):
     await message.answer(f"Сана танланди: {day_iso}\nҚайси ходимники?", reply_markup=employees_kb(with_all=True))
 
 
-@dp.message(lambda m: is_private(m) and (m.text in EMPLOYEES or m.text == "✅ Ҳамма ходим"))
+@dp.message(
+    lambda m: is_private(m)
+    and (m.text in EMPLOYEES or m.text == "✅ Ҳамма ходим")
+    and not (m.from_user and m.from_user.id in admin_photo_state)
+)
 async def delete_employee_pick(message: Message):
     st = user_state.get(message.from_user.id, {})
     ad = st.get("admin_delete")
@@ -1422,49 +1477,6 @@ async def preview_demo_cmd(message: Message):
 @dp.message(lambda m: is_private(m) and m.text == BTN_PREVIEW_REPORT)
 async def preview_btn(message: Message):
     await send_report_preview(message, demo=False)
-
-
-async def _persist_employee_photo(tg_id: int, data: bytes) -> None:
-    await save_photo(db_exec, tg_id, data)
-
-
-@dp.message(lambda m: is_private(m) and m.text == BTN_ADMIN_PHOTO and is_admin(m.from_user.id))
-async def admin_photo_start(message: Message):
-    await start_photo_upload(message, EMPLOYEES)
-
-
-@dp.message(
-    lambda m: is_private(m)
-    and is_admin(m.from_user.id)
-    and m.from_user
-    and m.from_user.id in admin_photo_state
-)
-async def admin_photo_flow(message: Message):
-    uid = message.from_user.id if message.from_user else 0
-    st = admin_photo_state.get(uid, {})
-
-    if await handle_photo_cancel(message, admin_status_kb):
-        return
-    if st.get("step") == "employee" and message.photo:
-        await message.answer("Avval ro'yxatdan xodimni tanlang.")
-        return
-    if message.photo and await handle_photo_upload(
-        message,
-        bot,
-        save_photo=_persist_employee_photo,
-        admin_status_kb=admin_status_kb,
-    ):
-        return
-    if st.get("step") == "upload" and message.text:
-        await message.answer("📷 Endi rasm yuboring (foto file).")
-        return
-    if message.text:
-        await handle_photo_employee_pick(
-            message,
-            employees=EMPLOYEES,
-            employee_tg_map=await employee_tg_map(),
-            admin_status_kb=admin_status_kb,
-        )
 
 
 # ============================================================

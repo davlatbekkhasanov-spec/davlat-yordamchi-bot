@@ -10,6 +10,9 @@ from report_html import build_report_html
 
 log = logging.getLogger(__name__)
 
+A4_WIDTH = 1240
+A4_HEIGHT = 1754
+
 _playwright_ready = False
 
 
@@ -27,7 +30,7 @@ async def _ensure_playwright() -> bool:
         return False
 
 
-async def html_to_png(html: str, *, width: int = 1240, timeout: float = 25.0) -> bytes:
+async def html_to_png(html: str, *, timeout: float = 25.0) -> bytes:
     from playwright.async_api import async_playwright
 
     async def _shot() -> bytes:
@@ -37,11 +40,13 @@ async def html_to_png(html: str, *, width: int = 1240, timeout: float = 25.0) ->
                 args=["--no-sandbox", "--disable-dev-shm-usage", "--disable-gpu"],
             )
             try:
-                page = await browser.new_page(viewport={"width": width, "height": 1754})
+                page = await browser.new_page(
+                    viewport={"width": A4_WIDTH, "height": A4_HEIGHT},
+                    device_scale_factor=1,
+                )
                 await page.set_content(html, wait_until="load")
-                height = await page.evaluate("() => document.documentElement.scrollHeight")
-                await page.set_viewport_size({"width": width, "height": max(height, 1754)})
-                return await page.screenshot(full_page=True, type="png")
+                await page.emulate_media(media="screen")
+                return await page.locator(".page").screenshot(type="png")
             finally:
                 await browser.close()
 
