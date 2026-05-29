@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="utf-8"/>
+  <title>Kunlik hisobot</title>
+  <style>{{ css }}</style>
+</head>
+<body>
+  <div class="report">
+    <header class="top">
+      <div class="top-text">
+        <h1>КУНЛИК ҲИСОБОТ (ЯКУН)</h1>
+        <div class="info-line">📅 Сана: {{ day_iso }}</div>
+        <div class="info-line">👤 Ходим: {{ employee }}</div>
+        <div class="info-line">🗓 Период (2-сана): {{ period }}</div>
+      </div>
+      {% if avatar_b64 %}
+      <img class="employee-photo" src="data:{{ avatar_mime }};base64,{{ avatar_b64 }}" alt=""/>
+      {% else %}
+      <div class="employee-photo placeholder">👤</div>
+      {% endif %}
+    </header>
+
+    <section class="main-row">
+      <div class="card">
+        <h2 class="section-title">📊 Фаолият ва кўрсаткичлар</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Фаолият</th>
+              <th>Очко</th>
+              <th>Бугун</th>
+              <th>Период</th>
+              <th>Норма</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in categories %}
+            <tr>
+              <td>{{ row.name }}</td>
+              <td class="points">+{{ row.added }}</td>
+              <td>{{ row.today }}</td>
+              <td>{{ row.period }}</td>
+              <td>{{ row.norm }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        <div class="note-block">
+          <div class="note-gold">⭐ {{ best_cat }} (+{{ best_add }})</div>
+          <div class="note-orange">🔥 {{ overall_text }}</div>
+        </div>
+      </div>
+
+      <div class="card" style="flex:0.9;">
+        <h2 class="section-title">📋 Очко ҳисоблаш</h2>
+        <ul class="rules">
+          <li>To'liq va sifatli ish — +5</li>
+          <li>TSD faol — +6</li>
+          <li>Xato/kamchilik — minus</li>
+          <li>Boshqa botlar — vaqt/reys</li>
+        </ul>
+        <div class="rules-totals">
+          <div>Yordamchi: +{{ cat_total }}</div>
+          <div>Boshqa botlar: +{{ bot_total }}</div>
+        </div>
+      </div>
+
+      <div class="score-card">
+        <h2 class="section-title">Жами очко</h2>
+        <strong class="score-value">+{{ bot_total }}</strong>
+        <p class="score-meta">📅 Период: {{ period_sum }}</p>
+        <p class="score-meta">⏱ Ишлаган вақт: {{ total_work }}</p>
+        <p class="score-meta">⏸ Кечikish: yo'q</p>
+        {% if rank %}
+        <p class="score-meta">🏆 Рейтинг: {{ rank }}-ўрин / {{ rank_total }}</p>
+        {% endif %}
+        <p class="score-sub">Jami (kategoriya+botlar): +{{ grand_total }}</p>
+      </div>
+    </section>
+
+    <section class="bots-section">
+      <h2 class="section-title">🤖 Бошқа ботлар маълумоти (бугун)</h2>
+      <div class="bots-grid">
+        {% for bot in bots %}
+        <div class="bot-card">
+          <h3>{{ bot.title }}</h3>
+          {% for label, value in bot.metrics %}
+          <p>{{ label }}: {{ value }}</p>
+          {% endfor %}
+          <div class="bot-score{% if bot.score == 0 %} zero{% endif %}">+{{ bot.score }}</div>
+        </div>
+        {% endfor %}
+      </div>
+      <div class="bots-footer">📌 JAMI BOSHQ BOTLARDAN: +{{ bot_total }}</div>
+    </section>
+
+    <section class="bottom-row">
+      <div class="rating-card">
+        <h2 class="section-title">📈 9 та ходим рейтинги</h2>
+        {% for lead in leaders %}
+        <div class="bar-wrap">
+          <div class="bar-head">
+            <span class="name{% if lead.is_self %} leader{% endif %}">{{ lead.rank }}. {{ lead.name }}</span>
+            <span>+{{ lead.score }} · {{ lead.work_time }} · {{ lead.pct }}%</span>
+          </div>
+          <div class="bar-track">
+            <div class="bar-fill" style="width: {{ lead.pct }}%;"></div>
+          </div>
+        </div>
+        {% endfor %}
+        {% if not leaders %}
+        <p class="empty">Reyting ma'lumoti yo'q</p>
+        {% endif %}
+      </div>
+
+      <div class="work-card">
+        <h2 class="section-title">✅ Бajarilgan ishlar (bugun)</h2>
+        {% if work_log %}
+        <ul class="work-list">
+          {% for label, time in work_log %}
+          <li><span>{{ label }}</span><span class="time">{{ time }}</span></li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        <p class="empty">Boshqa botlardan ish yo'q</p>
+        {% endif %}
+      </div>
+    </section>
+  </div>
+</body>
+</html>

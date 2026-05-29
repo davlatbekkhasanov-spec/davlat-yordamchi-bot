@@ -187,13 +187,17 @@ def _bot_metrics(key: str, summary: str, work_sec: int) -> list[tuple[str, str]]
     if key == "omborga":
         reys = re.search(r"reys\s*(\d+)", sl)
         ish_m = re.search(r"ish\s+([\d:]+)", sl)
+        dam_m = re.search(r"dam\s+([\d:]+)", sl)
         r = reys.group(1) if reys else "0"
         ish = ish_m.group(1) if ish_m else _fmt_short(work_sec)
-        return [
+        out = [
             ("reys", r),
             ("ish vaqti", ish if ":" in ish else _fmt_hms(_parse_hms(ish))),
             ("jami vaqt", _fmt_short(work_sec)),
         ]
+        if dam_m:
+            out.insert(2, ("dam", dam_m.group(1)))
+        return out
     if key == "ombor":
         return [("ish vaqti", _fmt_hms(work_sec)), ("son", str(work_sec))]
     if key == "yuk":

@@ -16,12 +16,9 @@ from cross_bot_hub import (
     init_schema as init_cross_bot_schema,
     record_event,
 )
-from daily_report_card import (
-    build_card_data,
-    build_demo_card_data,
-    render_daily_report_png,
-    render_demo_preview_png,
-)
+from daily_report_card import build_card_data, build_demo_card_data
+from report_png import render_demo_preview_png, render_report_png
+from employee_photos import init_schema as init_photo_schema, load_photo, save_photo
 from employee_tg_map import TG_EMPLOYEE
 from hub_ingest import start_ingest_server
 from admin_status import BTN_ADMIN_STATUS, BTN_PREVIEW_REPORT, admin_status_kb, handle_admin_status
@@ -177,6 +174,7 @@ CREATE TABLE IF NOT EXISTS monthly_plans (
 cur.execute("CREATE INDEX IF NOT EXISTS idx_reports_period_emp_cat ON reports(period, employee, category)")
 cur.execute("CREATE INDEX IF NOT EXISTS idx_reports_day_emp_cat ON reports(day, employee, category)")
 cur.execute("CREATE INDEX IF NOT EXISTS idx_reports_tgid_created ON reports(tg_id, created_at)")
+init_photo_schema(conn)
 conn.commit()
 
 
@@ -319,6 +317,13 @@ async def fetch_user_avatar(user_id: int) -> bytes | None:
         return None
 
 
+async def get_employee_photo(user_id: int) -> bytes | None:
+    saved = await load_photo(db_fetchone, user_id)
+    if saved:
+        return saved
+    return await fetch_user_avatar(user_id)
+
+
 async def employee_tg_map() -> dict[str, int]:
     rows = await db_fetchall("SELECT tg_id, employee FROM employee_links")
     out = {r["employee"]: int(r["tg_id"]) for r in rows}
@@ -365,7 +370,7 @@ async def build_report_png_for_user(uid: int, emp: str, agg: dict[str, int]) -> 
         overall_delta = today_total - yday_total
         overall_text = f"Кечага нисбатан: {overall_delta:+d}. {motivational(overall_delta)}"
 
-    avatar = await fetch_user_avatar(uid)
+    avatar = await get_employee_photo(uid)
     etg_map = await employee_tg_map()
     card = await build_card_data(
         employee=emp,
@@ -385,14 +390,14 @@ async def build_report_png_for_user(uid: int, emp: str, agg: dict[str, int]) -> 
         sum_day_total=sum_day_total,
         employee_tg_map=etg_map,
     )
-    png = render_daily_report_png(card, avatar=avatar)
+    png = await render_report_png(card, avatar=avatar)
     return png, card
 
 
 async def send_report_preview(message: Message, *, demo: bool = False) -> None:
     uid = message.from_user.id if message.from_user else 0
     if demo:
-        png = render_demo_preview_png()
+        png = await render_demo_preview_png()
         card = build_demo_card_data()
         note = "📎 Namuna (demo). Haqiqiy hisobot — kategoriya kiritib 👁 bosing."
     else:
@@ -404,7 +409,7 @@ async def send_report_preview(message: Message, *, demo: bool = False) -> None:
         agg = await _session_agg(uid, emp, state)
         built = await build_report_png_for_user(uid, emp, agg)
         if not built:
-            png = render_demo_preview_png()
+            png = await render_demo_preview_png()
             card = build_demo_card_data()
             note = "⚠️ Hali ma'lumot yo'q — namuna ko'rinishi. Kategoriya qo'shing yoki /preview_demo"
         else:
@@ -1402,6 +1407,28 @@ async def preview_demo_cmd(message: Message):
 @dp.message(lambda m: is_private(m) and m.text == BTN_PREVIEW_REPORT)
 async def preview_btn(message: Message):
     await send_report_preview(message, demo=False)
+
+
+@dp.message(lambda m: is_private(m) and m.photo and is_admin(m.from_user.id))
+async def admin_upload_employee_photo(message: Message):
+    cap = (message.caption or "").strip()
+    if not cap.isdigit():
+        lines = ["📷 Rasm yuboring — captionga Telegram ID yozing.", "", "Masalan caption: 6931958983", "", "Xodimlar:"]
+        for tid, name in TG_EMPLOYEE.items():
+            lines.append(f"{tid} — {name}")
+        await message.answer("\n".join(lines))
+        return
+    tg_id = int(cap)
+    photo = message.photo[-1]
+    file = await bot.get_file(photo.file_id)
+    if not file.file_path:
+        await message.answer("Fayl topilmadi.")
+        return
+    buf = BytesIO()
+    await bot.download_file(file.file_path, buf)
+    await save_photo(db_exec, tg_id, buf.getvalue())
+    name = TG_EMPLOYEE.get(tg_id, "noma'lum")
+    await message.answer(f"✅ Rasm saqlandi: {name}\nID: {tg_id}")
 
 
 # ============================================================
