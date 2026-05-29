@@ -21,7 +21,20 @@ from report_png import render_demo_preview_png, render_report_png
 from employee_photos import init_schema as init_photo_schema, load_photo, save_photo
 from employee_tg_map import TG_EMPLOYEE
 from hub_ingest import start_ingest_server
-from admin_status import BTN_ADMIN_STATUS, BTN_PREVIEW_REPORT, admin_status_kb, handle_admin_status
+from admin_status import (
+    BTN_ADMIN_PHOTO,
+    BTN_ADMIN_STATUS,
+    BTN_PREVIEW_REPORT,
+    admin_status_kb,
+    handle_admin_status,
+)
+from employee_photo_admin import (
+    admin_photo_state,
+    handle_photo_cancel,
+    handle_photo_employee_pick,
+    handle_photo_upload,
+    start_photo_upload,
+)
 
 
 # ============================================================
@@ -194,6 +207,7 @@ def categories_kb(user_id: int | None = None):
     rows = [[KeyboardButton(text=c)] for c in CATEGORIES] + [[KeyboardButton(text="❌ Бекор қилиш")]]
     if user_id and is_admin(user_id):
         rows.append([KeyboardButton(text=BTN_ADMIN_STATUS), KeyboardButton(text=BTN_PREVIEW_REPORT)])
+        rows.append([KeyboardButton(text=BTN_ADMIN_PHOTO)])
     return ReplyKeyboardMarkup(keyboard=rows, resize_keyboard=True)
 
 
@@ -204,7 +218,7 @@ def after_save_kb(user_id: int | None = None):
         [KeyboardButton(text=BTN_PREVIEW_REPORT)],
     ]
     if user_id and is_admin(user_id):
-        rows.append([KeyboardButton(text=BTN_ADMIN_STATUS)])
+        rows.append([KeyboardButton(text=BTN_ADMIN_STATUS), KeyboardButton(text=BTN_ADMIN_PHOTO)])
     return ReplyKeyboardMarkup(keyboard=rows, resize_keyboard=True)
 
 def delete_date_kb():
@@ -1409,26 +1423,47 @@ async def preview_btn(message: Message):
     await send_report_preview(message, demo=False)
 
 
-@dp.message(lambda m: is_private(m) and m.photo and is_admin(m.from_user.id))
-async def admin_upload_employee_photo(message: Message):
-    cap = (message.caption or "").strip()
-    if not cap.isdigit():
-        lines = ["📷 Rasm yuboring — captionga Telegram ID yozing.", "", "Masalan caption: 6931958983", "", "Xodimlar:"]
-        for tid, name in TG_EMPLOYEE.items():
-            lines.append(f"{tid} — {name}")
-        await message.answer("\n".join(lines))
+async def _persist_employee_photo(tg_id: int, data: bytes) -> None:
+    await save_photo(db_exec, tg_id, data)
+
+
+@dp.message(lambda m: is_private(m) and m.text == BTN_ADMIN_PHOTO and is_admin(m.from_user.id))
+async def admin_photo_start(message: Message):
+    await start_photo_upload(message, EMPLOYEES)
+
+
+@dp.message(
+    lambda m: is_private(m)
+    and is_admin(m.from_user.id)
+    and m.from_user
+    and m.from_user.id in admin_photo_state
+)
+async def admin_photo_flow(message: Message):
+    uid = message.from_user.id if message.from_user else 0
+    st = admin_photo_state.get(uid, {})
+
+    if await handle_photo_cancel(message, admin_status_kb):
         return
-    tg_id = int(cap)
-    photo = message.photo[-1]
-    file = await bot.get_file(photo.file_id)
-    if not file.file_path:
-        await message.answer("Fayl topilmadi.")
+    if st.get("step") == "employee" and message.photo:
+        await message.answer("Avval ro'yxatdan xodimni tanlang.")
         return
-    buf = BytesIO()
-    await bot.download_file(file.file_path, buf)
-    await save_photo(db_exec, tg_id, buf.getvalue())
-    name = TG_EMPLOYEE.get(tg_id, "noma'lum")
-    await message.answer(f"✅ Rasm saqlandi: {name}\nID: {tg_id}")
+    if message.photo and await handle_photo_upload(
+        message,
+        bot,
+        save_photo=_persist_employee_photo,
+        admin_status_kb=admin_status_kb,
+    ):
+        return
+    if st.get("step") == "upload" and message.text:
+        await message.answer("📷 Endi rasm yuboring (foto file).")
+        return
+    if message.text:
+        await handle_photo_employee_pick(
+            message,
+            employees=EMPLOYEES,
+            employee_tg_map=await employee_tg_map(),
+            admin_status_kb=admin_status_kb,
+        )
 
 
 # ============================================================
