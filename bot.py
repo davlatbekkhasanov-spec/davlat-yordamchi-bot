@@ -403,11 +403,9 @@ async def broadcast_daily_ranking(day_iso: str | None = None, *, force: bool = F
         sum_period_total=sum_period_total,
         get_period_key=get_period_key,
     )
-    team_n = len(ranking_employees(EMPLOYEES))
-    caption = f"🏆 Period reyting · {period} · {active}/{team_n} faol"
     try:
         png = await render_ranking_png(period, ref, leaders, active)
-        await safe_ranking_send_png(png, caption=caption)
+        await safe_ranking_send_png(png)
     except Exception:
         logging.exception("Reyting PNG xato, matn fallback")
         lines = format_ranking_lines(period, ref, leaders, active)
@@ -942,7 +940,6 @@ async def finalize_report(message: Message):
                 png, card = built
                 await safe_report_send_photo(
                     png,
-                    caption=f"📊 {emp} · {today_iso} · +{card.grand_total} ochko",
                     private_fallback=tg_id,
                 )
                 sent_card = True
