@@ -39,6 +39,13 @@ from employee_photo_admin import (
     handle_photo_upload,
     start_photo_upload,
 )
+from ranking_broadcast import (
+    build_team_rankings,
+    format_ranking_lines,
+    init_schema as init_ranking_schema,
+    mark_ranking_sent,
+    ranking_already_sent,
+)
 
 
 # ============================================================
@@ -78,6 +85,12 @@ def _env_bool(name: str, default: bool = False) -> bool:
 # Vaqtincha: False = guruh emas, admin lichkasiga
 REPORT_TO_GROUP = _env_bool("REPORT_TO_GROUP", False)
 REPORT_ADMIN_DM_ID = int(os.getenv("REPORT_ADMIN_DM_ID", "1432810519") or "1432810519")
+
+# Kunlik reyting (alohida xabar, 00:01)
+RANKING_BROADCAST_ENABLED = _env_bool("RANKING_BROADCAST_ENABLED", False)
+RANKING_BROADCAST_HOUR = int(os.getenv("RANKING_BROADCAST_HOUR", "0") or "0")
+RANKING_BROADCAST_MINUTE = int(os.getenv("RANKING_BROADCAST_MINUTE", "1") or "1")
+RANKING_CHAT_ID = int(os.getenv("RANKING_CHAT_ID", str(GROUP_ID)) or str(GROUP_ID))
 
 
 def today_local() -> date:
@@ -204,6 +217,7 @@ cur.execute("CREATE INDEX IF NOT EXISTS idx_reports_period_emp_cat ON reports(pe
 cur.execute("CREATE INDEX IF NOT EXISTS idx_reports_day_emp_cat ON reports(day, employee, category)")
 cur.execute("CREATE INDEX IF NOT EXISTS idx_reports_tgid_created ON reports(tg_id, created_at)")
 init_photo_schema(conn)
+init_ranking_schema(conn)
 conn.commit()
 
 
@@ -340,6 +354,81 @@ async def safe_report_send_photo(png: bytes, caption: str = "", *, private_fallb
     except Exception as e:
         logging.exception("Hisobot PNG yuborishda xato (chat=%s): %s", chat_id, e)
         raise
+
+
+async def safe_ranking_send(html_text: str) -> None:
+    chat_id = RANKING_CHAT_ID
+    try:
+        await bot.send_message(chat_id, html_text, parse_mode="HTML")
+    except Exception as e:
+        logging.exception("Kunlik reyting yuborishda xato (chat=%s): %s", chat_id, e)
+        raise
+
+
+async def broadcast_daily_ranking(day_iso: str | None = None, *, force: bool = False) -> bool:
+    """Kunlik jamoa reytingini yuboradi. 00:01 da odatda kechagi kun."""
+    target = day_iso or (today_local() - timedelta(days=1)).isoformat()
+    if not force and await ranking_already_sent(db_fetchone, target):
+        logging.info("Kunlik reyting allaqachon yuborilgan: %s", target)
+        return False
+
+    leaders, active = await build_team_rankings(
+        target,
+        employees=EMPLOYEES,
+        sum_day_total=sum_day_total,
+    )
+    lines = format_ranking_lines(target, leaders, active)
+    title = "🏆 КУНЛИК РЕЙТИНГ (ЯКУН)"
+    await safe_ranking_send(box(lines, title=title))
+    await mark_ranking_sent(db_exec, target)
+    logging.info("Kunlik reyting yuborildi: %s (%s nafar)", target, active)
+    return True
+
+
+async def maybe_catchup_ranking() -> None:
+    if not RANKING_BROADCAST_ENABLED:
+        return
+    now = datetime.now(TZ)
+    if now.hour == 0 and now.minute < RANKING_BROADCAST_MINUTE:
+        return
+    yday = (today_local() - timedelta(days=1)).isoformat()
+    if await ranking_already_sent(db_fetchone, yday):
+        return
+    await broadcast_daily_ranking(yday)
+
+
+def setup_ranking_scheduler():
+    if not RANKING_BROADCAST_ENABLED:
+        return None
+    from apscheduler.schedulers.asyncio import AsyncIOScheduler
+    from apscheduler.triggers.cron import CronTrigger
+
+    scheduler = AsyncIOScheduler(timezone=TZ)
+
+    async def _job():
+        try:
+            await broadcast_daily_ranking()
+        except Exception:
+            logging.exception("Rejalashtirilgan kunlik reyting xato")
+
+    scheduler.add_job(
+        _job,
+        CronTrigger(
+            hour=RANKING_BROADCAST_HOUR,
+            minute=RANKING_BROADCAST_MINUTE,
+            timezone=TZ,
+        ),
+        id="daily_ranking_broadcast",
+        replace_existing=True,
+    )
+    scheduler.start()
+    logging.info(
+        "Kunlik reyting rejalashtirildi: %02d:%02d (%s)",
+        RANKING_BROADCAST_HOUR,
+        RANKING_BROADCAST_MINUTE,
+        TZ,
+    )
+    return scheduler
 
 
 async def fetch_user_avatar(user_id: int) -> bytes | None:
@@ -1328,6 +1417,43 @@ async def top_cmd(message: Message):
     await message.answer(box(lines, title="АДМИН /top"), parse_mode="HTML")
 
 
+@dp.message(Command("ranking"))
+async def ranking_cmd(message: Message):
+    if not is_admin(message.from_user.id):
+        return
+
+    parts = (message.text or "").strip().split()
+    force = "--force" in parts or "-f" in parts
+    mode = next((p for p in parts[1:] if not p.startswith("-")), "yesterday").lower()
+
+    if mode in ("today", "bugun"):
+        day_iso = today_local().isoformat()
+    elif mode in ("yesterday", "kecha"):
+        day_iso = (today_local() - timedelta(days=1)).isoformat()
+    else:
+        day_iso = mode
+
+    try:
+        date.fromisoformat(day_iso)
+    except ValueError:
+        await message.answer(
+            "Формат:\n/ranking yesterday\n/ranking today\n/ranking 2026-05-29\n/ranking yesterday --force"
+        )
+        return
+
+    try:
+        sent = await broadcast_daily_ranking(day_iso, force=force)
+    except Exception as e:
+        logging.exception("Admin ranking xato")
+        await message.answer(f"❌ Xato: {html.escape(str(e))}", parse_mode="HTML")
+        return
+
+    if sent:
+        await message.answer(f"✅ Reyting yuborildi: {day_iso} → chat {RANKING_CHAT_ID}")
+    else:
+        await message.answer(f"ℹ️ {day_iso} uchun reyting allaqachon yuborilgan (--force bilan qayta yuboring).")
+
+
 @dp.message(Command("leaders"))
 async def leaders_cmd(message: Message):
     if not is_admin(message.from_user.id):
@@ -1570,9 +1696,16 @@ async def main():
             (int(tg_id), emp_name),
         )
     hub_runner = await start_ingest_server()
+    scheduler = setup_ranking_scheduler()
+    try:
+        await maybe_catchup_ranking()
+    except Exception:
+        logging.exception("Kunlik reyting catch-up xato")
     try:
         await dp.start_polling(bot)
     finally:
+        if scheduler:
+            scheduler.shutdown(wait=False)
         if hub_runner:
             await hub_runner.cleanup()
 
