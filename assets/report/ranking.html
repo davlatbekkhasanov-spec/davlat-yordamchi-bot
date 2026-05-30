@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="uz-Cyrl">
+<head>
+  <meta charset="utf-8"/>
+  <title>Кунлик рейтинг</title>
+  <style>{{ css }}</style>
+</head>
+<body>
+  <div class="page page-ranking">
+    <div class="hero-header hero-ranking">
+      <div class="hero-brand">
+        <img class="company-logo" src="data:image/svg+xml;base64,{{ logo_b64 }}" alt="Kanstik Samarqand"/>
+      </div>
+      <h1 class="hero-title">Кунлик фойдалилик рейтинги</h1>
+      <div class="hero-trophy" aria-hidden="true">🏆</div>
+    </div>
+
+    <div class="meta-bar meta-bar-3">
+      <div class="meta-item">
+        <span class="meta-ico">📅</span>
+        <div class="meta-body">
+          <span class="meta-label">Сана</span>
+          <span class="meta-value">{{ day_iso }}</span>
+        </div>
+      </div>
+      <div class="meta-item">
+        <span class="meta-ico">👥</span>
+        <div class="meta-body">
+          <span class="meta-label">Фаол ходим</span>
+          <span class="meta-value">{{ active }}</span>
+        </div>
+      </div>
+      <div class="meta-item">
+        <span class="meta-ico">⭐</span>
+        <div class="meta-body">
+          <span class="meta-label">Лидер очко</span>
+          <span class="meta-value">+{{ top_score }}</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="kpi-row kpi-row-3">
+      <div class="kpi-card kpi-total">
+        <div class="kpi-label">🥇 Лидер</div>
+        <div class="kpi-value kpi-leader-name">{{ top_name }}</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Жами очко</div>
+        <div class="kpi-value kpi-green">+{{ total_score }}</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Фаол ходим</div>
+        <div class="kpi-value kpi-blue">{{ active }}</div>
+      </div>
+    </div>
+
+    <div class="section-block ranking-block">
+      <div class="section-bar">📈 КУНЛИК РЕЙТИНГ</div>
+      {% if leaders %}
+      <div class="table-wrap">
+        <table class="data-table ranking-table">
+          <thead>
+            <tr>
+              <th>№</th>
+              <th>ХОДИМ</th>
+              <th>ОЧКО</th>
+              <th>ИШ ВАҚТИ</th>
+              <th>ФОЙДАЛИЛИК</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in leaders %}
+            <tr class="rank-row rank-{{ row.rank }}">
+              <td class="rank-medal">{{ row.medal }}</td>
+              <td class="rank-name">{{ row.name }}</td>
+              <td class="points">+{{ row.score }}</td>
+              <td>{{ row.work_time }}</td>
+              <td class="rank-pct-cell">
+                <div class="rank-pct-wrap">
+                  <div class="rank-pct-bar"><span style="width: {{ row.pct }}%"></span></div>
+                  <span class="rank-pct-label">{{ row.pct }}%</span>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="ranking-empty">Бу кун учун очко йўқ.</div>
+      {% endif %}
+    </div>
+
+    <div class="ranking-note">
+      Очко = категория + бошқа botlar · {{ footer_date }}
+    </div>
+
+    <footer class="footer">
+      <span class="footer-brand">🏭 Кунлик рейтинг тизими</span>
+      <span class="footer-date">{{ footer_date }}</span>
+    </footer>
+  </div>
+</body>
+</html>

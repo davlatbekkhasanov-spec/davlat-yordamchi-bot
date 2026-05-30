@@ -605,3 +605,131 @@ body {
 
 .footer-brand { font-size: 24px; }
 .footer-date { font-size: 22px; color: #333; }
+
+/* Kunlik reyting PNG */
+.page-ranking {
+  min-height: 1200px;
+  height: auto;
+}
+
+.hero-ranking {
+  grid-template-columns: 240px 1fr 180px;
+}
+
+.hero-trophy {
+  width: 160px;
+  height: 160px;
+  border: 4px solid rgba(255, 255, 255, 0.9);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 88px;
+  justify-self: end;
+}
+
+.meta-bar-3 {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.kpi-row-3 {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.kpi-leader-name {
+  font-size: 24px !important;
+  line-height: 1.15;
+  color: #fff !important;
+  padding: 0 6px;
+}
+
+.ranking-block {
+  flex: 1;
+}
+
+.ranking-table thead th:nth-child(2) {
+  text-align: left;
+  width: 36%;
+}
+
+.ranking-table thead th:nth-child(5) {
+  width: 22%;
+}
+
+.rank-row.rank-1 td.rank-name {
+  color: #9a6b00;
+  font-weight: 800;
+}
+
+.rank-row.rank-2 td.rank-name {
+  color: #555;
+  font-weight: 800;
+}
+
+.rank-row.rank-3 td.rank-name {
+  color: #8b5a2b;
+  font-weight: 800;
+}
+
+.rank-medal {
+  font-size: 28px;
+  text-align: center;
+}
+
+.rank-name {
+  font-weight: 700;
+  text-align: left;
+}
+
+.rank-pct-cell {
+  padding-right: 16px !important;
+}
+
+.rank-pct-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.rank-pct-bar {
+  flex: 1;
+  height: 14px;
+  background: #e8eef5;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.rank-pct-bar span {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, #0b5cb8 0%, #17a2b8 100%);
+  border-radius: 999px;
+}
+
+.rank-row.rank-1 .rank-pct-bar span {
+  background: linear-gradient(90deg, #c9a227 0%, #f0c14b 100%);
+}
+
+.rank-pct-label {
+  min-width: 44px;
+  font-size: 18px;
+  font-weight: 800;
+  color: #003f8f;
+  text-align: right;
+}
+
+.ranking-empty {
+  padding: 48px 24px;
+  text-align: center;
+  font-size: 28px;
+  color: #666;
+  border-top: 2px solid #b8cfe6;
+}
+
+.ranking-note {
+  margin-top: 16px;
+  text-align: center;
+  font-size: 18px;
+  color: #666;
+}

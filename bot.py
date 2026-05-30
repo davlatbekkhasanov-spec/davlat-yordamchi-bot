@@ -17,7 +17,7 @@ from cross_bot_hub import (
     record_event,
 )
 from daily_report_card import build_card_data, build_demo_card_data
-from report_png import render_demo_preview_png, render_report_png
+from report_png import render_demo_preview_png, render_ranking_png, render_report_png
 from employee_photos import (
     init_schema as init_photo_schema,
     load_photo_for_employee,
@@ -379,6 +379,21 @@ async def safe_ranking_send(html_text: str) -> None:
         raise
 
 
+async def safe_ranking_send_png(png: bytes, caption: str = "") -> None:
+    chat_id = ranking_chat_id()
+    if not RANKING_TO_GROUP and not _RANKING_CHAT_RAW:
+        caption = f"🔒 Vaqtincha lichka (guruh o'chiq)\n{caption}"
+    try:
+        await bot.send_photo(
+            chat_id,
+            BufferedInputFile(png, filename="kunlik_reyting.png"),
+            caption=caption[:1024] if caption else None,
+        )
+    except Exception as e:
+        logging.exception("Kunlik reyting PNG yuborishda xato (chat=%s): %s", chat_id, e)
+        raise
+
+
 async def broadcast_daily_ranking(day_iso: str | None = None, *, force: bool = False) -> bool:
     """Kunlik jamoa reytingini yuboradi. 00:01 da odatda kechagi kun."""
     target = day_iso or (today_local() - timedelta(days=1)).isoformat()
@@ -391,9 +406,14 @@ async def broadcast_daily_ranking(day_iso: str | None = None, *, force: bool = F
         employees=EMPLOYEES,
         sum_day_total=sum_day_total,
     )
-    lines = format_ranking_lines(target, leaders, active)
-    title = "🏆 КУНЛИК РЕЙТИНГ (ЯКУН)"
-    await safe_ranking_send(box(lines, title=title))
+    caption = f"🏆 Kunlik reyting · {target} · {active} nafar"
+    try:
+        png = await render_ranking_png(target, leaders, active)
+        await safe_ranking_send_png(png, caption=caption)
+    except Exception:
+        logging.exception("Reyting PNG xato, matn fallback")
+        lines = format_ranking_lines(target, leaders, active)
+        await safe_ranking_send(box(lines, title="🏆 КУНЛИК РЕЙТИНГ (ЯКУН)"))
     await mark_ranking_sent(db_exec, target)
     logging.info("Kunlik reyting yuborildi: %s (%s nafar)", target, active)
     return True

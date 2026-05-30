@@ -80,3 +80,15 @@ async def render_demo_preview_png() -> bytes:
     from daily_report_card import build_demo_card_data
 
     return await render_report_png(build_demo_card_data())
+
+
+async def render_ranking_png(day_iso: str, leaders, active: int) -> bytes:
+    from ranking_html import build_ranking_html
+
+    html = build_ranking_html(day_iso, leaders, active)
+    if await _ensure_playwright():
+        try:
+            return await html_to_png(html)
+        except Exception as e:
+            log.warning("Reyting HTML→PNG xato: %s", e)
+    raise RuntimeError("Reyting PNG uchun Playwright kerak")
