@@ -628,36 +628,47 @@ body {
 
 .hero-ranking-wow {
   position: relative;
-  grid-template-columns: 220px 1fr 160px;
+  grid-template-columns: 220px 1fr 180px;
+  align-items: center;
+  min-height: 200px;
   background: linear-gradient(135deg, #002f6c 0%, #0b5cb8 52%, #17a2b8 100%);
   box-shadow: 0 18px 40px rgba(0, 47, 108, 0.28);
 }
 
 .hero-center {
   text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.hero-kicker {
-  font-size: 16px;
-  font-weight: 800;
-  letter-spacing: 2px;
-  color: rgba(255, 255, 255, 0.78);
-  margin-bottom: 8px;
-}
-
-.hero-sub {
-  margin-top: 10px;
-  font-size: 22px;
-  font-weight: 700;
-  color: rgba(255, 255, 255, 0.92);
+.hero-title-ranking {
+  font-size: 58px !important;
+  line-height: 1.08 !important;
+  letter-spacing: 0.5px;
 }
 
 .hero-trophy-wow {
-  width: 140px;
-  height: 140px;
-  font-size: 76px;
-  background: linear-gradient(145deg, rgba(255,255,255,0.22), rgba(255,255,255,0.08));
-  box-shadow: inset 0 0 24px rgba(255,255,255,0.18), 0 8px 24px rgba(0,0,0,0.15);
+  width: 150px;
+  height: 150px;
+  border: 4px solid rgba(255, 255, 255, 0.92);
+  border-radius: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  justify-self: end;
+  align-self: center;
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.24), rgba(255, 255, 255, 0.08));
+  box-shadow:
+    inset 0 0 28px rgba(255, 255, 255, 0.16),
+    0 10px 28px rgba(0, 0, 0, 0.18);
+}
+
+.hero-trophy-icon {
+  display: block;
+  font-size: 82px;
+  line-height: 1;
+  transform: translateY(-2px);
 }
 
 .meta-bar-4 {

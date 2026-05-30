@@ -46,6 +46,7 @@ from ranking_broadcast import (
     init_schema as init_ranking_schema,
     mark_ranking_sent,
     ranking_already_sent,
+    ranking_employees,
 )
 
 
@@ -407,11 +408,12 @@ async def broadcast_daily_ranking(day_iso: str | None = None, *, force: bool = F
 
     leaders, active, period = await build_team_rankings(
         ref,
-        employees=EMPLOYEES,
+        employees=ranking_employees(EMPLOYEES),
         sum_period_total=sum_period_total,
         get_period_key=get_period_key,
     )
-    caption = f"🏆 Period reyting · {period} · {active}/{len(EMPLOYEES)} faol"
+    team_n = len(ranking_employees(EMPLOYEES))
+    caption = f"🏆 Period reyting · {period} · {active}/{team_n} faol"
     try:
         png = await render_ranking_png(period, ref, leaders, active)
         await safe_ranking_send_png(png, caption=caption)
