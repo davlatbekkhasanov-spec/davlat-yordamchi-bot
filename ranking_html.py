@@ -7,8 +7,8 @@ from datetime import date
 from daily_report_card import LeaderRow, _fmt_footer_date
 from report_html import _css_text, _env, _logo_b64
 
-_MEDALS = {1: "🥇", 2: "🥈", 3: "🥉"}
-_TIERS = {1: "gold", 2: "silver", 3: "bronze"}
+_MEDALS = {1: "1", 2: "2", 3: "3"}
+_TIERS = {1: "green-1", 2: "green-2", 3: "green-3"}
 
 
 def build_ranking_html(

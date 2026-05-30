@@ -53,8 +53,8 @@
     </div>
 
     <div class="kpi-row kpi-row-3">
-      <div class="kpi-card kpi-total">
-        <div class="kpi-label">🥇 Лидер</div>
+      <div class="kpi-card kpi-total kpi-leader-green">
+        <div class="kpi-label">🟢 Лидер</div>
         <div class="kpi-value kpi-leader-name">{{ top_name }}</div>
       </div>
       <div class="kpi-card">
@@ -70,7 +70,11 @@
     <div class="section-block ranking-block-wow">
       <div class="section-bar section-bar-wow">📈 PERIOD REYTING · BARCHA XODIMLAR</div>
       <div class="leaderboard">
+        <div class="zone-header zone-green">🟢 YASHIL ZONA · TOP 3</div>
         {% for row in leaders %}
+        {% if row.rank == 4 %}
+        <div class="zone-header zone-rest">📊 QOLGAN JAMOA</div>
+        {% endif %}
         <div class="rank-card rank-tier-{{ row.tier }}{% if row.zero %} is-zero{% endif %}">
           <div class="rank-pos">
             <span class="rank-medal">{{ row.medal }}</span>

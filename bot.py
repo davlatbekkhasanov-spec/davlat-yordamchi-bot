@@ -84,16 +84,14 @@ def _env_bool(name: str, default: bool = False) -> bool:
     return raw in ("1", "true", "yes", "on")
 
 
-# Vaqtincha: False = guruh emas, admin lichkasiga
-REPORT_TO_GROUP = _env_bool("REPORT_TO_GROUP", False)
+REPORT_TO_GROUP = _env_bool("REPORT_TO_GROUP", True)
 REPORT_ADMIN_DM_ID = int(os.getenv("REPORT_ADMIN_DM_ID", "1432810519") or "1432810519")
 
 # Kunlik reyting (alohida xabar, 00:01) — productionda default yoqilgan
 RANKING_BROADCAST_ENABLED = _env_bool("RANKING_BROADCAST_ENABLED", True)
 RANKING_BROADCAST_HOUR = int(os.getenv("RANKING_BROADCAST_HOUR", "0") or "0")
 RANKING_BROADCAST_MINUTE = int(os.getenv("RANKING_BROADCAST_MINUTE", "1") or "1")
-# Vaqtincha: False = guruh emas, admin lichkasiga (keyin RANKING_TO_GROUP=true)
-RANKING_TO_GROUP = _env_bool("RANKING_TO_GROUP", False)
+RANKING_TO_GROUP = _env_bool("RANKING_TO_GROUP", True)
 _RANKING_CHAT_RAW = os.getenv("RANKING_CHAT_ID", "").strip()
 
 
@@ -355,8 +353,6 @@ async def safe_report_send(html_text: str, *, private_fallback: int = 0):
 
 async def safe_report_send_photo(png: bytes, caption: str = "", *, private_fallback: int = 0):
     chat_id = report_chat_id(private_fallback)
-    if not REPORT_TO_GROUP:
-        caption = f"🔒 Vaqtincha lichka (guruh o'chiq)\n{caption}"
     try:
         await bot.send_photo(
             chat_id,
@@ -370,11 +366,8 @@ async def safe_report_send_photo(png: bytes, caption: str = "", *, private_fallb
 
 async def safe_ranking_send(html_text: str) -> None:
     chat_id = ranking_chat_id()
-    text = html_text
-    if not RANKING_TO_GROUP and not _RANKING_CHAT_RAW:
-        text = f"🔒 Vaqtincha lichka (guruh o'chiq)\n{text}"
     try:
-        await bot.send_message(chat_id, text, parse_mode="HTML")
+        await bot.send_message(chat_id, html_text, parse_mode="HTML")
     except Exception as e:
         logging.exception("Kunlik reyting yuborishda xato (chat=%s): %s", chat_id, e)
         raise
@@ -382,8 +375,6 @@ async def safe_ranking_send(html_text: str) -> None:
 
 async def safe_ranking_send_png(png: bytes, caption: str = "") -> None:
     chat_id = ranking_chat_id()
-    if not RANKING_TO_GROUP and not _RANKING_CHAT_RAW:
-        caption = f"🔒 Vaqtincha lichka (guruh o'chiq)\n{caption}"
     try:
         await bot.send_photo(
             chat_id,
@@ -990,8 +981,8 @@ async def finalize_report(message: Message):
         done_note = "✅ Якунланди. Hisobot guruhga yuborildi. /start bilan yangi hisobot."
     else:
         done_note = (
-            f"✅ Якунlandi. Hisobot vaqtincha admin lichkasiga yuborildi "
-            f"(ID {REPORT_ADMIN_DM_ID}). Guruhga hali ketmaydi."
+            f"✅ Якунlandi. Hisobot admin lichkasiga yuborildi "
+            f"(ID {REPORT_ADMIN_DM_ID})."
         )
     await message.answer(done_note, reply_markup=ReplyKeyboardRemove())
     user_state.pop(message.from_user.id, None)
