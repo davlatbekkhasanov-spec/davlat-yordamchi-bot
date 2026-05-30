@@ -19,7 +19,7 @@ html, body {
 
 body {
   color: #111;
-  font-family: "Segoe UI", "DejaVu Sans", "Noto Sans", Arial, sans-serif;
+  font-family: "Noto Sans", "DejaVu Sans", "Segoe UI", Arial, sans-serif;
   font-size: 22px;
   line-height: 1.5;
   font-synthesis: none;
@@ -614,6 +614,16 @@ body {
   height: auto;
   background: linear-gradient(180deg, #ffffff 0%, #f4f9ff 38%, #eef4fb 100%);
   overflow: hidden;
+  font-family: "Noto Sans", "DejaVu Sans", "Segoe UI", Arial, sans-serif;
+  font-size: 20px;
+  line-height: 1.45;
+  color: #0f172a;
+  -webkit-font-smoothing: antialiased;
+  font-variant-numeric: tabular-nums;
+}
+
+.page-ranking * {
+  font-family: inherit;
 }
 
 .ranking-bg-glow {
@@ -651,10 +661,12 @@ body {
 }
 
 .hero-title-ranking {
-  font-size: 58px !important;
-  line-height: 1.08 !important;
-  letter-spacing: 0.5px;
-  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.12);
+  font-size: 50px !important;
+  font-weight: 800 !important;
+  line-height: 1.1 !important;
+  letter-spacing: -0.01em;
+  text-transform: none;
+  text-shadow: none;
 }
 
 .hero-trophy-wow {
@@ -678,6 +690,19 @@ body {
   transform: translateY(-2px);
 }
 
+.page-ranking .meta-label {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.page-ranking .meta-value {
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 0;
+}
+
 .meta-bar-4 {
   grid-template-columns: repeat(4, 1fr);
 }
@@ -691,17 +716,35 @@ body {
   border: 1px solid rgba(255, 255, 255, 0.18);
 }
 
+.page-ranking .kpi-label {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.page-ranking .kpi-value {
+  font-size: 30px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
 .kpi-leader-name {
-  font-size: 24px !important;
-  line-height: 1.15;
+  font-size: 22px !important;
+  font-weight: 700 !important;
+  line-height: 1.2;
   color: #fff !important;
   padding: 0 6px;
+  letter-spacing: 0;
+  text-transform: none;
 }
 
 .section-bar-wow {
   background: linear-gradient(90deg, #002f6c 0%, #0b5cb8 55%, #17a2b8 100%);
-  font-size: 22px;
-  letter-spacing: 0.5px;
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
 
 .ranking-block-wow {
@@ -725,9 +768,9 @@ body {
   gap: 10px;
   padding: 10px 16px;
   border-radius: 12px;
-  font-size: 17px;
-  font-weight: 800;
-  letter-spacing: 0.6px;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 
@@ -825,19 +868,22 @@ body {
 }
 
 .rank-name {
-  font-size: 24px;
-  font-weight: 800;
+  font-size: 21px;
+  font-weight: 700;
   color: #0f172a;
-  line-height: 1.15;
-  margin-bottom: 6px;
+  line-height: 1.2;
+  margin-bottom: 4px;
+  letter-spacing: 0;
 }
 
 .rank-meta {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
-  font-size: 17px;
+  font-size: 15px;
+  font-weight: 600;
   color: #475569;
+  letter-spacing: 0;
 }
 
 .rank-score {
@@ -916,9 +962,11 @@ body {
 }
 
 .holo-pct {
-  font-size: 26px;
-  font-weight: 900;
+  font-size: 24px;
+  font-weight: 800;
   text-align: right;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
   background: linear-gradient(135deg, #003f8f 0%, #17a2b8 100%);
   -webkit-background-clip: text;
   background-clip: text;
@@ -935,6 +983,25 @@ body {
 .ranking-note {
   margin-top: 16px;
   text-align: center;
-  font-size: 18px;
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: 0;
   color: #64748b;
+}
+
+.footer-ranking {
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.footer-ranking .footer-brand {
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.footer-ranking .footer-date {
+  font-size: 16px;
+  font-weight: 600;
+  color: #475569;
 }

@@ -2,7 +2,7 @@
 <html lang="uz-Cyrl">
 <head>
   <meta charset="utf-8"/>
-  <title>Period reyting</title>
+  <title>Жамоа рейтинги</title>
   <style>{{ css }}</style>
 </head>
 <body>
@@ -40,7 +40,7 @@
         <span class="meta-ico">👥</span>
         <div class="meta-body">
           <span class="meta-label">Жамоа</span>
-          <span class="meta-value">{{ team_size }} наfar</span>
+          <span class="meta-value">{{ team_size }} нафар</span>
         </div>
       </div>
       <div class="meta-item">
@@ -54,7 +54,7 @@
 
     <div class="kpi-row kpi-row-3">
       <div class="kpi-card kpi-total kpi-leader-green">
-        <div class="kpi-label">🟢 Лидер</div>
+        <div class="kpi-label">Лидер</div>
         <div class="kpi-value kpi-leader-name">{{ top_name }}</div>
       </div>
       <div class="kpi-card">
@@ -68,12 +68,12 @@
     </div>
 
     <div class="section-block ranking-block-wow">
-      <div class="section-bar section-bar-wow">📈 PERIOD REYTING · BARCHA XODIMLAR</div>
+      <div class="section-bar section-bar-wow">ЖАМОА РЕЙТИНГИ · БАРЧА ХОДИМЛАР</div>
       <div class="leaderboard">
-        <div class="zone-header zone-green">🟢 YASHIL ZONA · TOP 3</div>
+        <div class="zone-header zone-green">ЯШИЛ ЗОНА · ТОП-3</div>
         {% for row in leaders %}
         {% if row.rank == 4 %}
-        <div class="zone-header zone-rest">📊 QOLGAN JAMOA</div>
+        <div class="zone-header zone-rest">ҚОЛГАН ЖАМОА</div>
         {% endif %}
         <div class="rank-card rank-tier-{{ row.tier }}{% if row.zero %} is-zero{% endif %}">
           <div class="rank-pos">
@@ -101,11 +101,11 @@
     </div>
 
     <div class="ranking-note">
-      Ochko period davomida yig'iladi (kategoriya + botlar) · {{ ref_date_fmt }}
+      Очколар period davomida yig'iladi · kategoriya + yordamchi botlar · {{ ref_date_fmt }}
     </div>
 
-    <footer class="footer">
-      <span class="footer-brand">🏭 Period reyting tizimi</span>
+    <footer class="footer footer-ranking">
+      <span class="footer-brand">Период reyting tizimi</span>
       <span class="footer-date">{{ period }} · {{ ref_date_fmt }}</span>
     </footer>
   </div>

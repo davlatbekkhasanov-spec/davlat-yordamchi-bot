@@ -7,7 +7,7 @@ ENV PYTHONUNBUFFERED=1 \
     PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
 
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends fonts-dejavu-core libfreetype6 \
+    && apt-get install -y --no-install-recommends fonts-dejavu-core fonts-noto-core libfreetype6 \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .
