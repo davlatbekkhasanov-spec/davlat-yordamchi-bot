@@ -7,53 +7,54 @@
 </head>
 <body>
   <div class="page">
-    <div class="header">
-      <div class="header-left">
-        <div class="header-icon">📋</div>
-        <h1 class="header-title">КУНЛИК ҲИСОБОТ (ЯКУН)</h1>
+    <div class="page-top">
+      <div class="header">
+        <div class="header-left">
+          <div class="header-icon">📋</div>
+          <h1 class="header-title">КУНЛИК ҲИСОБОТ (ЯКУН)</h1>
+        </div>
+        <div class="photo-wrap">
+          {% if avatar_b64 %}
+          <img src="data:{{ avatar_mime }};base64,{{ avatar_b64 }}" alt=""/>
+          {% else %}
+          <div class="photo-placeholder">👤</div>
+          {% endif %}
+        </div>
       </div>
-      <div class="photo-wrap">
-        {% if avatar_b64 %}
-        <img src="data:{{ avatar_mime }};base64,{{ avatar_b64 }}" alt=""/>
-        {% else %}
-        <div class="photo-placeholder">👤</div>
-        {% endif %}
-      </div>
-    </div>
+      <div class="header-line"></div>
 
-    <div class="header-line"></div>
+      <div class="info-row">
+        <div class="info-card">
+          <span class="ico">📅</span>
+          <div><div class="label">Сана</div><div class="value">{{ day_iso }}</div></div>
+        </div>
+        <div class="info-card">
+          <span class="ico">👤</span>
+          <div><div class="label">Ходим</div><div class="value">{{ employee }}</div></div>
+        </div>
+        <div class="info-card">
+          <span class="ico">🗓</span>
+          <div><div class="label">Период (2-сана)</div><div class="value">{{ period }}</div></div>
+        </div>
+      </div>
 
-    <div class="info-row">
-      <div class="info-card">
-        <span class="ico">📅</span>
-        <div><div class="label">Сана</div><div class="value">{{ day_iso }}</div></div>
-      </div>
-      <div class="info-card">
-        <span class="ico">👤</span>
-        <div><div class="label">Ходим</div><div class="value">{{ employee }}</div></div>
-      </div>
-      <div class="info-card">
-        <span class="ico">🗓</span>
-        <div><div class="label">Период (2-сана)</div><div class="value">{{ period }}</div></div>
-      </div>
-    </div>
-
-    <div class="score-strip">
-      <div class="score-box main">
-        <div class="sb-label">Жами очко</div>
-        <div class="sb-value">+{{ grand_total }}</div>
-      </div>
-      <div class="score-box sub">
-        <div class="sb-label">Yordamchi bot</div>
-        <div class="sb-value">+{{ cat_total }}</div>
-      </div>
-      <div class="score-box sub">
-        <div class="sb-label">Boshqa botlar</div>
-        <div class="sb-value">+{{ bot_total }}</div>
-      </div>
-      <div class="score-box sub">
-        <div class="sb-label">Ish vaqti</div>
-        <div class="sb-value" style="font-size:22px;color:#003f8f">{{ total_work }}</div>
+      <div class="score-strip">
+        <div class="score-box main">
+          <div class="sb-label">Жами очко</div>
+          <div class="sb-value">+{{ grand_total }}</div>
+        </div>
+        <div class="score-box sub">
+          <div class="sb-label">Yordamchi bot</div>
+          <div class="sb-value">+{{ cat_total }}</div>
+        </div>
+        <div class="score-box sub">
+          <div class="sb-label">Boshqa botlar</div>
+          <div class="sb-value">+{{ bot_total }}</div>
+        </div>
+        <div class="score-box sub">
+          <div class="sb-label">Ish vaqti</div>
+          <div class="sb-value time-val">{{ total_work }}</div>
+        </div>
       </div>
     </div>
 
@@ -90,11 +91,11 @@
         <div class="highlights">
           <div class="highlight-box">
             <div class="hl-label">⭐ ЭНГ КУЧЛИ ЙЎНАЛИШ</div>
-            {{ best_cat }} (+{{ best_add }})
+            <div class="hl-value">{{ best_cat }} (+{{ best_add }})</div>
           </div>
           <div class="highlight-box">
             <div class="hl-label">🔥 УМУМИЙ БАҲО</div>
-            {{ overall_text }}
+            <div class="hl-value">{{ overall_text }}</div>
           </div>
         </div>
 
@@ -104,30 +105,25 @@
           <div class="sub">Таклиф:</div>
           <p>{{ recommendation_text }}</p>
         </div>
-
-        <div class="manager-box">
-          <h3>РАҲБАР ИЗОҲИ</h3>
-          <div class="sign-line"></div>
-        </div>
       </div>
 
       <div class="right-col">
         <div class="section-bar">БОШҚА БОТЛАР</div>
-        {% for bot in bots %}
-        <div class="bot-card{% if bot.empty %} empty{% endif %}">
-          <div class="bot-ico">{{ bot.icon }}</div>
-          <div>
-            <div class="bot-title">{{ bot.title }}</div>
-            <div class="bot-text{% if bot.empty %} muted{% endif %}">{{ bot.body }}</div>
+        <div class="bots-stack">
+          {% for bot in bots %}
+          <div class="bot-card{% if bot.empty %} empty{% endif %}">
+            <div class="bot-ico">{{ bot.icon }}</div>
+            <div class="bot-body">
+              <div class="bot-title">{{ bot.title }}</div>
+              <div class="bot-text{% if bot.empty %} muted{% endif %}">{{ bot.body }}</div>
+            </div>
           </div>
-        </div>
-        {% endfor %}
-        <div class="bot-card time-summary">
-          <div class="bot-ico">⏱</div>
-          <div>
-            <div class="bot-title">ИШ ВАҚТИ (БУГУН)</div>
-            <div class="bot-text">
-              Иш: {{ work_ish_time }} · Dam: {{ work_dam_time }}
+          {% endfor %}
+          <div class="bot-card time-summary">
+            <div class="bot-ico">⏱</div>
+            <div class="bot-body">
+              <div class="bot-title">ИШ ВАҚТИ (БУГУН)</div>
+              <div class="bot-text">Иш: {{ work_ish_time }} · Dam: {{ work_dam_time }}</div>
             </div>
           </div>
         </div>
@@ -135,16 +131,8 @@
     </div>
 
     <footer class="footer">
-      <div class="footer-left">
-        <div class="ft-label">Ҳисобот тайёрлади:</div>
-        <div class="sign-line"></div>
-        <div class="hint">(имзо)</div>
-      </div>
-      <div class="footer-center">🏭</div>
-      <div class="footer-right">
-        <div class="ft-label">Сана: {{ footer_date }}</div>
-        <div class="sign-line"></div>
-      </div>
+      <span class="footer-brand">🏭 Kunlik hisobot tizimi</span>
+      <span class="footer-date">{{ employee }} · {{ footer_date }}</span>
     </footer>
   </div>
 </body>
