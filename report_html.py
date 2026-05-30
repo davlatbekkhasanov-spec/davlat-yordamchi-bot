@@ -29,7 +29,17 @@ BOT_ICONS = {
     "ishxona": "🔧",
 }
 
-EMPTY_BOT = "Бугун faoliyat yo'q"
+EMPTY_BOT = "—"
+
+
+def _metric_value_ok(value: str) -> bool:
+    v = (value or "").strip()
+    if not v or v in ("—", "-", "–"):
+        return False
+    low = v.lower()
+    if "event yo'q" in low or "faoliyat yo'q" in low:
+        return False
+    return True
 
 
 def _env() -> Environment:
@@ -77,10 +87,9 @@ def _format_bot_body(summary: str, metrics: list[tuple[str, str]]) -> tuple[str,
     if summary and summary.strip() and "event yo'q" not in summary.lower():
         return summary.strip(), False
     if metrics:
-        for _k, v in metrics:
-            if v and "event yo'q" not in v.lower() and "yo'q" not in v.lower():
-                parts = [f"{k}: {v}" for k, v in metrics]
-                return ", ".join(parts), False
+        parts = [f"{k}: {v}" for k, v in metrics if _metric_value_ok(v)]
+        if parts:
+            return ", ".join(parts), False
     return EMPTY_BOT, True
 
 

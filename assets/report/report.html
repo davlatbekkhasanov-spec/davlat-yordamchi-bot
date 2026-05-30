@@ -8,12 +8,12 @@
 <body>
   <div class="page density-{{ density }}">
     <div class="page-top">
-      <div class="header">
-        <div class="header-left">
-          <div class="header-icon">📋</div>
-          <h1 class="header-title">КУНЛИК ҲИСОБОТ (ЯКУН)</h1>
+      <div class="hero-header">
+        <div class="hero-main">
+          <div class="hero-kicker">Ombor xodimi kunlik natijasi</div>
+          <h1 class="hero-title">КУНЛИК ҲИСОБОТ <span>(ЯКУН)</span></h1>
         </div>
-        <div class="photo-wrap">
+        <div class="photo-wrap photo-hero">
           {% if avatar_b64 %}
           <img src="data:{{ avatar_mime }};base64,{{ avatar_b64 }}" alt=""/>
           {% else %}
@@ -21,7 +21,6 @@
           {% endif %}
         </div>
       </div>
-      <div class="header-line"></div>
 
       <div class="meta-bar">
         <div class="meta-item">
@@ -61,7 +60,7 @@
           <div class="kpi-value kpi-green">+{{ bot_total }}</div>
         </div>
         <div class="kpi-card">
-          <div class="kpi-label">Иш вакти</div>
+          <div class="kpi-label">Иш вақти</div>
           <div class="kpi-value kpi-blue">{{ total_work }}</div>
         </div>
       </div>
@@ -69,9 +68,10 @@
 
     <div class="main-grid">
       <div class="left-col">
-        <div class="section-bar">АСОСИЙ ФАОЛИЯТЛАР</div>
-        <div class="table-wrap">
-          <table class="data-table">
+        <div class="section-block">
+          <div class="section-bar">АСОСИЙ ФАОЛИЯТЛАР</div>
+          <div class="table-wrap">
+            <table class="data-table">
             <thead>
               <tr>
                 <th>№</th>
@@ -95,6 +95,7 @@
               {% endfor %}
             </tbody>
           </table>
+          </div>
         </div>
 
         <div class="highlights">
@@ -117,14 +118,15 @@
       </div>
 
       <div class="right-col">
-        <div class="section-bar">БОШҚА БОТЛАР</div>
-        <div class="bots-stack">
+        <div class="section-block section-block-fill">
+          <div class="section-bar">БОШҚА БОТЛАР</div>
+          <div class="bots-stack">
           {% for bot in bots %}
           <div class="bot-card{% if bot.empty %} empty{% endif %}">
             <div class="bot-ico">{{ bot.icon }}</div>
             <div class="bot-body">
               <div class="bot-title">{{ bot.title }}</div>
-              <div class="bot-text{% if bot.empty %} muted{% endif %}">{{ bot.body }}</div>
+              <div class="bot-text{% if bot.empty %} is-dash{% endif %}">{{ bot.body }}</div>
             </div>
           </div>
           {% endfor %}
@@ -134,6 +136,7 @@
               <div class="bot-title">ИШ ВАҚТИ (БУГУН)</div>
               <div class="bot-text">Иш: {{ work_ish_time }} · Dam: {{ work_dam_time }}</div>
             </div>
+          </div>
           </div>
         </div>
       </div>

@@ -160,7 +160,9 @@ def _fmt_clock(seconds: int) -> str:
 
 
 def score_bot_summary(key: str, summary: str) -> tuple[int, int]:
-    s = summary or ""
+    s = (summary or "").strip()
+    if not s:
+        return 0, 0
     sl = s.lower()
     if key == "omborga":
         reys = int(re.search(r"reys\s*(\d+)", sl).group(1)) if re.search(r"reys\s*(\d+)", sl) else 0
@@ -169,16 +171,22 @@ def score_bot_summary(key: str, summary: str) -> tuple[int, int]:
         ish = _parse_hms(ish_m.group(1)) if ish_m else _parse_hms(s)
         dam = _parse_hms(dam_m.group(1)) if dam_m else 0
         total = ish + dam
+        if not reys and not total:
+            return 0, 0
         mins = max(1, ish // 60) if ish else 0
         return reys * 3 + mins // 2, total
     if key == "ombor":
         sec = _parse_hms(s)
         if not sec and re.search(r"(\d+)\s*son", sl):
             sec = int(re.search(r"(\d+)\s*son", sl).group(1))
-        return max(0, sec // 2 + 1), sec
+        if not sec:
+            return 0, 0
+        return max(1, sec // 2 + 1), sec
     if key == "yuk":
         sec = _parse_hms(s)
-        return max(0, sec // 130 + 1), sec
+        if not sec:
+            return 0, 0
+        return max(1, sec // 130 + 1), sec
     if key == "sklad":
         n = int(re.search(r"sanaldi\s*(\d+)", sl).group(1)) if re.search(r"sanaldi\s*(\d+)", sl) else 0
         return n * 5, 0
@@ -234,21 +242,31 @@ def _parse_work_rest(events: dict[str, str]) -> tuple[str, str]:
 
 
 def _build_summary_text(data: "DailyReportCardData") -> tuple[str, str]:
+    chunks: list[str] = []
     n = len(data.categories)
-    bots_on = sum(1 for b in data.bots if b.summary and b.summary.strip())
-    summary = (
-        f"Бугун {n} ta faoliyat bo'yicha ma'lumot kiritildi. "
-        f"Eng yuqori natija: {data.best_cat} (+{data.best_add} ochko). "
-        f"Jami: +{data.grand_total} (yordamchi +{data.cat_total}, botlar +{data.bot_total})."
-    )
-    if bots_on == 0:
-        summary += " Boshqa botlardan bugun event kelmagan."
+    if data.cat_total and n:
+        chunks.append(
+            f"Bugun {n} ta yo'nalish bo'yicha jami +{data.cat_total} ochko qayd etildi."
+        )
+    if data.best_cat and data.best_add:
+        chunks.append(f"Eng yuqori ko'rsatkich — «{data.best_cat}» (+{data.best_add}).")
+    active = [b for b in data.bots if (b.summary or "").strip()]
+    if data.bot_total > 0 and active:
+        labels = ", ".join(BOT_LABELS.get(b.key, b.label) for b in active[:3])
+        tail = f" ({labels})" if labels else ""
+        chunks.append(f"Boshqa botlar bo'yicha +{data.bot_total} ochko{tail}.")
+    if data.total_work and data.total_work not in ("00:00:00", "0:00:00"):
+        chunks.append(f"Umumiy ish vaqti: {data.total_work}.")
+    summary = " ".join(chunks) if chunks else "Bugungi kun bo'yicha hisobot shakllantirildi."
+
+    if data.rank == 1:
+        rec = "Mehnat unumdorligi yaxshi darajada, shu tarzda davom ettirish tavsiya etiladi."
+    elif data.rank and data.rank <= 3:
+        rec = "Mehnat unumdorligi yaxshi darajada, shu tarzda davom ettirish tavsiya etiladi."
     else:
-        summary += f" Boshqa botlardan {bots_on} ta manba faol."
-    rec = "Mehnat unumdorligini shu darajada saqlab qolish tavsiya etiladi."
-    if data.rank and data.rank > 3:
-        rec = "Zaif yo'nalishlarni kuchaytirish va barqarorlikni oshirish kerak."
+        rec = "Ish jarayonini barqaror saqlash va zaif yo'nalishlarni kuchaytirish tavsiya etiladi."
     return summary, rec
+
 
 async def build_card_data(
     *,
@@ -319,7 +337,7 @@ async def build_card_data(
                 metrics=_bot_metrics(key, summary, wsec),
             )
         )
-        if summary and wsec:
+        if summary.strip() and wsec:
             data.work_log.append((BOT_LABELS.get(key, key), _fmt_clock(wsec)))
         data.bot_total += score
 
