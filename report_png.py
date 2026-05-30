@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import os
+from datetime import date
 
 from daily_report_card import DailyReportCardData, render_daily_report_png
 from report_html import build_report_html
@@ -82,10 +83,15 @@ async def render_demo_preview_png() -> bytes:
     return await render_report_png(build_demo_card_data())
 
 
-async def render_ranking_png(day_iso: str, leaders, active: int) -> bytes:
+async def render_ranking_png(
+    period: str,
+    ref_date: date,
+    leaders,
+    active: int,
+) -> bytes:
     from ranking_html import build_ranking_html
 
-    html = build_ranking_html(day_iso, leaders, active)
+    html = build_ranking_html(period, ref_date, leaders, active)
     if await _ensure_playwright():
         try:
             return await html_to_png(html)

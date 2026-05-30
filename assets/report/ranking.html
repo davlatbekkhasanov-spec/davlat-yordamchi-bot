@@ -2,38 +2,51 @@
 <html lang="uz-Cyrl">
 <head>
   <meta charset="utf-8"/>
-  <title>Кунлик рейтинг</title>
+  <title>Period reyting</title>
   <style>{{ css }}</style>
 </head>
 <body>
   <div class="page page-ranking">
-    <div class="hero-header hero-ranking">
+    <div class="ranking-bg-glow"></div>
+
+    <div class="hero-header hero-ranking hero-ranking-wow">
       <div class="hero-brand">
         <img class="company-logo" src="data:image/svg+xml;base64,{{ logo_b64 }}" alt="Kanstik Samarqand"/>
       </div>
-      <h1 class="hero-title">Кунлик фойдалилик рейтинги</h1>
-      <div class="hero-trophy" aria-hidden="true">🏆</div>
+      <div class="hero-center">
+        <div class="hero-kicker">✦ YIG'ILGAN OCHKO ✦</div>
+        <h1 class="hero-title">Жамоа рейтинги</h1>
+        <div class="hero-sub">Период (2-сана) · {{ period }}</div>
+      </div>
+      <div class="hero-trophy hero-trophy-wow" aria-hidden="true">🏆</div>
     </div>
 
-    <div class="meta-bar meta-bar-3">
+    <div class="meta-bar meta-bar-4">
+      <div class="meta-item">
+        <span class="meta-ico">🗓</span>
+        <div class="meta-body">
+          <span class="meta-label">Период</span>
+          <span class="meta-value">{{ period }}</span>
+        </div>
+      </div>
       <div class="meta-item">
         <span class="meta-ico">📅</span>
         <div class="meta-body">
-          <span class="meta-label">Сана</span>
-          <span class="meta-value">{{ day_iso }}</span>
+          <span class="meta-label">Холат</span>
+          <span class="meta-value">{{ ref_date }}</span>
         </div>
       </div>
       <div class="meta-item">
         <span class="meta-ico">👥</span>
         <div class="meta-body">
-          <span class="meta-label">Фаол ходим</span>
-          <span class="meta-value">{{ active }}</span>
+          <span class="meta-label">Жамоа</span>
+          <span class="meta-value">{{ team_size }} наfar</span>
         </div>
       </div>
       <div class="meta-item">
         <span class="meta-ico">⭐</span>
         <div class="meta-body">
-          <span class="meta-label">Лидер очко</span>
+          <span class="meta-label">Лидер</span>
           <span class="meta-value">+{{ top_score }}</span>
         </div>
       </div>
@@ -50,54 +63,46 @@
       </div>
       <div class="kpi-card">
         <div class="kpi-label">Фаол ходим</div>
-        <div class="kpi-value kpi-blue">{{ active }}</div>
+        <div class="kpi-value kpi-blue">{{ active }} / {{ team_size }}</div>
       </div>
     </div>
 
-    <div class="section-block ranking-block">
-      <div class="section-bar">📈 КУНЛИК РЕЙТИНГ</div>
-      {% if leaders %}
-      <div class="table-wrap">
-        <table class="data-table ranking-table">
-          <thead>
-            <tr>
-              <th>№</th>
-              <th>ХОДИМ</th>
-              <th>ОЧКО</th>
-              <th>ИШ ВАҚТИ</th>
-              <th>ФОЙДАЛИЛИК</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for row in leaders %}
-            <tr class="rank-row rank-{{ row.rank }}">
-              <td class="rank-medal">{{ row.medal }}</td>
-              <td class="rank-name">{{ row.name }}</td>
-              <td class="points">+{{ row.score }}</td>
-              <td>{{ row.work_time }}</td>
-              <td class="rank-pct-cell">
-                <div class="rank-pct-wrap">
-                  <div class="rank-pct-bar"><span style="width: {{ row.pct }}%"></span></div>
-                  <span class="rank-pct-label">{{ row.pct }}%</span>
-                </div>
-              </td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
+    <div class="section-block ranking-block-wow">
+      <div class="section-bar section-bar-wow">📈 PERIOD REYTING · BARCHA XODIMLAR</div>
+      <div class="leaderboard">
+        {% for row in leaders %}
+        <div class="rank-card rank-tier-{{ row.tier }}{% if row.zero %} is-zero{% endif %}">
+          <div class="rank-pos">
+            <span class="rank-medal">{{ row.medal }}</span>
+          </div>
+          <div class="rank-info">
+            <div class="rank-name">{{ row.name }}</div>
+            <div class="rank-meta">
+              <span class="rank-score">+{{ row.score }} очко</span>
+              {% if row.work_time != "00:00" %}
+              <span class="rank-time">⏱ {{ row.work_time }}</span>
+              {% endif %}
+            </div>
+          </div>
+          <div class="rank-holo">
+            <div class="holo-track">
+              <div class="holo-fill" style="width: {{ row.pct if row.pct > 0 else 2 }}%;"></div>
+              <div class="holo-shine"></div>
+            </div>
+          </div>
+          <div class="rank-pct holo-pct">{{ row.pct }}%</div>
+        </div>
+        {% endfor %}
       </div>
-      {% else %}
-      <div class="ranking-empty">Бу кун учун очко йўқ.</div>
-      {% endif %}
     </div>
 
     <div class="ranking-note">
-      Очко = категория + бошқа botlar · {{ footer_date }}
+      Ochko period davomida yig'iladi (kategoriya + botlar) · {{ ref_date_fmt }}
     </div>
 
     <footer class="footer">
-      <span class="footer-brand">🏭 Кунлик рейтинг тизими</span>
-      <span class="footer-date">{{ footer_date }}</span>
+      <span class="footer-brand">🏭 Period reyting tizimi</span>
+      <span class="footer-date">{{ period }} · {{ ref_date_fmt }}</span>
     </footer>
   </div>
 </body>

@@ -606,31 +606,62 @@ body {
 .footer-brand { font-size: 24px; }
 .footer-date { font-size: 22px; color: #333; }
 
-/* Kunlik reyting PNG */
+/* Period reyting PNG — wow */
 .page-ranking {
-  min-height: 1200px;
+  position: relative;
+  min-height: 1754px;
   height: auto;
+  background: linear-gradient(180deg, #f8fbff 0%, #eef4fb 45%, #ffffff 100%);
+  overflow: hidden;
 }
 
-.hero-ranking {
-  grid-template-columns: 240px 1fr 180px;
+.ranking-bg-glow {
+  position: absolute;
+  inset: -120px -80px auto -80px;
+  height: 420px;
+  background:
+    radial-gradient(circle at 20% 30%, rgba(11, 92, 184, 0.18), transparent 55%),
+    radial-gradient(circle at 80% 20%, rgba(23, 162, 184, 0.16), transparent 50%),
+    radial-gradient(circle at 50% 80%, rgba(201, 162, 39, 0.08), transparent 45%);
+  pointer-events: none;
 }
 
-.hero-trophy {
-  width: 160px;
-  height: 160px;
-  border: 4px solid rgba(255, 255, 255, 0.9);
-  border-radius: 16px;
-  background: rgba(255, 255, 255, 0.12);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 88px;
-  justify-self: end;
+.hero-ranking-wow {
+  position: relative;
+  grid-template-columns: 220px 1fr 160px;
+  background: linear-gradient(135deg, #002f6c 0%, #0b5cb8 52%, #17a2b8 100%);
+  box-shadow: 0 18px 40px rgba(0, 47, 108, 0.28);
 }
 
-.meta-bar-3 {
-  grid-template-columns: repeat(3, 1fr);
+.hero-center {
+  text-align: center;
+}
+
+.hero-kicker {
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: 2px;
+  color: rgba(255, 255, 255, 0.78);
+  margin-bottom: 8px;
+}
+
+.hero-sub {
+  margin-top: 10px;
+  font-size: 22px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.hero-trophy-wow {
+  width: 140px;
+  height: 140px;
+  font-size: 76px;
+  background: linear-gradient(145deg, rgba(255,255,255,0.22), rgba(255,255,255,0.08));
+  box-shadow: inset 0 0 24px rgba(255,255,255,0.18), 0 8px 24px rgba(0,0,0,0.15);
+}
+
+.meta-bar-4 {
+  grid-template-columns: repeat(4, 1fr);
 }
 
 .kpi-row-3 {
@@ -644,92 +675,177 @@ body {
   padding: 0 6px;
 }
 
-.ranking-block {
-  flex: 1;
+.section-bar-wow {
+  background: linear-gradient(90deg, #002f6c 0%, #0b5cb8 55%, #17a2b8 100%);
+  font-size: 22px;
+  letter-spacing: 0.5px;
 }
 
-.ranking-table thead th:nth-child(2) {
-  text-align: left;
-  width: 36%;
+.ranking-block-wow {
+  border: none;
+  background: transparent;
+  box-shadow: none;
 }
 
-.ranking-table thead th:nth-child(5) {
-  width: 22%;
+.leaderboard {
+  padding: 18px 14px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.72), rgba(240,246,252,0.92));
+  border-top: 2px solid rgba(184, 207, 230, 0.9);
 }
 
-.rank-row.rank-1 td.rank-name {
-  color: #9a6b00;
-  font-weight: 800;
+.rank-card {
+  display: grid;
+  grid-template-columns: 64px minmax(260px, 1fr) minmax(320px, 420px) 72px;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 18px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, rgba(255,255,255,0.98), rgba(245, 250, 255, 0.94));
+  border: 1px solid rgba(184, 207, 230, 0.95);
+  box-shadow: 0 8px 24px rgba(0, 63, 143, 0.08);
 }
 
-.rank-row.rank-2 td.rank-name {
-  color: #555;
-  font-weight: 800;
+.rank-card.is-zero {
+  background: linear-gradient(135deg, rgba(250,251,253,0.98), rgba(241,245,250,0.94));
 }
 
-.rank-row.rank-3 td.rank-name {
-  color: #8b5a2b;
-  font-weight: 800;
+.rank-card.rank-tier-gold {
+  border-color: #d4af37;
+  box-shadow: 0 10px 28px rgba(212, 175, 55, 0.22);
+  background: linear-gradient(135deg, #fffdf5 0%, #fff8e7 100%);
+}
+
+.rank-card.rank-tier-silver {
+  border-color: #b8c0cc;
+  box-shadow: 0 10px 24px rgba(120, 130, 145, 0.16);
+  background: linear-gradient(135deg, #fcfdff 0%, #f3f6fa 100%);
+}
+
+.rank-card.rank-tier-bronze {
+  border-color: #c68642;
+  box-shadow: 0 10px 24px rgba(198, 134, 66, 0.16);
+  background: linear-gradient(135deg, #fffaf6 0%, #fff2e8 100%);
+}
+
+.rank-pos {
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .rank-medal {
-  font-size: 28px;
-  text-align: center;
+  font-size: 34px;
+  line-height: 1;
+}
+
+.rank-info {
+  min-width: 0;
 }
 
 .rank-name {
-  font-weight: 700;
-  text-align: left;
+  font-size: 24px;
+  font-weight: 800;
+  color: #0f172a;
+  line-height: 1.15;
+  margin-bottom: 6px;
 }
 
-.rank-pct-cell {
-  padding-right: 16px !important;
-}
-
-.rank-pct-wrap {
+.rank-meta {
   display: flex;
-  align-items: center;
+  flex-wrap: wrap;
   gap: 10px;
+  font-size: 17px;
+  color: #475569;
 }
 
-.rank-pct-bar {
-  flex: 1;
-  height: 14px;
-  background: #e8eef5;
+.rank-score {
+  font-weight: 800;
+  color: #0a7a0a;
+}
+
+.rank-card.is-zero .rank-score {
+  color: #94a3b8;
+}
+
+.rank-time {
+  color: #64748b;
+}
+
+.rank-holo {
+  min-width: 0;
+}
+
+.holo-track {
+  position: relative;
+  height: 30px;
   border-radius: 999px;
   overflow: hidden;
+  background: linear-gradient(90deg, rgba(0,63,143,0.08), rgba(23,162,184,0.12));
+  border: 1px solid rgba(0, 63, 143, 0.12);
+  box-shadow: inset 0 2px 10px rgba(0, 63, 143, 0.08);
 }
 
-.rank-pct-bar span {
-  display: block;
+.holo-fill {
+  position: relative;
+  z-index: 1;
   height: 100%;
-  background: linear-gradient(90deg, #0b5cb8 0%, #17a2b8 100%);
+  min-width: 2%;
   border-radius: 999px;
+  background: linear-gradient(90deg, #0b5cb8 0%, #17a2b8 45%, #7dd3fc 70%, #17a2b8 100%);
+  box-shadow:
+    0 0 16px rgba(23, 162, 184, 0.55),
+    0 0 28px rgba(11, 92, 184, 0.25);
 }
 
-.rank-row.rank-1 .rank-pct-bar span {
-  background: linear-gradient(90deg, #c9a227 0%, #f0c14b 100%);
+.rank-card.rank-tier-gold .holo-fill {
+  background: linear-gradient(90deg, #b8860b 0%, #f0c14b 45%, #ffe58f 70%, #f0c14b 100%);
+  box-shadow: 0 0 18px rgba(240, 193, 75, 0.55);
 }
 
-.rank-pct-label {
-  min-width: 44px;
-  font-size: 18px;
-  font-weight: 800;
-  color: #003f8f;
+.rank-card.rank-tier-silver .holo-fill {
+  background: linear-gradient(90deg, #7b8794 0%, #c0c7d1 45%, #eef2f7 70%, #c0c7d1 100%);
+}
+
+.rank-card.rank-tier-bronze .holo-fill {
+  background: linear-gradient(90deg, #9c5a1a 0%, #c68642 45%, #e8b07a 70%, #c68642 100%);
+}
+
+.rank-card.is-zero .holo-fill {
+  background: linear-gradient(90deg, rgba(148,163,184,0.35), rgba(203,213,225,0.55));
+  box-shadow: none;
+}
+
+.holo-shine {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(110deg, transparent 0%, rgba(255,255,255,0.45) 45%, transparent 70%);
+  pointer-events: none;
+}
+
+.holo-pct {
+  font-size: 26px;
+  font-weight: 900;
   text-align: right;
+  background: linear-gradient(135deg, #003f8f 0%, #17a2b8 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
 }
 
-.ranking-empty {
-  padding: 48px 24px;
-  text-align: center;
-  font-size: 28px;
-  color: #666;
-  border-top: 2px solid #b8cfe6;
+.rank-card.is-zero .holo-pct {
+  background: none;
+  color: #94a3b8;
+  -webkit-background-clip: unset;
+  background-clip: unset;
 }
 
 .ranking-note {
   margin-top: 16px;
   text-align: center;
   font-size: 18px;
-  color: #666;
+  color: #64748b;
 }

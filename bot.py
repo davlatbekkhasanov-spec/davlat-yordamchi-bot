@@ -395,27 +395,32 @@ async def safe_ranking_send_png(png: bytes, caption: str = "") -> None:
 
 
 async def broadcast_daily_ranking(day_iso: str | None = None, *, force: bool = False) -> bool:
-    """Kunlik jamoa reytingini yuboradi. 00:01 da odatda kechagi kun."""
-    target = day_iso or (today_local() - timedelta(days=1)).isoformat()
-    if not force and await ranking_already_sent(db_fetchone, target):
-        logging.info("Kunlik reyting allaqachon yuborilgan: %s", target)
+    """Period bo'yicha yig'ilgan reyting. 00:01 da kechagi kun holati."""
+    if day_iso:
+        ref = date.fromisoformat(day_iso)
+    else:
+        ref = today_local() - timedelta(days=1)
+    send_key = ref.isoformat()
+    if not force and await ranking_already_sent(db_fetchone, send_key):
+        logging.info("Period reyting allaqachon yuborilgan: %s", send_key)
         return False
 
-    leaders, active = await build_team_rankings(
-        target,
+    leaders, active, period = await build_team_rankings(
+        ref,
         employees=EMPLOYEES,
-        sum_day_total=sum_day_total,
+        sum_period_total=sum_period_total,
+        get_period_key=get_period_key,
     )
-    caption = f"🏆 Kunlik reyting · {target} · {active} nafar"
+    caption = f"🏆 Period reyting · {period} · {active}/{len(EMPLOYEES)} faol"
     try:
-        png = await render_ranking_png(target, leaders, active)
+        png = await render_ranking_png(period, ref, leaders, active)
         await safe_ranking_send_png(png, caption=caption)
     except Exception:
         logging.exception("Reyting PNG xato, matn fallback")
-        lines = format_ranking_lines(target, leaders, active)
-        await safe_ranking_send(box(lines, title="🏆 КУНЛИК РЕЙТИНГ (ЯКУН)"))
-    await mark_ranking_sent(db_exec, target)
-    logging.info("Kunlik reyting yuborildi: %s (%s nafar)", target, active)
+        lines = format_ranking_lines(period, ref, leaders, active)
+        await safe_ranking_send(box(lines, title="🏆 PERIOD REYTING"))
+    await mark_ranking_sent(db_exec, send_key)
+    logging.info("Period reyting yuborildi: %s / %s (%s faol)", period, send_key, active)
     return True
 
 
@@ -1678,7 +1683,8 @@ async def ranking_btn(message: Message):
     day_iso = today_local().isoformat()
     try:
         await broadcast_daily_ranking(day_iso, force=True)
-        await message.answer(f"✅ Reyting yuborildi: {day_iso}")
+        period = get_period_key(today_local())
+        await message.answer(f"✅ Period reyting yuborildi: {period} · {day_iso}")
     except Exception as e:
         logging.exception("Reyting tugmasi xato")
         await message.answer(f"❌ Xato: {html.escape(str(e))}", parse_mode="HTML")
