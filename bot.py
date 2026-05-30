@@ -29,6 +29,7 @@ from admin_status import (
     BTN_ADMIN_PHOTO,
     BTN_ADMIN_STATUS,
     BTN_PREVIEW_REPORT,
+    BTN_RANKING,
     admin_status_kb,
     handle_admin_status,
 )
@@ -247,7 +248,7 @@ def categories_kb(user_id: int | None = None):
     rows = [[KeyboardButton(text=c)] for c in CATEGORIES] + [[KeyboardButton(text="❌ Бекор қилиш")]]
     if user_id and is_admin(user_id):
         rows.append([KeyboardButton(text=BTN_ADMIN_STATUS), KeyboardButton(text=BTN_PREVIEW_REPORT)])
-        rows.append([KeyboardButton(text=BTN_ADMIN_PHOTO)])
+        rows.append([KeyboardButton(text=BTN_ADMIN_PHOTO), KeyboardButton(text=BTN_RANKING)])
     return ReplyKeyboardMarkup(keyboard=rows, resize_keyboard=True)
 
 
@@ -258,7 +259,7 @@ def after_save_kb(user_id: int | None = None):
         [KeyboardButton(text=BTN_PREVIEW_REPORT)],
     ]
     if user_id and is_admin(user_id):
-        rows.append([KeyboardButton(text=BTN_ADMIN_STATUS), KeyboardButton(text=BTN_ADMIN_PHOTO)])
+        rows.append([KeyboardButton(text=BTN_ADMIN_STATUS), KeyboardButton(text=BTN_ADMIN_PHOTO), KeyboardButton(text=BTN_RANKING)])
     return ReplyKeyboardMarkup(keyboard=rows, resize_keyboard=True)
 
 def delete_date_kb():
@@ -1644,6 +1645,23 @@ async def admin_status_btn(message: Message):
         )
         return
     await handle_admin_status(message, bot)
+
+
+@dp.message(lambda m: is_private(m) and m.text == BTN_RANKING)
+async def ranking_btn(message: Message):
+    if not is_admin(message.from_user.id):
+        await message.answer(
+            f"Faqat admin.\nSizning ID: <code>{message.from_user.id}</code>",
+            parse_mode="HTML",
+        )
+        return
+    day_iso = today_local().isoformat()
+    try:
+        await broadcast_daily_ranking(day_iso, force=True)
+        await message.answer(f"✅ Reyting yuborildi: {day_iso}")
+    except Exception as e:
+        logging.exception("Reyting tugmasi xato")
+        await message.answer(f"❌ Xato: {html.escape(str(e))}", parse_mode="HTML")
 
 
 @dp.message(Command("preview"))
