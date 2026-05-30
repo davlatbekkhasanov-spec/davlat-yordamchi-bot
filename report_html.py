@@ -53,6 +53,11 @@ def _css_text() -> str:
     return (ASSETS / "report.css").read_text(encoding="utf-8")
 
 
+def _logo_b64() -> str:
+    svg = (ASSETS / "kanstik-logo.svg").read_bytes()
+    return base64.b64encode(svg).decode("ascii")
+
+
 def _image_mime(data: bytes) -> str:
     if data[:8] == b"\x89PNG\r\n\x1a\n":
         return "image/png"
@@ -147,6 +152,7 @@ def build_report_html(data: DailyReportCardData, avatar: bytes | None = None) ->
         "bots": bots,
         "avatar_b64": avatar_b64,
         "avatar_mime": avatar_mime,
+        "logo_b64": _logo_b64(),
     }
 
     return _env().get_template("report.html").render(**ctx)

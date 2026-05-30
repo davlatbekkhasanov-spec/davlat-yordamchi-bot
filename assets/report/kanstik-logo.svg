@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 88" role="img" aria-label="Kanstik Samarqand">
+  <defs>
+    <linearGradient id="mark" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.95"/>
+      <stop offset="100%" stop-color="#cce4ff" stop-opacity="0.85"/>
+    </linearGradient>
+  </defs>
+  <rect x="2" y="8" width="72" height="72" rx="14" fill="url(#mark)"/>
+  <path d="M22 24 L22 64 L34 64 L34 46 L48 64 L62 64 L44 42 L60 24 L46 24 L34 40 L34 24 Z" fill="#003f8f"/>
+  <text x="88" y="38" font-family="DejaVu Sans, Arial, sans-serif" font-size="28" font-weight="800" fill="#ffffff">Kanstik</text>
+  <text x="88" y="66" font-family="DejaVu Sans, Arial, sans-serif" font-size="20" font-weight="700" fill="#cce4ff" letter-spacing="1.2">Samarqand</text>
+</svg>
