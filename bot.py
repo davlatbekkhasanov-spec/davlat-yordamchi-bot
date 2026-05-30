@@ -90,7 +90,17 @@ REPORT_ADMIN_DM_ID = int(os.getenv("REPORT_ADMIN_DM_ID", "1432810519") or "14328
 RANKING_BROADCAST_ENABLED = _env_bool("RANKING_BROADCAST_ENABLED", True)
 RANKING_BROADCAST_HOUR = int(os.getenv("RANKING_BROADCAST_HOUR", "0") or "0")
 RANKING_BROADCAST_MINUTE = int(os.getenv("RANKING_BROADCAST_MINUTE", "1") or "1")
-RANKING_CHAT_ID = int(os.getenv("RANKING_CHAT_ID", str(GROUP_ID)) or str(GROUP_ID))
+# Vaqtincha: False = guruh emas, admin lichkasiga (keyin RANKING_TO_GROUP=true)
+RANKING_TO_GROUP = _env_bool("RANKING_TO_GROUP", False)
+_RANKING_CHAT_RAW = os.getenv("RANKING_CHAT_ID", "").strip()
+
+
+def ranking_chat_id() -> int:
+    if _RANKING_CHAT_RAW:
+        return int(_RANKING_CHAT_RAW)
+    if RANKING_TO_GROUP:
+        return GROUP_ID
+    return REPORT_ADMIN_DM_ID
 
 
 def today_local() -> date:
@@ -357,9 +367,12 @@ async def safe_report_send_photo(png: bytes, caption: str = "", *, private_fallb
 
 
 async def safe_ranking_send(html_text: str) -> None:
-    chat_id = RANKING_CHAT_ID
+    chat_id = ranking_chat_id()
+    text = html_text
+    if not RANKING_TO_GROUP and not _RANKING_CHAT_RAW:
+        text = f"🔒 Vaqtincha lichka (guruh o'chiq)\n{text}"
     try:
-        await bot.send_message(chat_id, html_text, parse_mode="HTML")
+        await bot.send_message(chat_id, text, parse_mode="HTML")
     except Exception as e:
         logging.exception("Kunlik reyting yuborishda xato (chat=%s): %s", chat_id, e)
         raise
@@ -1449,7 +1462,7 @@ async def ranking_cmd(message: Message):
         return
 
     if sent:
-        await message.answer(f"✅ Reyting yuborildi: {day_iso} → chat {RANKING_CHAT_ID}")
+        await message.answer(f"✅ Reyting yuborildi: {day_iso} → chat {ranking_chat_id()}")
     else:
         await message.answer(f"ℹ️ {day_iso} uchun reyting allaqachon yuborilgan (--force bilan qayta yuboring).")
 
