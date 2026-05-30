@@ -29,6 +29,8 @@ BOT_ICONS = {
     "ishxona": "🔧",
 }
 
+EMPTY_BOT = "Бугун faoliyat yo'q"
+
 
 def _env() -> Environment:
     return Environment(
@@ -49,20 +51,9 @@ def _image_mime(data: bytes) -> str:
     return "image/jpeg"
 
 
-def _format_bot_body(key: str, summary: str, metrics: list[tuple[str, str]]) -> str:
-    if summary and summary.strip():
-        return summary.strip()
-    if not metrics:
-        return "Ma'lumot yo'q"
-    parts = []
-    for label, value in metrics:
-        parts.append(f"{label}: {value}")
-    return ", ".join(parts)
-
-
-def _format_omborga_body(summary: str) -> str:
-    if not summary:
-        return "Ma'lumot yo'q"
+def _format_omborga_body(summary: str) -> tuple[str, bool]:
+    if not summary or not summary.strip():
+        return EMPTY_BOT, True
     sl = summary.lower()
     reys = re.search(r"reys\s*(\d+)", sl)
     yuk = re.search(r"yuk\s*(\d+)", sl)
@@ -72,12 +63,25 @@ def _format_omborga_body(summary: str) -> str:
     if reys:
         bits.append(f"Reys: {reys.group(1)}")
     if yuk:
-        bits.append(f"yuk {yuk.group(1)}m")
+        bits.append(f"Yuk: {yuk.group(1)} m")
     if ish:
-        bits.append(f"ish {ish.group(1)}")
+        bits.append(f"Ish: {ish.group(1)}")
     if dam:
-        bits.append(f"dam {dam.group(1)}")
-    return ", ".join(bits) if bits else summary
+        bits.append(f"Dam: {dam.group(1)}")
+    if bits:
+        return " · ".join(bits), False
+    return summary.strip(), False
+
+
+def _format_bot_body(summary: str, metrics: list[tuple[str, str]]) -> tuple[str, bool]:
+    if summary and summary.strip() and "event yo'q" not in summary.lower():
+        return summary.strip(), False
+    if metrics:
+        for _k, v in metrics:
+            if v and "event yo'q" not in v.lower() and "yo'q" not in v.lower():
+                parts = [f"{k}: {v}" for k, v in metrics]
+                return ", ".join(parts), False
+    return EMPTY_BOT, True
 
 
 def build_report_html(data: DailyReportCardData, avatar: bytes | None = None) -> str:
@@ -88,14 +92,15 @@ def build_report_html(data: DailyReportCardData, avatar: bytes | None = None) ->
     for bot in data.bots:
         title = BOT_TITLES.get(bot.key, BOT_LABELS.get(bot.key, bot.label).upper())
         if bot.key == "omborga":
-            body = _format_omborga_body(bot.summary)
+            body, empty = _format_omborga_body(bot.summary)
         else:
-            body = _format_bot_body(bot.key, bot.summary, bot.metrics)
+            body, empty = _format_bot_body(bot.summary, bot.metrics)
         bots.append(
             {
                 "title": title,
                 "icon": BOT_ICONS.get(bot.key, "📌"),
                 "body": body,
+                "empty": empty,
             }
         )
 
@@ -110,9 +115,13 @@ def build_report_html(data: DailyReportCardData, avatar: bytes | None = None) ->
         "overall_text": data.overall_text,
         "summary_text": data.summary_text,
         "recommendation_text": data.recommendation_text,
-        "work_ish_time": data.work_ish_time,
-        "work_dam_time": data.work_dam_time,
+        "work_ish_time": data.work_ish_time or "—",
+        "work_dam_time": data.work_dam_time or "—",
         "footer_date": data.footer_date,
+        "grand_total": data.grand_total,
+        "cat_total": data.cat_total,
+        "bot_total": data.bot_total,
+        "total_work": data.total_work,
         "bots": bots,
         "avatar_b64": avatar_b64,
         "avatar_mime": avatar_mime,

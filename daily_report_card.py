@@ -189,7 +189,7 @@ def _bot_metrics(key: str, summary: str, work_sec: int) -> list[tuple[str, str]]
     s = summary or ""
     sl = s.lower()
     if not s:
-        return [("holat", "event yo'q")]
+        return [("holat", "—")]
     if key == "omborga":
         reys = re.search(r"reys\s*(\d+)", sl)
         ish_m = re.search(r"ish\s+([\d:]+)", sl)
@@ -234,12 +234,20 @@ def _parse_work_rest(events: dict[str, str]) -> tuple[str, str]:
 
 
 def _build_summary_text(data: "DailyReportCardData") -> tuple[str, str]:
+    n = len(data.categories)
+    bots_on = sum(1 for b in data.bots if b.summary and b.summary.strip())
     summary = (
-        "Бугунги кун давомида барча асосий фаолиятлар белгиланган режимда бajarilди. "
-        f"{data.best_cat} ва АРМ диспетчер йўналишlarida юқори натижа қайд этилди. "
-        "Хизмат сўрови ўз вақтида бajarilди. Юк жараёни ва склад назоратида хатolar aniqlanmadi."
+        f"Бугун {n} ta faoliyat bo'yicha ma'lumot kiritildi. "
+        f"Eng yuqori natija: {data.best_cat} (+{data.best_add} ochko). "
+        f"Jami: +{data.grand_total} (yordamchi +{data.cat_total}, botlar +{data.bot_total})."
     )
-    rec = "Меҳнат унумдорлиги яхши даражада, шу тарзда давом эттириш тавсия этилади."
+    if bots_on == 0:
+        summary += " Boshqa botlardan bugun event kelmagan."
+    else:
+        summary += f" Boshqa botlardan {bots_on} ta manba faol."
+    rec = "Mehnat unumdorligini shu darajada saqlab qolish tavsiya etiladi."
+    if data.rank and data.rank > 3:
+        rec = "Zaif yo'nalishlarni kuchaytirish va barqarorlikni oshirish kerak."
     return summary, rec
 
 async def build_card_data(
