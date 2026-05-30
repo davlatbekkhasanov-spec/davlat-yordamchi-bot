@@ -46,6 +46,13 @@ async def html_to_png(html: str, *, timeout: float = 25.0) -> bytes:
                 )
                 await page.set_content(html, wait_until="load")
                 await page.emulate_media(media="screen")
+                page_height = await page.evaluate(
+                    """() => Math.max(
+                        1754,
+                        Math.ceil(document.querySelector('.page').getBoundingClientRect().height) + 4
+                    )"""
+                )
+                await page.set_viewport_size({"width": A4_WIDTH, "height": page_height})
                 return await page.locator(".page").screenshot(type="png")
             finally:
                 await browser.close()

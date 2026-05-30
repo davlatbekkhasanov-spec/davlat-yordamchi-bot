@@ -6,10 +6,11 @@
 
 html, body {
   width: 1240px;
-  height: 1754px;
+  min-height: 1754px;
+  height: auto;
   margin: 0;
   padding: 0;
-  overflow: hidden;
+  overflow: visible;
   background: #ffffff;
 }
 
@@ -22,13 +23,156 @@ body {
 
 .page {
   width: 1240px;
-  height: 1754px;
   padding: 36px 44px 32px;
   background: #fff;
   border: 2px solid #b8cfe6;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  overflow: visible;
+}
+
+/* Kam yo'nalish: A4 to'liq to'ldiriladi */
+.page.density-normal {
+  min-height: 1754px;
+  height: 1754px;
+}
+
+.page.density-normal .table-wrap {
+  flex: 1;
+  min-height: 180px;
+}
+
+.page.density-normal .data-table tbody tr {
+  height: 1%;
+}
+
+.page.density-normal .summary-box {
+  flex: 1;
+  min-height: 120px;
+}
+
+.page.density-normal .bots-stack {
+  flex: 1;
+}
+
+/* Ko'p yo'nalish: ixcham, sahifa balandroq bo'lishi mumkin */
+.page.density-compact,
+.page.density-dense {
+  min-height: 1754px;
+  height: auto;
+}
+
+.page.density-compact .table-wrap,
+.page.density-dense .table-wrap {
+  flex: none;
+}
+
+.page.density-compact .data-table tbody td {
+  padding: 11px 8px;
+  font-size: 19px;
+}
+
+.page.density-compact .data-table tbody td:nth-child(2) {
+  font-size: 18px;
+}
+
+.page.density-compact .data-table tbody td.points {
+  font-size: 21px;
+}
+
+.page.density-compact .summary-box {
+  flex: none;
+  min-height: auto;
+  padding: 16px 18px;
+}
+
+.page.density-compact .summary-box p {
+  font-size: 19px;
+}
+
+.page.density-compact .bot-card {
+  flex: none;
+  min-height: 64px;
+  padding: 12px 14px;
+}
+
+.page.density-compact .bot-card .bot-text {
+  font-size: 18px;
+}
+
+.page.density-dense .data-table thead th {
+  padding: 10px 6px;
+  font-size: 15px;
+}
+
+.page.density-dense .data-table tbody td {
+  padding: 8px 6px;
+  font-size: 17px;
+}
+
+.page.density-dense .data-table tbody td:nth-child(2) {
+  font-size: 16px;
+}
+
+.page.density-dense .data-table tbody td.points {
+  font-size: 18px;
+}
+
+.page.density-dense .header-title {
+  font-size: 46px;
+}
+
+.page.density-dense .info-card .value {
+  font-size: 22px;
+}
+
+.page.density-dense .score-box.main .sb-value {
+  font-size: 38px;
+}
+
+.page.density-dense .sb-value {
+  font-size: 26px;
+}
+
+.page.density-dense .highlights {
+  margin-top: 12px;
+}
+
+.page.density-dense .highlight-box {
+  padding: 12px 14px;
+}
+
+.page.density-dense .highlight-box .hl-value {
+  font-size: 18px;
+}
+
+.page.density-dense .summary-box {
+  flex: none;
+  padding: 14px 16px;
+  margin-top: 12px;
+}
+
+.page.density-dense .summary-box h3 {
+  font-size: 20px;
+  margin-bottom: 8px;
+}
+
+.page.density-dense .summary-box p {
+  font-size: 17px;
+}
+
+.page.density-dense .bot-card {
+  flex: none;
+  min-height: 56px;
+  padding: 10px 12px;
+}
+
+.page.density-dense .bot-card .bot-title {
+  font-size: 15px;
+}
+
+.page.density-dense .bot-card .bot-text {
+  font-size: 16px;
 }
 
 .page-top {
@@ -193,19 +337,16 @@ body {
 }
 
 .table-wrap {
-  flex: 1;
   border: 2px solid #b8cfe6;
   border-top: none;
   border-radius: 0 0 12px 12px;
-  overflow: hidden;
+  overflow: visible;
   display: flex;
   flex-direction: column;
-  min-height: 200px;
 }
 
 .data-table {
   width: 100%;
-  height: 100%;
   border-collapse: collapse;
   table-layout: fixed;
 }
@@ -221,14 +362,6 @@ body {
 }
 
 .data-table thead th:nth-child(2) { text-align: left; width: 38%; }
-
-.data-table tbody {
-  height: 100%;
-}
-
-.data-table tbody tr {
-  height: 1%;
-}
 
 .data-table tbody td {
   border: 1px solid #d7e1ef;
@@ -281,7 +414,6 @@ body {
 }
 
 .summary-box {
-  flex: 1;
   border: 2px solid #b8cfe6;
   border-radius: 14px;
   padding: 20px 22px;
@@ -290,7 +422,6 @@ body {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  min-height: 140px;
 }
 
 .summary-box h3 {
@@ -315,7 +446,6 @@ body {
 }
 
 .bots-stack {
-  flex: 1;
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -370,7 +500,6 @@ body {
 .bot-card.time-summary {
   background: #f0f6fc;
   border-color: #003f8f;
-  border-width: 2px;
 }
 
 .footer {

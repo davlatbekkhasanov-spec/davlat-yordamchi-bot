@@ -84,6 +84,14 @@ def _format_bot_body(summary: str, metrics: list[tuple[str, str]]) -> tuple[str,
     return EMPTY_BOT, True
 
 
+def _report_density(row_count: int) -> str:
+    if row_count <= 6:
+        return "normal"
+    if row_count <= 10:
+        return "compact"
+    return "dense"
+
+
 def build_report_html(data: DailyReportCardData, avatar: bytes | None = None) -> str:
     avatar_b64 = base64.b64encode(avatar).decode("ascii") if avatar else None
     avatar_mime = _image_mime(avatar) if avatar else "image/jpeg"
@@ -104,8 +112,13 @@ def build_report_html(data: DailyReportCardData, avatar: bytes | None = None) ->
             }
         )
 
+    row_count = len(data.categories)
+    density = _report_density(row_count)
+
     ctx = {
         "css": _css_text(),
+        "density": density,
+        "row_count": row_count,
         "day_iso": data.day_iso,
         "employee": data.employee,
         "period": data.period,
