@@ -7,7 +7,7 @@ from io import BytesIO
 from aiogram import Bot
 from aiogram.types import KeyboardButton, Message, ReplyKeyboardMarkup
 
-from employee_tg_map import TG_EMPLOYEE
+from employee_tg_map import resolve_tg_id
 
 BTN_PHOTO_CANCEL = "❌ Бекор қилиш"
 
@@ -27,36 +27,6 @@ def photo_upload_kb() -> ReplyKeyboardMarkup:
     )
 
 
-def _norm_name(name: str) -> str:
-    s = name.lower().strip()
-    for ch in ("'", "'", "`", "ʻ", "ʼ", "’"):
-        s = s.replace(ch, "")
-    return " ".join(s.split())
-
-
-async def resolve_employee_tg_id(name: str, employee_tg_map: dict[str, int]) -> int | None:
-    if name in employee_tg_map:
-        return employee_tg_map[name]
-    target = _norm_name(name)
-    for emp, tg_id in employee_tg_map.items():
-        if _norm_name(emp) == target:
-            return tg_id
-    for tg_id, emp in TG_EMPLOYEE.items():
-        if _norm_name(emp) == target:
-            return int(tg_id)
-    tp = target.split()
-    if len(tp) >= 2:
-        for tg_id, emp in TG_EMPLOYEE.items():
-            ep = _norm_name(emp).split()
-            if len(ep) >= 2 and tp[0] == ep[0] and tp[-1] == ep[-1]:
-                return int(tg_id)
-        for emp, tg_id in employee_tg_map.items():
-            ep = _norm_name(emp).split()
-            if len(ep) >= 2 and tp[0] == ep[0] and tp[-1] == ep[-1]:
-                return tg_id
-    return None
-
-
 async def start_photo_upload(message: Message, employees: list[str]) -> None:
     uid = message.from_user.id if message.from_user else 0
     admin_photo_state[uid] = {"step": "employee"}
@@ -73,7 +43,6 @@ async def handle_photo_employee_pick(
     employee_tg_map: dict[str, int],
     admin_status_kb,
 ) -> bool:
-    """True if xabar ushbu oqimda qayta ishlandi."""
     uid = message.from_user.id if message.from_user else 0
     st = admin_photo_state.get(uid)
     if not st or st.get("step") != "employee":
@@ -89,19 +58,21 @@ async def handle_photo_employee_pick(
         await message.answer("Ro'yxatdan xodimni tanlang.")
         return True
 
-    tg_id = await resolve_employee_tg_id(text, employee_tg_map)
-    if not tg_id:
-        await message.answer(
-            f"⚠️ {text} uchun Telegram ID topilmadi.\n"
-            "Avval /link yoki employee_links orqali ulang."
-        )
-        return True
-
+    tg_id = resolve_tg_id(text, employee_tg_map)
     admin_photo_state[uid] = {"step": "upload", "employee": text, "tg_id": tg_id}
-    await message.answer(
-        f"👤 {text}\n📷 Endi rasm yuboring (caption shart emas).",
-        reply_markup=photo_upload_kb(),
-    )
+
+    if tg_id:
+        await message.answer(
+            f"👤 {text}\n📷 Endi rasm yuboring (caption shart emas).",
+            reply_markup=photo_upload_kb(),
+        )
+    else:
+        await message.answer(
+            f"👤 {text}\n"
+            "⚠️ Telegram ID topilmadi — rasm ism bo'yicha saqlanadi.\n"
+            "📷 Endi rasm yuboring.",
+            reply_markup=photo_upload_kb(),
+        )
     return True
 
 
@@ -117,8 +88,8 @@ async def handle_photo_upload(
     if not st or st.get("step") != "upload" or not message.photo:
         return False
 
-    tg_id = int(st["tg_id"])
     name = st["employee"]
+    tg_id = st.get("tg_id")
     photo = message.photo[-1]
     file = await bot.get_file(photo.file_id)
     if not file.file_path:
@@ -127,10 +98,12 @@ async def handle_photo_upload(
 
     buf = BytesIO()
     await bot.download_file(file.file_path, buf)
-    await save_photo(tg_id, buf.getvalue())
+    await save_photo(employee=name, tg_id=tg_id, data=buf.getvalue())
     admin_photo_state.pop(uid, None)
+
+    extra = f"\n🆔 {tg_id}" if tg_id else "\n(Saqlash: ism bo'yicha)"
     await message.answer(
-        f"✅ Rasm saqlandi!\n👤 {name}\n🆔 {tg_id}",
+        f"✅ Rasm saqlandi!\n👤 {name}{extra}",
         reply_markup=admin_status_kb(),
     )
     return True

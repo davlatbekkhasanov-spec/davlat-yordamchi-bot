@@ -18,7 +18,11 @@ from cross_bot_hub import (
 )
 from daily_report_card import build_card_data, build_demo_card_data
 from report_png import render_demo_preview_png, render_report_png
-from employee_photos import init_schema as init_photo_schema, load_photo, save_photo
+from employee_photos import (
+    init_schema as init_photo_schema,
+    load_photo_for_employee,
+    save_employee_photo,
+)
 from employee_tg_map import TG_EMPLOYEE
 from hub_ingest import start_ingest_server
 from admin_status import (
@@ -331,15 +335,21 @@ async def fetch_user_avatar(user_id: int) -> bytes | None:
         return None
 
 
-async def get_employee_photo(user_id: int) -> bytes | None:
-    saved = await load_photo(db_fetchone, user_id)
+async def get_employee_photo(user_id: int, employee: str | None = None) -> bytes | None:
+    saved = await load_photo_for_employee(
+        db_fetchone,
+        tg_id=user_id if user_id else None,
+        employee=employee,
+    )
     if saved:
         return saved
-    return await fetch_user_avatar(user_id)
+    if user_id:
+        return await fetch_user_avatar(user_id)
+    return None
 
 
-async def _persist_employee_photo(tg_id: int, data: bytes) -> None:
-    await save_photo(db_exec, tg_id, data)
+async def _persist_employee_photo(*, employee: str, data: bytes, tg_id: int | None = None) -> None:
+    await save_employee_photo(db_exec, employee=employee, data=data, tg_id=tg_id)
 
 
 async def employee_tg_map() -> dict[str, int]:
@@ -388,7 +398,7 @@ async def build_report_png_for_user(uid: int, emp: str, agg: dict[str, int]) -> 
         overall_delta = today_total - yday_total
         overall_text = f"Кечага нисбатан: {overall_delta:+d}. {motivational(overall_delta)}"
 
-    avatar = await get_employee_photo(uid)
+    avatar = await get_employee_photo(uid, employee=emp)
     etg_map = await employee_tg_map()
     card = await build_card_data(
         employee=emp,
@@ -624,7 +634,10 @@ async def admin_photo_flow(message: Message):
     if await handle_photo_cancel(message, admin_status_kb):
         return
     if st.get("step") == "employee" and message.photo:
-        await message.answer("Avval ro'yxatdan xodimni tanlang.")
+        await message.answer(
+            "Avval ro'yxatdan xodimni tanlang.\n"
+            "Ism bosilgach «Endi rasm yuboring» degan xabar chiqishi kerak."
+        )
         return
     if message.photo and await handle_photo_upload(
         message,
