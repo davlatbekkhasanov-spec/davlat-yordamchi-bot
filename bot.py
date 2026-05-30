@@ -86,8 +86,8 @@ def _env_bool(name: str, default: bool = False) -> bool:
 REPORT_TO_GROUP = _env_bool("REPORT_TO_GROUP", False)
 REPORT_ADMIN_DM_ID = int(os.getenv("REPORT_ADMIN_DM_ID", "1432810519") or "1432810519")
 
-# Kunlik reyting (alohida xabar, 00:01)
-RANKING_BROADCAST_ENABLED = _env_bool("RANKING_BROADCAST_ENABLED", False)
+# Kunlik reyting (alohida xabar, 00:01) — productionda default yoqilgan
+RANKING_BROADCAST_ENABLED = _env_bool("RANKING_BROADCAST_ENABLED", True)
 RANKING_BROADCAST_HOUR = int(os.getenv("RANKING_BROADCAST_HOUR", "0") or "0")
 RANKING_BROADCAST_MINUTE = int(os.getenv("RANKING_BROADCAST_MINUTE", "1") or "1")
 RANKING_CHAT_ID = int(os.getenv("RANKING_CHAT_ID", str(GROUP_ID)) or str(GROUP_ID))
