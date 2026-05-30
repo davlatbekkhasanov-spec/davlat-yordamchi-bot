@@ -159,7 +159,12 @@ dp = Dispatcher()
 # DB (SQLite hardening)
 # ============================================================
 
-conn = sqlite3.connect("data.db", check_same_thread=False, timeout=30)
+DB_PATH = os.getenv("DB_PATH", "data.db").strip() or "data.db"
+_db_dir = os.path.dirname(DB_PATH)
+if _db_dir:
+    os.makedirs(_db_dir, exist_ok=True)
+
+conn = sqlite3.connect(DB_PATH, check_same_thread=False, timeout=30)
 conn.row_factory = sqlite3.Row
 cur = conn.cursor()
 
