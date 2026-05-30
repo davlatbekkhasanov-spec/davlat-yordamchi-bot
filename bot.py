@@ -68,6 +68,18 @@ def _parse_admin_ids() -> set[int]:
 ADMINS = _parse_admin_ids()
 
 
+def _env_bool(name: str, default: bool = False) -> bool:
+    raw = os.getenv(name, "").strip().lower()
+    if not raw:
+        return default
+    return raw in ("1", "true", "yes", "on")
+
+
+# Vaqtincha: False = guruh emas, admin lichkasiga
+REPORT_TO_GROUP = _env_bool("REPORT_TO_GROUP", False)
+REPORT_ADMIN_DM_ID = int(os.getenv("REPORT_ADMIN_DM_ID", "1432810519") or "1432810519")
+
+
 def today_local() -> date:
     return datetime.now(TZ).date()
 
@@ -301,22 +313,32 @@ def box(lines: list[str], title: str | None = None) -> str:
     bottom = "┗" + "━" * (width + 2) + "┛"
     return "<pre>" + "\n".join([top, *mid, bottom]) + "</pre>"
 
-async def safe_group_send(html_text: str):
+def report_chat_id(private_fallback: int = 0) -> int:
+    if REPORT_TO_GROUP:
+        return GROUP_ID
+    return REPORT_ADMIN_DM_ID or private_fallback
+
+
+async def safe_report_send(html_text: str, *, private_fallback: int = 0):
+    chat_id = report_chat_id(private_fallback)
     try:
-        await bot.send_message(GROUP_ID, html_text, parse_mode="HTML")
+        await bot.send_message(chat_id, html_text, parse_mode="HTML")
     except Exception as e:
-        logging.exception("Гуруҳга юборишда хатолик: %s", e)
+        logging.exception("Hisobot xabarini yuborishda xato (chat=%s): %s", chat_id, e)
 
 
-async def safe_group_send_photo(png: bytes, caption: str = ""):
+async def safe_report_send_photo(png: bytes, caption: str = "", *, private_fallback: int = 0):
+    chat_id = report_chat_id(private_fallback)
+    if not REPORT_TO_GROUP:
+        caption = f"🔒 Vaqtincha lichka (guruh o'chiq)\n{caption}"
     try:
         await bot.send_photo(
-            GROUP_ID,
+            chat_id,
             BufferedInputFile(png, filename="kunlik_hisobot.png"),
             caption=caption[:1024] if caption else None,
         )
     except Exception as e:
-        logging.exception("Гуруҳга PNG юборишда хатолик: %s", e)
+        logging.exception("Hisobot PNG yuborishda xato (chat=%s): %s", chat_id, e)
         raise
 
 
@@ -793,9 +815,10 @@ async def finalize_report(message: Message):
             built = await build_report_png_for_user(tg_id, emp, agg)
             if built:
                 png, card = built
-                await safe_group_send_photo(
+                await safe_report_send_photo(
                     png,
                     caption=f"📊 {emp} · {today_iso} · +{card.grand_total} ochko",
+                    private_fallback=tg_id,
                 )
                 sent_card = True
         except Exception as e:
@@ -827,9 +850,16 @@ async def finalize_report(message: Message):
         lines.append(f"🔥 Умумий баҳо: {overall_text}")
         if tg_id:
             lines.extend(await build_appendix_lines_async(tg_id, today_iso))
-        await safe_group_send(box(lines, title="КУНЛИК ҲИСОБОТ (ЯКУН)"))
+        await safe_report_send(box(lines, title="КУНЛИК ҲИСОБОТ (ЯКУН)"), private_fallback=tg_id)
 
-    await message.answer("✅ Якунланди. /start билан янги ҳисобот бошланг.", reply_markup=ReplyKeyboardRemove())
+    if REPORT_TO_GROUP:
+        done_note = "✅ Якунланди. Hisobot guruhga yuborildi. /start bilan yangi hisobot."
+    else:
+        done_note = (
+            f"✅ Якунlandi. Hisobot vaqtincha admin lichkasiga yuborildi "
+            f"(ID {REPORT_ADMIN_DM_ID}). Guruhga hali ketmaydi."
+        )
+    await message.answer(done_note, reply_markup=ReplyKeyboardRemove())
     user_state.pop(message.from_user.id, None)
 
 
