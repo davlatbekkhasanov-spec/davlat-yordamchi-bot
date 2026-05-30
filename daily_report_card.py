@@ -11,6 +11,7 @@ from pathlib import Path
 from PIL import Image, ImageDraw, ImageFont
 
 from cross_bot_hub import BOT_LABELS, fetch_latest_by_bot
+from report_summary import build_summary_text as _build_summary_text
 
 W, H = 1520, 2280
 M = 24
@@ -239,43 +240,6 @@ def _parse_work_rest(events: dict[str, str]) -> tuple[str, str]:
     ish = ish_m.group(1) if ish_m else "00:00"
     dam = dam_m.group(1) if dam_m else "00:00"
     return ish, dam
-
-
-def _build_summary_text(data: "DailyReportCardData") -> tuple[str, str]:
-    chunks: list[str] = []
-    n = len(data.categories)
-    if data.cat_total and n:
-        chunks.append(
-            f"Бугун {n} та йўналиш бўйича жами +{data.cat_total} очко қайд этилди."
-        )
-    if data.best_cat and data.best_add:
-        chunks.append(
-            f"Энг юқори кўрсаткич — «{data.best_cat}» (+{data.best_add})."
-        )
-    active = [b for b in data.bots if (b.summary or '').strip()]
-    if data.bot_total > 0 and active:
-        bot_names = {
-            "omborga": "Омборга киритиш",
-            "ombor": "Омбор хизмати",
-            "yuk": "Юк жараёни",
-            "sklad": "Склад назорат",
-            "ishxona": "Ишхона назорат",
-        }
-        labels = ', '.join(bot_names.get(b.key, b.label) for b in active[:3])
-        tail = f" ({labels})" if labels else ""
-        chunks.append(
-            f"Бошқа ботлар бўйича +{data.bot_total} очко{tail}."
-        )
-    if data.total_work and data.total_work not in ("00:00:00", "0:00:00"):
-        chunks.append(f"Умумий иш вақти: {data.total_work}.")
-    summary = " ".join(chunks) if chunks else "Бугунги кун бўйича ҳисобот шакллантирилди."
-    if data.rank == 1:
-        rec = "Меҳнат унумдорлиги яхши даражада, шу тарзда давом эттириш тавсия этилади."
-    elif data.rank and data.rank <= 3:
-        rec = "Меҳнат унумдорлиги яхши даражада, шу тарзда давом эттириш тавсия этилади."
-    else:
-        rec = "Иш жараёнини барқарор салаш ва заиф йўналишларни кучайтириш тавсия этилади."
-    return summary, rec
 
 
 async def build_card_data(
