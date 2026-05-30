@@ -402,6 +402,7 @@ async def broadcast_daily_ranking(day_iso: str | None = None, *, force: bool = F
         employees=ranking_employees(EMPLOYEES),
         sum_period_total=sum_period_total,
         get_period_key=get_period_key,
+        employee_tg_map=await employee_tg_map(),
     )
     try:
         png = await render_ranking_png(period, ref, leaders, active)
@@ -499,9 +500,12 @@ async def _persist_employee_photo(*, employee: str, data: bytes, tg_id: int | No
 
 async def employee_tg_map() -> dict[str, int]:
     rows = await db_fetchall("SELECT tg_id, employee FROM employee_links")
-    out = {r["employee"]: int(r["tg_id"]) for r in rows}
-    for tg_id, name in TG_EMPLOYEE.items():
-        out.setdefault(name, int(tg_id))
+    linked = {r["employee"]: int(r["tg_id"]) for r in rows}
+    out: dict[str, int] = {}
+    for emp in EMPLOYEES:
+        tid = resolve_tg_id(emp, linked=linked)
+        if tid:
+            out[emp] = tid
     return out
 
 

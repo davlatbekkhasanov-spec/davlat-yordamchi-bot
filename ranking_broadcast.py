@@ -7,7 +7,7 @@ from typing import Awaitable, Callable
 
 from daily_report_card import BOT_ORDER, LeaderRow, score_bot_summary, _fmt_clock
 from cross_bot_hub import fetch_latest_by_bot
-from employee_tg_map import resolve_owner_tg_id
+from employee_tg_map import employee_name_variants
 
 # Reyting ro'yxatida ko'rinmaydigan xodimlar
 RANKING_EXCLUDE = frozenset({"Rajabboev Pulat"})
@@ -47,15 +47,6 @@ async def mark_ranking_sent(db_execute, day_iso: str) -> None:
     )
 
 
-def owner_tg_map(employees: list[str]) -> dict[str, int]:
-    out: dict[str, int] = {}
-    for emp in employees:
-        tid = resolve_owner_tg_id(emp)
-        if tid:
-            out[emp] = tid
-    return out
-
-
 def period_start(period: str) -> date:
     y, m = map(int, period.split("-"))
     return date(y, m, 2)
@@ -92,17 +83,19 @@ async def build_team_rankings(
     employees: list[str],
     sum_period_total: Callable[[str, str], Awaitable[int]],
     get_period_key: Callable[[date | None], str],
+    employee_tg_map: dict[str, int],
 ) -> tuple[list[LeaderRow], int, str]:
     period = get_period_key(ref_date)
     days = period_days_through(period, ref_date)
-    etg_map = owner_tg_map(employees)
     scores: list[tuple[str, int, int]] = []
 
     for emp in employees:
-        cat_pts = await sum_period_total(period, emp)
+        cat_pts = 0
+        for name in employee_name_variants(emp):
+            cat_pts += await sum_period_total(period, name)
         bot_pts = 0
         work_sec = 0
-        etg = etg_map.get(emp)
+        etg = employee_tg_map.get(emp)
         if etg and days:
             bot_pts, work_sec = await _bot_points_in_period(etg, days)
         scores.append((emp, cat_pts + bot_pts, work_sec))
@@ -134,13 +127,13 @@ def format_ranking_lines(
     leaders: list[LeaderRow],
     active: int,
 ) -> list[str]:
-    lines = [f"Период (2-сана): {period}", f"Holat: {ref_date.isoformat()}", ""]
-    lines.append("🏆 РЕЙТИНГ:")
+    lines = [f"Период (2-sana): {period}", f"Holat: {ref_date.isoformat()}", ""]
+    lines.append("🏆 REYTING:")
     for row in leaders:
         medal = _MEDALS.get(row.rank, f"{row.rank}.")
         wt = f" · ⏱ {row.work_time}" if row.work_time and row.work_time != "00:00" else ""
-        lines.append(f"{medal} {row.name} — {row.score} очко ({row.pct}%){wt}")
+        lines.append(f"{medal} {row.name} — {row.score} ochko ({row.pct}%){wt}")
     lines.append("")
-    lines.append(f"Жами фаол: {active} / {len(leaders)}")
-    lines.append("Очко = period kategoriya + yordamchi botlar (yig'ilgan)")
+    lines.append(f"Jami faol: {active} / {len(leaders)}")
+    lines.append("Ochko = period kategoriya + yordamchi botlar (yig'ilgan)")
     return lines
