@@ -31,6 +31,22 @@ BOT_ICONS = {
 
 EMPTY_BOT = "—"
 
+METRIC_LABELS = {
+    "holat": "Ҳолат",
+    "reys": "Рейс",
+    "ish vaqti": "Иш вақти",
+    "jami vaqt": "Жами вақт",
+    "dam": "Дам",
+    "son": "Сония",
+    "ma'lumot": "Маълумот",
+    "shikoyat": "Шикоят",
+    "info": "Маълумот",
+}
+
+
+def _metric_label(key: str) -> str:
+    return METRIC_LABELS.get(key.lower(), key)
+
 
 def _metric_value_ok(value: str) -> bool:
     v = (value or "").strip()
@@ -76,13 +92,13 @@ def _format_omborga_body(summary: str) -> tuple[str, bool]:
     dam = re.search(r"dam\s+([\d:]+)", sl)
     bits = []
     if reys:
-        bits.append(f"Reys: {reys.group(1)}")
+        bits.append(f"Рейс: {reys.group(1)}")
     if yuk:
-        bits.append(f"Yuk: {yuk.group(1)} m")
+        bits.append(f"Юк: {yuk.group(1)} м")
     if ish:
-        bits.append(f"Ish: {ish.group(1)}")
+        bits.append(f"Иш: {ish.group(1)}")
     if dam:
-        bits.append(f"Dam: {dam.group(1)}")
+        bits.append(f"Дам: {dam.group(1)}")
     if bits:
         return " · ".join(bits), False
     return summary.strip(), False
@@ -92,7 +108,7 @@ def _format_bot_body(summary: str, metrics: list[tuple[str, str]]) -> tuple[str,
     if summary and summary.strip() and "event yo'q" not in summary.lower():
         return summary.strip(), False
     if metrics:
-        parts = [f"{k}: {v}" for k, v in metrics if _metric_value_ok(v)]
+        parts = [f"{_metric_label(k)}: {v}" for k, v in metrics if _metric_value_ok(v)]
         if parts:
             return ", ".join(parts), False
     return EMPTY_BOT, True

@@ -12,13 +12,17 @@ html, body {
   padding: 0;
   overflow: visible;
   background: #ffffff;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: geometricPrecision;
 }
 
 body {
   color: #111;
-  font-family: "DejaVu Sans", Arial, sans-serif;
+  font-family: "Segoe UI", "DejaVu Sans", "Noto Sans", Arial, sans-serif;
   font-size: 22px;
   line-height: 1.5;
+  font-synthesis: none;
 }
 
 .page {
@@ -267,6 +271,7 @@ body {
   height: 100%;
   object-fit: cover;
   object-position: center top;
+  image-rendering: auto;
 }
 
 .photo-placeholder {

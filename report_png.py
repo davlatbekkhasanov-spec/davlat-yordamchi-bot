@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import os
 
 from daily_report_card import DailyReportCardData, render_daily_report_png
 from report_html import build_report_html
@@ -12,6 +13,7 @@ log = logging.getLogger(__name__)
 
 A4_WIDTH = 1240
 A4_HEIGHT = 1754
+DEVICE_SCALE = max(1, min(3, int(os.getenv("REPORT_DEVICE_SCALE", "2"))))
 
 _playwright_ready = False
 
@@ -37,14 +39,15 @@ async def html_to_png(html: str, *, timeout: float = 25.0) -> bytes:
         async with async_playwright() as p:
             browser = await p.chromium.launch(
                 headless=True,
-                args=["--no-sandbox", "--disable-dev-shm-usage", "--disable-gpu"],
+                args=["--no-sandbox", "--disable-dev-shm-usage"],
             )
             try:
                 page = await browser.new_page(
                     viewport={"width": A4_WIDTH, "height": A4_HEIGHT},
-                    device_scale_factor=1,
+                    device_scale_factor=DEVICE_SCALE,
                 )
-                await page.set_content(html, wait_until="load")
+                await page.set_content(html, wait_until="networkidle")
+                await page.evaluate("() => document.fonts.ready")
                 await page.emulate_media(media="screen")
                 page_height = await page.evaluate(
                     """() => Math.max(
@@ -53,7 +56,10 @@ async def html_to_png(html: str, *, timeout: float = 25.0) -> bytes:
                     )"""
                 )
                 await page.set_viewport_size({"width": A4_WIDTH, "height": page_height})
-                return await page.locator(".page").screenshot(type="png")
+                return await page.locator(".page").screenshot(
+                    type="png",
+                    animations="disabled",
+                )
             finally:
                 await browser.close()
 

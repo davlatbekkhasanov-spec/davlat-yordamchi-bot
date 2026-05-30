@@ -246,25 +246,35 @@ def _build_summary_text(data: "DailyReportCardData") -> tuple[str, str]:
     n = len(data.categories)
     if data.cat_total and n:
         chunks.append(
-            f"Bugun {n} ta yo'nalish bo'yicha jami +{data.cat_total} ochko qayd etildi."
+            f"Бугун {n} та йўналиш бўйича жами +{data.cat_total} очко қайд этилди."
         )
     if data.best_cat and data.best_add:
-        chunks.append(f"Eng yuqori ko'rsatkich — «{data.best_cat}» (+{data.best_add}).")
-    active = [b for b in data.bots if (b.summary or "").strip()]
+        chunks.append(
+            f"Энг юқори кўрсаткич — «{data.best_cat}» (+{data.best_add})."
+        )
+    active = [b for b in data.bots if (b.summary or '').strip()]
     if data.bot_total > 0 and active:
-        labels = ", ".join(BOT_LABELS.get(b.key, b.label) for b in active[:3])
+        bot_names = {
+            "omborga": "Омборга киритиш",
+            "ombor": "Омбор хизмати",
+            "yuk": "Юк жараёни",
+            "sklad": "Склад назорат",
+            "ishxona": "Ишхона назорат",
+        }
+        labels = ', '.join(bot_names.get(b.key, b.label) for b in active[:3])
         tail = f" ({labels})" if labels else ""
-        chunks.append(f"Boshqa botlar bo'yicha +{data.bot_total} ochko{tail}.")
+        chunks.append(
+            f"Бошқа ботлар бўйича +{data.bot_total} очко{tail}."
+        )
     if data.total_work and data.total_work not in ("00:00:00", "0:00:00"):
-        chunks.append(f"Umumiy ish vaqti: {data.total_work}.")
-    summary = " ".join(chunks) if chunks else "Bugungi kun bo'yicha hisobot shakllantirildi."
-
+        chunks.append(f"Умумий иш вақти: {data.total_work}.")
+    summary = " ".join(chunks) if chunks else "Бугунги кун бўйича ҳисобот шакллантирилди."
     if data.rank == 1:
-        rec = "Mehnat unumdorligi yaxshi darajada, shu tarzda davom ettirish tavsiya etiladi."
+        rec = "Меҳнат унумдорлиги яхши даражада, шу тарзда давом эттириш тавсия этилади."
     elif data.rank and data.rank <= 3:
-        rec = "Mehnat unumdorligi yaxshi darajada, shu tarzda davom ettirish tavsiya etiladi."
+        rec = "Меҳнат унумдорлиги яхши даражада, шу тарзда давом эттириш тавсия этилади."
     else:
-        rec = "Ish jarayonini barqaror saqlash va zaif yo'nalishlarni kuchaytirish tavsiya etiladi."
+        rec = "Иш жараёнини барқарор салаш ва заиф йўналишларни кучайтириш тавсия этилади."
     return summary, rec
 
 
