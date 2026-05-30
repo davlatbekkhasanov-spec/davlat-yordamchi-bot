@@ -88,10 +88,13 @@ async def load_photo_for_employee(
     tg_id: int | None = None,
     employee: str | None = None,
 ) -> bytes | None:
+    # Hisobotdagi xodim rasmi — avval ism, keyin shu xodimning tg_id (kiruvchi emas).
+    if employee:
+        saved = await load_photo_by_name(db_fetchone, employee)
+        if saved:
+            return saved
     if tg_id:
         saved = await load_photo(db_fetchone, tg_id)
         if saved:
             return saved
-    if employee:
-        return await load_photo_by_name(db_fetchone, employee)
     return None
