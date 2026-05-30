@@ -7,7 +7,7 @@ from io import BytesIO
 from aiogram import Bot
 from aiogram.types import KeyboardButton, Message, ReplyKeyboardMarkup
 
-from employee_tg_map import resolve_tg_id
+from employee_tg_map import resolve_owner_tg_id
 
 BTN_PHOTO_CANCEL = "❌ Бекор қилиш"
 
@@ -58,7 +58,7 @@ async def handle_photo_employee_pick(
         await message.answer("Ro'yxatdan xodimni tanlang.")
         return True
 
-    tg_id = resolve_tg_id(text, employee_tg_map)
+    tg_id = resolve_owner_tg_id(text)
     admin_photo_state[uid] = {"step": "upload", "employee": text, "tg_id": tg_id}
 
     if tg_id:

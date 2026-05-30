@@ -23,7 +23,7 @@ from employee_photos import (
     load_photo_for_employee,
     save_employee_photo,
 )
-from employee_tg_map import TG_EMPLOYEE, resolve_tg_id
+from employee_tg_map import TG_EMPLOYEE, resolve_owner_tg_id, resolve_tg_id
 from hub_ingest import start_ingest_server
 from admin_status import (
     BTN_ADMIN_PHOTO,
@@ -358,9 +358,7 @@ async def fetch_user_avatar(user_id: int) -> bytes | None:
 
 
 async def get_employee_photo(user_id: int, employee: str | None = None) -> bytes | None:
-    subject_tg_id: int | None = None
-    if employee:
-        subject_tg_id = resolve_tg_id(employee, await employee_tg_map())
+    subject_tg_id = resolve_owner_tg_id(employee) if employee else None
 
     saved = await load_photo_for_employee(
         db_fetchone,

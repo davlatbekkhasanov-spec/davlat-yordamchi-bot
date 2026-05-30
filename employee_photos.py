@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from datetime import datetime
 
+from employee_tg_map import employee_name_variants
+
 
 def init_schema(conn) -> None:
     conn.execute(
@@ -73,13 +75,14 @@ async def load_photo(db_fetchone, tg_id: int) -> bytes | None:
 
 
 async def load_photo_by_name(db_fetchone, employee: str) -> bytes | None:
-    row = await db_fetchone(
-        "SELECT data FROM employee_photos_by_name WHERE employee = ?",
-        (employee,),
-    )
-    if not row:
-        return None
-    return row["data"]
+    for name in employee_name_variants(employee):
+        row = await db_fetchone(
+            "SELECT data FROM employee_photos_by_name WHERE employee = ?",
+            (name,),
+        )
+        if row:
+            return row["data"]
+    return None
 
 
 async def load_photo_for_employee(

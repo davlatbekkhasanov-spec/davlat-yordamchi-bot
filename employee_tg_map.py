@@ -36,6 +36,34 @@ def _last_name_match(a: str, b: str) -> bool:
     return a.startswith(b) or b.startswith(a)
 
 
+def resolve_owner_tg_id(name: str) -> int | None:
+    """Xodimning o'z Telegram ID — hozir kim PIN bilan ulangan emas."""
+    return resolve_tg_id(name, linked=None)
+
+
+def employee_name_variants(name: str) -> list[str]:
+    """Rasm jadvalida qidirish uchun ism variantlari."""
+    seen: set[str] = set()
+    out: list[str] = []
+
+    def add(n: str) -> None:
+        n = (n or "").strip()
+        if n and n not in seen:
+            seen.add(n)
+            out.append(n)
+
+    add(name)
+    owner = resolve_owner_tg_id(name)
+    if owner:
+        for alias, tid in EMPLOYEE_NAME_ALIASES.items():
+            if tid == owner:
+                add(alias)
+        for tid, canonical in TG_EMPLOYEE.items():
+            if tid == owner:
+                add(canonical)
+    return out
+
+
 def resolve_tg_id(name: str, linked: dict[str, int] | None = None) -> int | None:
     """EMPLOYEES ro'yxati va TG_EMPLOYEE orasidagi ism farqlarini hal qiladi."""
     if not name:
