@@ -23,37 +23,46 @@
       </div>
       <div class="header-line"></div>
 
-      <div class="info-row">
-        <div class="info-card">
-          <span class="ico">📅</span>
-          <div><div class="label">Сана</div><div class="value">{{ day_iso }}</div></div>
+      <div class="meta-bar">
+        <div class="meta-item">
+          <span class="meta-ico">📅</span>
+          <div class="meta-body">
+            <span class="meta-label">Сана</span>
+            <span class="meta-value">{{ day_iso }}</span>
+          </div>
         </div>
-        <div class="info-card">
-          <span class="ico">👤</span>
-          <div><div class="label">Ходим</div><div class="value">{{ employee }}</div></div>
+        <div class="meta-item">
+          <span class="meta-ico">👤</span>
+          <div class="meta-body">
+            <span class="meta-label">Ходим</span>
+            <span class="meta-value">{{ employee }}</span>
+          </div>
         </div>
-        <div class="info-card">
-          <span class="ico">🗓</span>
-          <div><div class="label">Период (2-сана)</div><div class="value">{{ period }}</div></div>
+        <div class="meta-item">
+          <span class="meta-ico">🗓</span>
+          <div class="meta-body">
+            <span class="meta-label">Период (2-сана)</span>
+            <span class="meta-value">{{ period }}</span>
+          </div>
         </div>
       </div>
 
-      <div class="score-strip">
-        <div class="score-box main">
-          <div class="sb-label">Жами очко</div>
-          <div class="sb-value">+{{ grand_total }}</div>
+      <div class="kpi-row">
+        <div class="kpi-card kpi-total">
+          <div class="kpi-label">Жами очко</div>
+          <div class="kpi-value">+{{ grand_total }}</div>
         </div>
-        <div class="score-box sub">
-          <div class="sb-label">Yordamchi bot</div>
-          <div class="sb-value">+{{ cat_total }}</div>
+        <div class="kpi-card">
+          <div class="kpi-label">Йордамчи бот</div>
+          <div class="kpi-value kpi-green">+{{ cat_total }}</div>
         </div>
-        <div class="score-box sub">
-          <div class="sb-label">Boshqa botlar</div>
-          <div class="sb-value">+{{ bot_total }}</div>
+        <div class="kpi-card">
+          <div class="kpi-label">Бошқа ботлар</div>
+          <div class="kpi-value kpi-green">+{{ bot_total }}</div>
         </div>
-        <div class="score-box sub">
-          <div class="sb-label">Ish vaqti</div>
-          <div class="sb-value time-val">{{ total_work }}</div>
+        <div class="kpi-card">
+          <div class="kpi-label">Иш вакти</div>
+          <div class="kpi-value kpi-blue">{{ total_work }}</div>
         </div>
       </div>
     </div>
