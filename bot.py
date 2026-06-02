@@ -12,11 +12,13 @@ from aiogram.filters import Command
 from aiogram.types import BufferedInputFile, Message, ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemove
 
 from cross_bot_hub import (
+    BOT_LABELS,
     build_appendix_lines_async,
+    fetch_latest_by_bot,
     init_schema as init_cross_bot_schema,
     record_event,
 )
-from daily_report_card import build_card_data, build_demo_card_data
+from daily_report_card import BOT_ORDER, _fmt_clock, build_card_data, build_demo_card_data, score_bot_summary
 from report_png import render_demo_preview_png, render_ranking_png, render_report_png
 from employee_photos import (
     init_schema as init_photo_schema,
@@ -1669,6 +1671,120 @@ async def admin_status_btn(message: Message):
         )
         return
     await handle_admin_status(message, bot)
+
+
+@dp.message(Command("botdebug"))
+async def botdebug_cmd(message: Message):
+    """Admin debug: har bir xodim bo‘yicha qaysi botlar qancha vaqt/ochko berayotganini ko‘rsatadi."""
+    if not is_private(message):
+        return
+    if not is_admin(message.from_user.id):
+        await message.answer(
+            f"Faqat admin.\nSizning ID: <code>{message.from_user.id}</code>",
+            parse_mode="HTML",
+        )
+        return
+
+    args = (message.text or "").strip().split()[1:]
+    mode = "period"  # period | today | yesterday
+    period = None
+    target_emp: str | None = None
+
+    ref = today_local()
+    day_iso: str | None = None
+
+    for a in args:
+        aa = (a or "").strip()
+        al = aa.lower()
+        if al in {"today", "bugun"}:
+            mode = "today"
+            day_iso = ref.isoformat()
+        elif al in {"yesterday", "kecha"}:
+            mode = "yesterday"
+            day_iso = (ref - timedelta(days=1)).isoformat()
+        elif al in {"period"}:
+            mode = "period"
+        elif len(aa) == 7 and aa[4] == "-" and aa[:4].isdigit() and aa[5:].isdigit():
+            mode = "period"
+            period = aa
+        elif aa in EMPLOYEES:
+            target_emp = aa
+
+    if mode == "period":
+        if not period:
+            period = get_period_key(ref)
+        y, m = map(int, period.split("-"))
+        d0 = date(y, m, 2)
+        days = []
+        d = d0
+        while d <= ref:
+            days.append(d.isoformat())
+            d += timedelta(days=1)
+        title = f"BOT DEBUG (Pериод {period})"
+    else:
+        assert day_iso
+        days = [day_iso]
+        title = f"BOT DEBUG ({mode.upper()}: {day_iso})"
+
+    etg_map = await employee_tg_map()
+    emps = ranking_employees(EMPLOYEES)
+    if target_emp:
+        emps = [target_emp] if target_emp in emps else []
+
+    if not emps:
+        await message.answer("Xodim topilmadi (reyting ro‘yxatida emas).")
+        return
+
+    lines: list[str] = [
+        title,
+        f"Ref: {ref.isoformat()} · Kunlar: {len(days)}",
+        "",
+    ]
+
+    for emp in emps:
+        tg_id = etg_map.get(emp)
+
+        if mode == "period":
+            cat_total = await sum_period_total(period, emp)
+        else:
+            cat_total = await sum_day_total(day_iso, emp)
+
+        bot_events_count = {k: 0 for k in BOT_ORDER}
+        bot_points_by_key = {k: 0 for k in BOT_ORDER}
+        work_sec_by_key = {k: 0 for k in BOT_ORDER}
+
+        bot_pts_total = 0
+        bot_work_sec_total = 0
+        last_day_by_key: dict[str, str | None] = {k: None for k in BOT_ORDER}
+
+        if tg_id:
+            for day in days:
+                ev = await fetch_latest_by_bot(tg_id, day)
+                for key in BOT_ORDER:
+                    if key in ev:
+                        bot_events_count[key] += 1
+                        sc, ws = score_bot_summary(key, ev[key])
+                        bot_points_by_key[key] += sc
+                        work_sec_by_key[key] += ws
+                        bot_pts_total += sc
+                        bot_work_sec_total += ws
+                        last_day_by_key[key] = day
+
+        lines.append(f"👤 {emp} · tg_id: {tg_id or '—'}")
+        lines.append(f"  Категория: +{cat_total} | Bot: +{bot_pts_total} | ⏱ { _fmt_clock(bot_work_sec_total)}")
+        for key in BOT_ORDER:
+            label = BOT_LABELS.get(key, key)
+            cnt = bot_events_count[key]
+            if cnt == 0:
+                lines.append(f"  • {label}: event yo'q")
+            else:
+                lines.append(
+                    f"  • {label}: {cnt}×, +{bot_points_by_key[key]} очко, ⏱ { _fmt_clock(work_sec_by_key[key])}"
+                    f" (oxirgi: {last_day_by_key[key]})"
+                )
+        lines.append("")
+
+    await message.answer(box(lines, title="BOT DEBUG"), parse_mode="HTML")
 
 
 @dp.message(lambda m: is_private(m) and m.text == BTN_RANKING)
