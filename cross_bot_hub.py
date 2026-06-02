@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import os
+import shutil
 import sqlite3
 from datetime import datetime
 from zoneinfo import ZoneInfo
@@ -12,7 +13,7 @@ from zoneinfo import ZoneInfo
 log = logging.getLogger(__name__)
 TZ = ZoneInfo(os.getenv("TZ", "Asia/Tashkent"))
 
-DB_PATH = os.getenv("DB_PATH", "data.db").strip() or "data.db"
+DB_PATH = os.getenv("DB_PATH", "/data/data.db").strip() or "/data/data.db"
 HUB_SECRET = os.getenv("YORDAMCHI_HUB_SECRET", "").strip()
 MAX_SUMMARY_LEN = 420
 MAX_APPENDIX_CHARS = 1050
@@ -32,6 +33,18 @@ _BOT_KEY_ALIASES = {
     "sklad": {"sklad", "skladnazorat", "sklad_nazorat"},
     "ishxona": {"ishxona", "ishxonanazorat", "ishxona_nazorat"},
 }
+
+_db_dir = os.path.dirname(DB_PATH)
+if _db_dir:
+    os.makedirs(_db_dir, exist_ok=True)
+
+_legacy_db = "data.db"
+if DB_PATH != _legacy_db and not os.path.exists(DB_PATH) and os.path.exists(_legacy_db):
+    try:
+        shutil.copy2(_legacy_db, DB_PATH)
+        log.warning("Legacy DB migrated to %s", DB_PATH)
+    except Exception as e:
+        log.warning("Legacy DB migration failed: %s", e)
 
 _conn = sqlite3.connect(DB_PATH, check_same_thread=False, timeout=30)
 _conn.row_factory = sqlite3.Row

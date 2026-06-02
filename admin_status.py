@@ -147,8 +147,10 @@ async def build_admin_status_report(bot: Bot, admin_uid: int) -> str:
     links = await count_employee_links()
     stats = await hub_stats_today(day)
     total_events = sum(c for c, _ in stats.values())
+    db_path = os.getenv("DB_PATH", "/data/data.db").strip() or "/data/data.db"
 
     lines.append("💾 <b>Ma'lumotlar</b>")
+    lines.append(f"  🗄 DB yo'li: <code>{db_path}</code>")
     lines.append(f"  ✅ Ulangan xodimlar: {links}")
     lines.append(f"  📥 Bugun hub eventlari: {total_events}")
     lines.append("")
@@ -181,6 +183,8 @@ async def build_admin_status_report(bot: Bot, admin_uid: int) -> str:
         problems.append("HTTP /health ishlamayapti — Web servis + PORT tekshiring")
     if not g_ok:
         problems.append("Guruhga yozib bo'lmayapti")
+    if not db_path.startswith("/data/"):
+        problems.append("DB_PATH /data da emas — deployda ma'lumot yo'qolishi mumkin")
     if total_events == 0 and hub_receive_ok:
         problems.append(
             "Bugun event 0 — ish botlarda URL+SECRET qo'yilganmi? (yakunlangandan keyin yangilanadi)"

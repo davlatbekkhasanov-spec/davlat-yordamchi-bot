@@ -2,6 +2,7 @@ import os
 import asyncio
 import logging
 import sqlite3
+import shutil
 from datetime import datetime, date, timedelta
 from io import BytesIO
 import html
@@ -161,10 +162,18 @@ dp = Dispatcher()
 # DB (SQLite hardening)
 # ============================================================
 
-DB_PATH = os.getenv("DB_PATH", "data.db").strip() or "data.db"
+DB_PATH = os.getenv("DB_PATH", "/data/data.db").strip() or "/data/data.db"
 _db_dir = os.path.dirname(DB_PATH)
 if _db_dir:
     os.makedirs(_db_dir, exist_ok=True)
+
+_legacy_db = "data.db"
+if DB_PATH != _legacy_db and not os.path.exists(DB_PATH) and os.path.exists(_legacy_db):
+    try:
+        shutil.copy2(_legacy_db, DB_PATH)
+        logging.warning("Legacy DB migrated to %s", DB_PATH)
+    except Exception as e:
+        logging.warning("Legacy DB migration failed: %s", e)
 
 conn = sqlite3.connect(DB_PATH, check_same_thread=False, timeout=30)
 conn.row_factory = sqlite3.Row
