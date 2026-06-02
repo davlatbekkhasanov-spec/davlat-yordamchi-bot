@@ -14,27 +14,42 @@ log = logging.getLogger(__name__)
 
 
 async def handle_ingest(request: web.Request) -> web.Response:
-    if not hub_secret_ok(request.headers.get("X-Hub-Secret", "")):
+    raw_secret = (
+        request.headers.get("X-Hub-Secret", "")
+        or request.headers.get("Authorization", "").removeprefix("Bearer ").strip()
+    )
+    if not hub_secret_ok(raw_secret):
+        log.warning("Hub ingest unauthorized from %s", request.remote)
         return web.json_response({"ok": False, "message": "unauthorized"}, status=401)
 
     try:
         data = await request.json()
     except Exception:
+        log.warning("Hub ingest invalid json from %s", request.remote)
         return web.json_response({"ok": False, "message": "invalid json"}, status=400)
 
+    def _pick(*keys: str) -> str:
+        for k in keys:
+            if k in data and data.get(k) not in (None, ""):
+                return str(data.get(k))
+        return ""
+
     try:
-        tg_id = int(data.get("tg_id"))
+        tg_id = int(_pick("tg_id", "telegram_id", "user_id", "chat_id"))
     except (TypeError, ValueError):
+        log.warning("Hub ingest tg_id missing: keys=%s", sorted(list(data.keys()))[:12])
         return web.json_response({"ok": False, "message": "tg_id required"}, status=400)
 
-    bot_key = str(data.get("bot_key") or "").strip()
-    summary = str(data.get("summary") or "").strip()
-    day = str(data.get("day") or "").strip()
+    bot_key = _pick("bot_key", "bot", "key", "source").strip()
+    summary = _pick("summary", "text", "message", "result").strip()
+    day = _pick("day", "date", "day_iso").strip()
 
     if not bot_key or not summary:
+        log.warning("Hub ingest required fields missing: bot_key=%s summary=%s", bool(bot_key), bool(summary))
         return web.json_response({"ok": False, "message": "bot_key and summary required"}, status=400)
 
     await record_event(tg_id=tg_id, day=day, bot_key=bot_key, summary=summary)
+    log.info("Hub ingest ok: tg=%s bot=%s day=%s", tg_id, bot_key, day or "auto")
     return web.json_response({"ok": True})
 
 
