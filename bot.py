@@ -1864,7 +1864,7 @@ async def main():
     await seed_pins()
     for tg_id, emp_name in TG_EMPLOYEE.items():
         await db_exec(
-            "INSERT OR REPLACE INTO employee_links(tg_id, employee) VALUES (?, ?)",
+            "INSERT OR IGNORE INTO employee_links(tg_id, employee) VALUES (?, ?)",
             (int(tg_id), emp_name),
         )
     hub_runner = await start_ingest_server()

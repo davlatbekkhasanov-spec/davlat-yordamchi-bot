@@ -25,6 +25,14 @@ BOT_LABELS = {
     "ishxona": "Ishxona nazorat",
 }
 
+_BOT_KEY_ALIASES = {
+    "omborga": {"omborga", "omborga_kiritish", "omborgakiritish", "kirim", "prihod"},
+    "ombor": {"ombor", "omborxizmat", "ombor_xizmat"},
+    "yuk": {"yuk", "yukjarayoni", "yuk_jarayoni"},
+    "sklad": {"sklad", "skladnazorat", "sklad_nazorat"},
+    "ishxona": {"ishxona", "ishxonanazorat", "ishxona_nazorat"},
+}
+
 _conn = sqlite3.connect(DB_PATH, check_same_thread=False, timeout=30)
 _conn.row_factory = sqlite3.Row
 _lock = asyncio.Lock()
@@ -57,6 +65,18 @@ def _now_iso() -> str:
     return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
 
+def normalize_bot_key(raw: str) -> str:
+    key = "".join(ch for ch in str(raw or "").strip().lower() if ch.isalnum() or ch == "_")
+    if not key:
+        return ""
+    for canonical, aliases in _BOT_KEY_ALIASES.items():
+        if key == canonical:
+            return canonical
+        if key in aliases:
+            return canonical
+    return key[:32]
+
+
 async def record_event(
     *,
     tg_id: int,
@@ -68,7 +88,7 @@ async def record_event(
     if not text:
         return
     text = text[:MAX_SUMMARY_LEN]
-    key = str(bot_key or "").strip().lower()[:32]
+    key = normalize_bot_key(bot_key)
     if not key:
         return
     day_s = str(day or "").strip()[:10]

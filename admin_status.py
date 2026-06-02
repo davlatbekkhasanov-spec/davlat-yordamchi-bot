@@ -165,6 +165,13 @@ async def build_admin_status_report(bot: Bot, admin_uid: int) -> str:
         else:
             lines.append(f"  ⚪ {label}: event yo'q")
 
+    unknown = [(k, v) for k, v in stats.items() if k not in order]
+    if unknown:
+        lines.append("  ℹ️ Noma'lum bot keylar:")
+        for k, (cnt, last_at) in unknown[:5]:
+            tail = f", oxirgi: {last_at}" if last_at else ""
+            lines.append(f"    • {k}: {cnt}{tail}")
+
     lines.append("")
     if not secret_ok:
         problems.append("YORDAMCHI_HUB_SECRET yo'q — ingest o'chiq")
