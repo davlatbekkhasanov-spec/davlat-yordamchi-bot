@@ -6,8 +6,8 @@ from datetime import date, datetime, timedelta
 from typing import Awaitable, Callable
 
 from daily_report_card import BOT_ORDER, LeaderRow, score_bot_summary, _fmt_clock
-from cross_bot_hub import fetch_latest_by_bot
-from employee_tg_map import employee_name_variants
+from cross_bot_hub import fetch_merged_latest_by_bot
+from employee_tg_map import employee_name_variants, tg_ids_for_employee
 
 # Reyting ro'yxatida ko'rinmaydigan xodimlar
 RANKING_EXCLUDE = frozenset({"Rajabboev Pulat"})
@@ -64,11 +64,11 @@ def period_days_through(period: str, ref: date) -> list[str]:
     return out
 
 
-async def _bot_points_in_period(tg_id: int, days: list[str]) -> tuple[int, int]:
+async def _bot_points_in_period(tg_ids: set[int], days: list[str]) -> tuple[int, int]:
     bot_pts = 0
     work_sec = 0
     for day_iso in days:
-        ev = await fetch_latest_by_bot(tg_id, day_iso)
+        ev = await fetch_merged_latest_by_bot(tg_ids, day_iso)
         for key in BOT_ORDER:
             if key in ev:
                 sc, ws = score_bot_summary(key, ev[key])
@@ -95,9 +95,9 @@ async def build_team_rankings(
             cat_pts += await sum_period_total(period, name)
         bot_pts = 0
         work_sec = 0
-        etg = employee_tg_map.get(emp)
-        if etg and days:
-            bot_pts, work_sec = await _bot_points_in_period(etg, days)
+        tg_set = tg_ids_for_employee(emp, employee_tg_map=employee_tg_map)
+        if tg_set and days:
+            bot_pts, work_sec = await _bot_points_in_period(tg_set, days)
         scores.append((emp, cat_pts + bot_pts, work_sec))
 
     scores.sort(key=lambda x: (-x[1], x[0]))

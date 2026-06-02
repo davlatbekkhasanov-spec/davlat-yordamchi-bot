@@ -10,7 +10,8 @@ from pathlib import Path
 
 from PIL import Image, ImageDraw, ImageFont
 
-from cross_bot_hub import BOT_LABELS, fetch_latest_by_bot
+from cross_bot_hub import BOT_LABELS, fetch_merged_latest_by_bot
+from employee_tg_map import tg_ids_for_employee
 from report_summary import build_summary_text as _build_summary_text
 
 W, H = 1520, 2280
@@ -250,7 +251,7 @@ async def build_card_data(
     yday_iso: str,
     session_agg: dict[str, int],
     categories: list[str],
-    tg_id: int,
+    viewer_tg_id: int | None = None,
     best_cat: str,
     best_add: int,
     overall_text: str,
@@ -296,7 +297,10 @@ async def build_card_data(
 
     data.cat_total = cat_total
     data.period_sum = period_sum
-    events = await fetch_latest_by_bot(tg_id, day_iso) if tg_id else {}
+    tg_set = tg_ids_for_employee(employee, employee_tg_map=employee_tg_map)
+    if viewer_tg_id:
+        tg_set.add(int(viewer_tg_id))
+    events = await fetch_merged_latest_by_bot(tg_set, day_iso) if tg_set else {}
     total_work_sec = 0
     for key in BOT_ORDER:
         summary = events.get(key, "")
@@ -323,9 +327,9 @@ async def build_card_data(
         cat_pts = await sum_day_total(day_iso, emp)
         bot_pts = 0
         work_sec = 0
-        etg = employee_tg_map.get(emp)
-        if etg:
-            ev = await fetch_latest_by_bot(etg, day_iso)
+        tg_set = tg_ids_for_employee(emp, employee_tg_map=employee_tg_map)
+        if tg_set:
+            ev = await fetch_merged_latest_by_bot(tg_set, day_iso)
             for k in BOT_ORDER:
                 if k in ev:
                     sc, ws = score_bot_summary(k, ev[k])

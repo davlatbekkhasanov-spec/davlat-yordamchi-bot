@@ -97,3 +97,20 @@ def resolve_tg_id(name: str, linked: dict[str, int] | None = None) -> int | None
                 if len(ep) >= 2 and tp[0] == ep[0] and _last_name_match(tp[-1], ep[-1]):
                     return int(tg_id)
     return None
+
+
+def tg_ids_for_employee(
+    name: str,
+    *,
+    employee_tg_map: dict[str, int] | None = None,
+    linked: dict[str, int] | None = None,
+) -> set[int]:
+    """Bir xodim uchun barcha mumkin tg_id (alias + PIN link + ro'yxat)."""
+    out: set[int] = set()
+    for n in employee_name_variants(name):
+        if employee_tg_map and n in employee_tg_map:
+            out.add(int(employee_tg_map[n]))
+        tid = resolve_tg_id(n, linked=linked)
+        if tid:
+            out.add(int(tid))
+    return out

@@ -120,6 +120,31 @@ async def record_event(
         _conn.commit()
 
 
+async def fetch_merged_latest_by_bot(tg_ids: set[int] | list[int], day: str) -> dict[str, str]:
+    """Bir nechta tg_id uchun har bot_key bo'yicha eng so'nggi xulosa."""
+    ids = sorted({int(x) for x in tg_ids if x})
+    if not ids:
+        return {}
+    placeholders = ",".join("?" * len(ids))
+    async with _lock:
+        cur = _conn.cursor()
+        cur.execute(
+            f"""
+            SELECT bot_key, summary, id FROM cross_bot_events
+            WHERE day = ? AND tg_id IN ({placeholders})
+            ORDER BY id DESC
+            """,
+            (day, *ids),
+        )
+        rows = cur.fetchall()
+    out: dict[str, str] = {}
+    for row in rows:
+        k = row["bot_key"]
+        if k not in out:
+            out[k] = row["summary"]
+    return out
+
+
 async def fetch_latest_by_bot(tg_id: int, day: str) -> dict[str, str]:
     async with _lock:
         cur = _conn.cursor()
@@ -141,8 +166,9 @@ async def fetch_latest_by_bot(tg_id: int, day: str) -> dict[str, str]:
     return out
 
 
-async def build_appendix_lines_async(tg_id: int, day_iso: str) -> list[str]:
-    events = await fetch_latest_by_bot(tg_id, day_iso)
+async def build_appendix_lines_async(tg_id: int | set[int], day_iso: str) -> list[str]:
+    tg_ids = {int(tg_id)} if isinstance(tg_id, int) else {int(x) for x in tg_id if x}
+    events = await fetch_merged_latest_by_bot(tg_ids, day_iso)
     if not events:
         return []
 
@@ -183,6 +209,33 @@ async def count_employee_links() -> int:
         cur.execute("SELECT COUNT(*) AS c FROM employee_links")
         row = cur.fetchone()
     return int(row["c"]) if row else 0
+
+
+async def hub_events_for_day(day: str, *, limit: int = 80) -> list[dict]:
+    """Admin diagnostika: bugungi barcha hub eventlar (yangidan eskiga)."""
+    lim = max(1, min(int(limit), 500))
+    async with _lock:
+        cur = _conn.cursor()
+        cur.execute(
+            """
+            SELECT tg_id, bot_key, summary, created_at
+            FROM cross_bot_events
+            WHERE day = ?
+            ORDER BY id DESC
+            LIMIT ?
+            """,
+            (day, lim),
+        )
+        rows = cur.fetchall()
+    return [
+        {
+            "tg_id": int(r["tg_id"]),
+            "bot_key": r["bot_key"],
+            "summary": r["summary"],
+            "created_at": r["created_at"],
+        }
+        for r in rows
+    ]
 
 
 async def hub_stats_today(day: str) -> dict[str, tuple[int, str | None]]:

@@ -16,6 +16,8 @@ from cross_bot_hub import (
     BOT_LABELS,
     build_appendix_lines_async,
     fetch_latest_by_bot,
+    fetch_merged_latest_by_bot,
+    hub_events_for_day,
     init_schema as init_cross_bot_schema,
     record_event,
 )
@@ -26,7 +28,7 @@ from employee_photos import (
     load_photo_for_employee,
     save_employee_photo,
 )
-from employee_tg_map import TG_EMPLOYEE, resolve_owner_tg_id, resolve_tg_id
+from employee_tg_map import TG_EMPLOYEE, resolve_owner_tg_id, resolve_tg_id, tg_ids_for_employee
 from hub_ingest import start_ingest_server
 from admin_status import (
     BTN_ADMIN_PHOTO,
@@ -572,7 +574,7 @@ async def build_report_png_for_user(uid: int, emp: str, agg: dict[str, int]) -> 
         yday_iso=yday_iso,
         session_agg=agg,
         categories=CATEGORIES,
-        tg_id=uid,
+        viewer_tg_id=uid,
         best_cat=best_cat,
         best_add=best_add,
         overall_text=overall_text,
@@ -990,8 +992,11 @@ async def finalize_report(message: Message):
         lines.append("")
         lines.append(f"⭐ Энг кучли йўналиш: {best_cat} (+{best_add})")
         lines.append(f"🔥 Умумий баҳо: {overall_text}")
+        tg_set = tg_ids_for_employee(emp, employee_tg_map=await employee_tg_map())
         if tg_id:
-            lines.extend(await build_appendix_lines_async(tg_id, today_iso))
+            tg_set.add(int(tg_id))
+        if tg_set:
+            lines.extend(await build_appendix_lines_async(tg_set, today_iso))
         await safe_report_send(box(lines, title="КУНЛИК ҲИСОБОТ (ЯКУН)"), private_fallback=tg_id)
 
     if REPORT_TO_GROUP:
@@ -1751,7 +1756,8 @@ async def botdebug_cmd(message: Message):
     ]
 
     for emp in emps:
-        tg_id = etg_map.get(emp)
+        tg_set = tg_ids_for_employee(emp, employee_tg_map=etg_map)
+        tg_label = ", ".join(str(t) for t in sorted(tg_set)) if tg_set else "—"
 
         if mode == "period":
             cat_total = await sum_period_total(period, emp)
@@ -1766,9 +1772,9 @@ async def botdebug_cmd(message: Message):
         bot_work_sec_total = 0
         last_day_by_key: dict[str, str | None] = {k: None for k in BOT_ORDER}
 
-        if tg_id:
+        if tg_set:
             for day in days:
-                ev = await fetch_latest_by_bot(tg_id, day)
+                ev = await fetch_merged_latest_by_bot(tg_set, day)
                 for key in BOT_ORDER:
                     if key in ev:
                         bot_events_count[key] += 1
@@ -1779,7 +1785,7 @@ async def botdebug_cmd(message: Message):
                         bot_work_sec_total += ws
                         last_day_by_key[key] = day
 
-        lines.append(f"👤 {emp} · tg_id: {tg_id or '—'}")
+        lines.append(f"👤 {emp} · tg_id: {tg_label}")
         lines.append(f"  Категория: +{cat_total} | Bot: +{bot_pts_total} | ⏱ { _fmt_clock(bot_work_sec_total)}")
         for key in BOT_ORDER:
             label = BOT_LABELS.get(key, key)
@@ -1794,6 +1800,62 @@ async def botdebug_cmd(message: Message):
         lines.append("")
 
     await message.answer(box(lines, title="BOT DEBUG"), parse_mode="HTML")
+
+
+def _tg_to_employee_name(tg_id: int, etg_map: dict[str, int]) -> str:
+    for emp, tid in etg_map.items():
+        if int(tid) == int(tg_id):
+            return emp
+    if tg_id in TG_EMPLOYEE:
+        return TG_EMPLOYEE[tg_id]
+    return "?"
+
+
+@dp.message(Command("hubtoday"))
+async def hubtoday_cmd(message: Message):
+    """Admin: bugungi hub eventlar va tg_id → xodim."""
+    if not is_private(message):
+        return
+    if not is_admin(message.from_user.id):
+        await message.answer(
+            f"Faqat admin.\nSizning ID: <code>{message.from_user.id}</code>",
+            parse_mode="HTML",
+        )
+        return
+
+    args = (message.text or "").strip().split()[1:]
+    day = today_local().isoformat()
+    for a in args:
+        if len(a) == 10 and a[4] == "-" and a[7] == "-":
+            day = a
+            break
+
+    etg_map = await employee_tg_map()
+    events = await hub_events_for_day(day, limit=60)
+    lines: list[str] = [
+        f"HUB BUGUN · {day}",
+        f"Jami yozuv: {len(events)} (oxirgi 60)",
+        "",
+    ]
+    if not events:
+        lines.append("Event yo'q — ish botlarda YORDAMCHI_HUB_URL+SECRET tekshiring.")
+    else:
+        for ev in events:
+            tid = ev["tg_id"]
+            emp = _tg_to_employee_name(tid, etg_map)
+            label = BOT_LABELS.get(ev["bot_key"], ev["bot_key"])
+            summ = (ev["summary"] or "")[:72]
+            lines.append(
+                f"• {label} · tg {tid} ({emp})\n  {summ} · {ev['created_at']}"
+            )
+
+    lines.append("")
+    lines.append("Xodim → tg_id (reyting):")
+    for emp in ranking_employees(EMPLOYEES):
+        tgs = tg_ids_for_employee(emp, employee_tg_map=etg_map)
+        lines.append(f"  {emp}: {', '.join(str(t) for t in sorted(tgs)) or '—'}")
+
+    await message.answer(box(lines, title="HUB TODAY"), parse_mode="HTML")
 
 
 @dp.message(lambda m: is_private(m) and m.text == BTN_RANKING)
