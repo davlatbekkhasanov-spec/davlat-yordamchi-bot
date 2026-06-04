@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import os
+import re
 import shutil
 import sqlite3
 from datetime import datetime
@@ -71,7 +72,50 @@ def init_schema() -> None:
     cur.execute(
         "CREATE INDEX IF NOT EXISTS idx_cross_bot_bot_day ON cross_bot_events(bot_key, day, tg_id)"
     )
+    cur.execute(
+        """
+        CREATE TABLE IF NOT EXISTS hub_seed_meta (
+            id INTEGER PRIMARY KEY CHECK (id = 1),
+            version INTEGER NOT NULL DEFAULT 0,
+            applied_at TEXT
+        )
+        """
+    )
     _conn.commit()
+
+
+def _parse_count_sec(summary: str, bot_key: str) -> tuple[int, int]:
+    """ombor/yuk jami formatidan (soni, soniya) ajratish."""
+    sl = (summary or "").lower()
+    cnt = 0
+    sec = 0
+    cm = re.search(r"(\d+)\s*ta", sl)
+    if cm:
+        cnt = int(cm.group(1))
+    sm = re.search(r"ish\s+vaqti\s+(\d+)\s*soniya", sl)
+    if sm:
+        sec = int(sm.group(1))
+    elif bot_key == "yuk":
+        sm = re.search(r"ish\s+vaqti\s+(\d+)", sl)
+        if sm:
+            sec = int(sm.group(1))
+    return cnt, sec
+
+
+def _merge_hub_summary(bot_key: str, old: str, new: str) -> str:
+    """Bir xil kun+xodim+bot uchun yangi hisobotni eskisiga qo'shish."""
+    key = normalize_bot_key(bot_key)
+    if not old:
+        return new
+    if key in ("ombor", "yuk"):
+        oc, os_ = _parse_count_sec(old, key)
+        nc, ns = _parse_count_sec(new, key)
+        total_c = oc + nc
+        total_s = os_ + ns
+        if key == "ombor":
+            return f"Ombor (jami): {total_c} ta, ish vaqti {total_s} soniya"
+        return f"Yuk (jami): ish vaqti {total_s} soniya"
+    return new
 
 
 def _now_iso() -> str:
@@ -109,6 +153,9 @@ async def record_event(
         day_s = datetime.now(TZ).date().isoformat()
 
     async with _lock:
+        existing = _latest_by_bot_sync(int(tg_id), day_s)
+        if key in existing:
+            text = _merge_hub_summary(key, existing[key], text)
         cur = _conn.cursor()
         cur.execute(
             """
@@ -118,6 +165,45 @@ async def record_event(
             (day_s, int(tg_id), key, text, _now_iso()),
         )
         _conn.commit()
+
+
+async def ensure_hub_seed() -> int:
+    """Kod ichidagi boshlang'ich yozuvlar — faqat bo'sh slotlarga, bir marta."""
+    from hub_seed import HUB_SEED_ROWS, HUB_SEED_VERSION
+
+    init_schema()
+    async with _lock:
+        cur = _conn.cursor()
+        row = cur.execute("SELECT version FROM hub_seed_meta WHERE id = 1").fetchone()
+        applied_ver = int(row["version"]) if row else 0
+
+    added = 0
+    for day, tg_id, bot_key, summary in HUB_SEED_ROWS:
+        key = normalize_bot_key(bot_key)
+        existing = await fetch_latest_by_bot(int(tg_id), day)
+        if key in existing:
+            continue
+        await record_event(tg_id=int(tg_id), day=day, bot_key=bot_key, summary=summary)
+        added += 1
+
+    if added or applied_ver < HUB_SEED_VERSION:
+        async with _lock:
+            cur = _conn.cursor()
+            cur.execute(
+                """
+                INSERT INTO hub_seed_meta(id, version, applied_at)
+                VALUES (1, ?, ?)
+                ON CONFLICT(id) DO UPDATE SET
+                    version = excluded.version,
+                    applied_at = excluded.applied_at
+                """,
+                (HUB_SEED_VERSION, _now_iso()),
+            )
+            _conn.commit()
+
+    if added:
+        log.info("Hub seed: %s yozuv (v%s)", added, HUB_SEED_VERSION)
+    return added
 
 
 async def fetch_merged_latest_by_bot(tg_ids: set[int] | list[int], day: str) -> dict[str, str]:
@@ -145,25 +231,28 @@ async def fetch_merged_latest_by_bot(tg_ids: set[int] | list[int], day: str) -> 
     return out
 
 
-async def fetch_latest_by_bot(tg_id: int, day: str) -> dict[str, str]:
-    async with _lock:
-        cur = _conn.cursor()
-        cur.execute(
-            """
-            SELECT bot_key, summary, id FROM cross_bot_events
-            WHERE day = ? AND tg_id = ?
-            ORDER BY id DESC
-            """,
-            (day, int(tg_id)),
-        )
-        rows = cur.fetchall()
-
+def _latest_by_bot_sync(tg_id: int, day: str) -> dict[str, str]:
+    cur = _conn.cursor()
+    cur.execute(
+        """
+        SELECT bot_key, summary, id FROM cross_bot_events
+        WHERE day = ? AND tg_id = ?
+        ORDER BY id DESC
+        """,
+        (day, int(tg_id)),
+    )
+    rows = cur.fetchall()
     out: dict[str, str] = {}
     for row in rows:
         k = row["bot_key"]
         if k not in out:
             out[k] = row["summary"]
     return out
+
+
+async def fetch_latest_by_bot(tg_id: int, day: str) -> dict[str, str]:
+    async with _lock:
+        return _latest_by_bot_sync(tg_id, day)
 
 
 async def build_appendix_lines_async(tg_id: int | set[int], day_iso: str) -> list[str]:

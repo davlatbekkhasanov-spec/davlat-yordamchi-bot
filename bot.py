@@ -18,6 +18,7 @@ from cross_bot_hub import (
     fetch_latest_by_bot,
     fetch_merged_latest_by_bot,
     hub_events_for_day,
+    ensure_hub_seed,
     init_schema as init_cross_bot_schema,
     record_event,
 )
@@ -2337,6 +2338,12 @@ async def _auto_backup_db() -> None:
 
 async def main():
     init_cross_bot_schema()
+    try:
+        n = await ensure_hub_seed()
+        if n:
+            logging.info("Boshlang'ich hub: %s yozuv yuklandi", n)
+    except Exception:
+        logging.exception("Hub seed xato")
     await seed_pins()
     for tg_id, emp_name in TG_EMPLOYEE.items():
         await db_exec(

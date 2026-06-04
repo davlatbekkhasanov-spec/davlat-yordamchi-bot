@@ -21,6 +21,12 @@ def _plain(text: str) -> str:
 def parse_uz_duration(text: str) -> int:
     """'1 soat 38 daqiqa 27 soniya', '1 soat 38 daq', '45:30' → soniya."""
     sl = (text or "").lower()
+    # Omborga xatosi: "19 soat 46 daq" = 19:46 (daq bu yerda soniya)
+    sm = re.search(r"(\d+)\s+soat\s+(\d+)\s+daq\b", sl)
+    if sm and not re.search(r"daqiqa", sl):
+        a, b = int(sm.group(1)), int(sm.group(2))
+        if a < 60 and b < 60:
+            return a * 60 + b
     total = 0
     h = re.search(r"(\d+)\s*soat", sl)
     m = re.search(r"(\d+)\s*daqi?qa", sl)
@@ -65,6 +71,11 @@ def _norm_in_text(employee: str, text_lower: str) -> bool:
 
 
 def _find_employee(raw: str, employees: list[str]) -> str | None:
+    from employee_tg_map import resolve_employee_label
+
+    label = resolve_employee_label(raw, employees)
+    if label:
+        return label
     return resolve_employee_name(raw, employees)
 
 
@@ -372,6 +383,9 @@ def _try_yuk(raw: str, plain: str, employees: list[str], fallback_day: str | Non
             re.I | re.S,
         ):
             name = _strip_html(m.group(1)).strip()
+            if name.upper() == "REYTING":
+                continue
+            name = re.sub(r"^#?\d+\s*", "", name).strip()
             emp = _find_employee(name, employees)
             if not emp:
                 continue

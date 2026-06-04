@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import re
+
 TG_EMPLOYEE: dict[int, str] = {
     924612402: "Yadullaev Umid",
     5412958249: "Ravshanov Oxunjon",
@@ -77,6 +79,61 @@ def employee_name_variants(name: str) -> list[str]:
             if tid == owner:
                 add(canonical)
     return out
+
+
+# Guruh kartalaridagi qisqa ismlar → EMPLOYEES dagi to'liq ism
+SHORT_NAME_ALIASES: dict[str, str] = {
+    "охунжон": "Ravshanov Oxunjon",
+    "oxunjon": "Ravshanov Oxunjon",
+    "ravshanov oxunjon": "Ravshanov Oxunjon",
+    "ravshanov_z_": "Ravshanov Ziyodullo",
+    "ravshanov z": "Ravshanov Ziyodullo",
+    "ziyodullo": "Ravshanov Ziyodullo",
+    "abdullo mustafoyev": "Mustafoev Abdullo",
+    "mustafoyev abdullo": "Mustafoev Abdullo",
+    "mustafoev abdullo": "Mustafoev Abdullo",
+    "ruziboev sindorbek": "Ruziboev Sindor",
+    "sindorbek": "Ruziboev Sindor",
+    "тохиров муслимбек": "Toxirov Muslimbek",
+    "toxirov muslimbek": "Toxirov Muslimbek",
+    "толиб шерназаров": "Shernazarov Tolib",
+    "shernazarov tolib": "Shernazarov Tolib",
+    "толиб": "Shernazarov Tolib",
+    "tolib": "Shernazarov Tolib",
+    "samadov tolqin": "Samadov To'lqin",
+    "samadov to'lqin": "Samadov To'lqin",
+    "to'lqin": "Samadov To'lqin",
+    "sagdullaev": "Sagdullaev Yunus",
+    "yunus": "Sagdullaev Yunus",
+}
+
+
+def _alias_key(raw: str) -> str:
+    s = (raw or "").strip().lower()
+    for ch in ("õ", "ö", "ó", "ô", "'", "'", "`", "ʻ", "ʼ", "’"):
+        s = s.replace(ch, "o" if ch in ("õ", "ö", "ó", "ô") else "")
+    s = re.sub(r"[_]+", " ", s)
+    return " ".join(s.split())
+
+
+def resolve_employee_label(raw: str, employees: list[str] | None = None) -> str | None:
+    """Karta/qisqa ism → ro'yxatdagi to'liq ism."""
+    raw = (raw or "").strip()
+    if not raw or raw in ("(-_)", "(-_-)", "-_-", "(-_-"):
+        return None
+    key = _alias_key(raw)
+    if key in SHORT_NAME_ALIASES:
+        return SHORT_NAME_ALIASES[key]
+    if raw in EMPLOYEE_NAME_ALIASES:
+        return TG_EMPLOYEE.get(int(EMPLOYEE_NAME_ALIASES[raw]))
+    for alias, tid in EMPLOYEE_NAME_ALIASES.items():
+        if _alias_key(alias) == key:
+            return TG_EMPLOYEE.get(int(tid))
+    if employees:
+        from metrics_import import resolve_employee_name
+
+        return resolve_employee_name(raw, employees)
+    return None
 
 
 def resolve_tg_id(name: str, linked: dict[str, int] | None = None) -> int | None:
