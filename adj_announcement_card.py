@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import base64
 import logging
+from datetime import date
 from io import BytesIO
 from pathlib import Path
 
@@ -25,6 +26,41 @@ def _env() -> Environment:
         loader=FileSystemLoader(str(ASSETS)),
         autoescape=select_autoescape(["html"]),
     )
+
+
+_UZ_MONTHS = (
+    "",
+    "январ",
+    "феврал",
+    "март",
+    "апрел",
+    "май",
+    "июн",
+    "июл",
+    "август",
+    "сентябр",
+    "октябр",
+    "ноябр",
+    "декабр",
+)
+
+_UZ_WEEKDAYS = (
+    "душанба",
+    "сешанба",
+    "чорашанба",
+    "пайшанба",
+    "жума",
+    "шанба",
+    "якшанба",
+)
+
+
+def format_day_display(day_iso: str) -> tuple[str, str]:
+    """(katta sana, hafta kuni) — masalan 04.06.2026, чорашанба."""
+    d = date.fromisoformat(day_iso)
+    main = f"{d.day:02d}.{_UZ_MONTHS[d.month]}.{d.year}"
+    wd = _UZ_WEEKDAYS[d.weekday()]
+    return main, wd
 
 
 def _initials(employee: str) -> str:
@@ -49,6 +85,13 @@ def build_adj_card_html(
     sign = "+" if is_bonus else "−"
     avatar_b64 = base64.b64encode(avatar).decode("ascii") if avatar else ""
     avatar_mime = _image_mime(avatar) if avatar else ""
+    day_main, day_weekday = format_day_display(day_iso)
+    if is_bonus:
+        extra_line = f"Қўшимча бонус: {sign}{points} очко (рейтинг)"
+        extra_class = "extra-bonus"
+    else:
+        extra_line = f"Жарима: {sign}{points} очко (рейтинг)"
+        extra_class = "extra-penalty"
 
     ctx = {
         "css": (ASSETS / "adj_card.css").read_text(encoding="utf-8"),
@@ -63,12 +106,14 @@ def build_adj_card_html(
         "avatar_mime": avatar_mime,
         "score_display": f"{sign}{points}",
         "score_label": "БОНУС ОЧКО" if is_bonus else "ЖАРИМА",
-        "period": period,
-        "day_iso": day_iso,
+        "day_main": day_main,
+        "day_weekday": day_weekday,
+        "extra_line": extra_line,
+        "extra_class": extra_class,
         "footer_quote": (
-            "Жамоа горди! Чемпионлик йўли — очиқ!"
+            "Жамоа фахрланади! Чемпионлик йўли — очиқ!"
             if is_bonus
-            else "Диққат: қайта такрорланмасин — жамоа кутмоқда."
+            else "Диққат: қайта такрорланмасин — жамоа сиздан яхшироқни кутмоқда."
         ),
         "stars_line": "★ ★ ★ ★ ★" if is_bonus else "⚠ ⚠ ⚠",
     }
@@ -124,8 +169,10 @@ def _render_pil_fallback(
     sign = "+" if is_bonus else "-"
     sc = f"{sign}{points}"
     draw.text(((W - 80) / 2, 520), sc, fill=GREEN if is_bonus else (255, 100, 110), font=f_title)
-    draw.text((80, 680), f"Period: {period}", fill=WHITE, font=f_body)
-    draw.text((80, 710), f"Sana: {day_iso}", fill=WHITE, font=f_body)
+    day_main, day_wd = format_day_display(day_iso)
+    draw.text((80, 660), "BUGUN", fill=WHITE, font=f_body)
+    draw.text((80, 690), day_main, fill=WHITE, font=f_bold)
+    draw.text((80, 720), day_wd, fill=WHITE, font=f_body)
     buf = BytesIO()
     img.save(buf, format="PNG")
     return buf.getvalue()

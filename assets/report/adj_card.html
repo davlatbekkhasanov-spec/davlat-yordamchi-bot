@@ -44,8 +44,10 @@
     </div>
 
     <div class="meta-card">
-      <div class="meta-row"><span>Период</span><span>{{ period }}</span></div>
-      <div class="meta-row"><span>Сана</span><span>{{ day_iso }}</span></div>
+      <div class="meta-date-label">БУГУН</div>
+      <div class="meta-date-main">{{ day_main }}</div>
+      <div class="meta-date-week">{{ day_weekday }}</div>
+      <div class="meta-extra {{ extra_class }}">{{ extra_line }}</div>
     </div>
 
     <p class="footer-quote">{{ footer_quote }}</p>

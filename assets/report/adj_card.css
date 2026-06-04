@@ -237,19 +237,53 @@ html, body {
   border: 1px solid #ff6b7a44;
 }
 
-.meta-row {
-  display: flex;
-  justify-content: space-between;
-  font-size: 24px;
-  color: #e2e8f0;
-  margin-bottom: 12px;
+.meta-date-label {
+  text-align: center;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.45em;
+  color: #94a3b8;
+  margin-bottom: 10px;
 }
 
-.meta-row:last-child { margin-bottom: 0; }
+.meta-date-main {
+  text-align: center;
+  font-size: 42px;
+  font-weight: 800;
+  color: #f8fafc;
+  letter-spacing: 0.02em;
+  line-height: 1.1;
+}
 
-.meta-row span:first-child {
-  color: #94a3b8;
+.meta-date-week {
+  text-align: center;
+  font-size: 22px;
   font-weight: 600;
+  color: #cbd5e1;
+  margin-top: 8px;
+  margin-bottom: 20px;
+  text-transform: capitalize;
+}
+
+.meta-extra {
+  text-align: center;
+  font-size: 22px;
+  font-weight: 700;
+  padding: 14px 20px;
+  border-radius: 12px;
+  line-height: 1.35;
+}
+
+.meta-extra.extra-bonus {
+  color: #6ee7b7;
+  background: #14b8a822;
+  border: 1px solid #5eead444;
+}
+
+.meta-extra.extra-penalty {
+  color: #fda4af;
+  background: #ef444422;
+  border: 1px solid #f8717144;
 }
 
 .footer-quote {
