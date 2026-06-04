@@ -368,6 +368,17 @@ def _skip_report_intake(message: Message) -> bool:
     return False
 
 
+def _admin_auto_intake_filter(message: Message) -> bool:
+    """Faqat hisobot matni — tugmalar boshqa handlerlarga o'tsin."""
+    if not is_private(message):
+        return False
+    if not message.from_user or not is_admin(message.from_user.id):
+        return False
+    if message.document or not (message.text or message.caption):
+        return False
+    return not _skip_report_intake(message)
+
+
 async def _save_hub_items(items: list[dict]) -> list[dict]:
     if not items:
         return []
@@ -1754,17 +1765,9 @@ async def kirit_help_cmd(message: Message):
     )
 
 
-@dp.message(
-    lambda m: is_private(m)
-    and m.from_user
-    and is_admin(m.from_user.id)
-    and (m.text or m.caption)
-    and not m.document
-)
+@dp.message(_admin_auto_intake_filter)
 async def admin_auto_report_intake(message: Message):
     """Admin shaxsiy chatga yuborgan hisobotlarni avtomatik kiritish."""
-    if _skip_report_intake(message):
-        return
     uid = message.from_user.id if message.from_user else 0
     text = (message.text or message.caption or "").strip()
     if not text:

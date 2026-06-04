@@ -24,11 +24,14 @@ def parse_uz_duration(text: str) -> int:
     total = 0
     h = re.search(r"(\d+)\s*soat", sl)
     m = re.search(r"(\d+)\s*daqi?qa", sl)
+    daq = re.search(r"(\d+)\s*daq", sl)
     s = re.search(r"(\d+)\s*son", sl)
     if h:
         total += int(h.group(1)) * 3600
     if m:
         total += int(m.group(1)) * 60
+    elif daq and not m:
+        total += int(daq.group(1)) * 60
     if s:
         total += int(s.group(1))
     if total:

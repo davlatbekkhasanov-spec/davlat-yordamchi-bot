@@ -20,6 +20,21 @@ EMPLOYEE_NAME_ALIASES: dict[str, int] = {
     "Yadullaev Umid": 924612402,
     "Samadov To'lqin": 6001619806,
     "Samadov Tulqin": 6001619806,
+    "Ravshanov Oxunjon": 5412958249,
+    "Oxunjon": 5412958249,
+    "Охунжон": 5412958249,
+    "Ravshanov Ziyodullo": 8440127425,
+    "Ravshanov_Z_": 8440127425,
+    "Mustafoev Abdullo": 6931958983,
+    "Abdullo Mustafoyev": 6931958983,
+    "Ruziboev Sindor": 8547365654,
+    "Ruziboev sindorbek": 8547365654,
+    "Toxirov Muslimbek": 5732350707,
+    "Тохиров Муслимбек": 5732350707,
+    "Shernazarov Tolib": 5465963344,
+    "Толиб Шерназаров": 5465963344,
+    "Sagdullaev Yunus": 6991673998,
+    "Sagdullaev": 6991673998,
 }
 
 
