@@ -139,6 +139,15 @@ def _parse_hms(text: str) -> int:
     return 0
 
 
+def _parse_omborga_time(token: str) -> int:
+    """OmborgaKiritishBot fmt_duration_short: daqiqa:soniya (75:39 = 75 daq 39 son)."""
+    token = (token or "").strip()
+    m = re.match(r"^(\d+):(\d{2})$", token)
+    if m:
+        return int(m.group(1)) * 60 + int(m.group(2))
+    return _parse_hms(token)
+
+
 def _fmt_hms(seconds: int) -> str:
     seconds = max(0, int(seconds))
     h, r = divmod(seconds, 3600)
@@ -156,8 +165,16 @@ def _fmt_short(seconds: int) -> str:
 
 
 def _fmt_clock(seconds: int) -> str:
+    """Reyting va umumiy ish vaqti — soat bo'lsa H:MM:SS, aks holda MM:SS."""
+    return _fmt_work_duration(seconds)
+
+
+def _fmt_work_duration(seconds: int) -> str:
     seconds = max(0, int(seconds))
-    m, s = divmod(seconds, 60)
+    h, r = divmod(seconds, 3600)
+    m, s = divmod(r, 60)
+    if h:
+        return f"{h}:{m:02d}:{s:02d}"
     return f"{m:02d}:{s:02d}"
 
 
@@ -170,8 +187,8 @@ def score_bot_summary(key: str, summary: str) -> tuple[int, int]:
         reys = int(re.search(r"reys\s*(\d+)", sl).group(1)) if re.search(r"reys\s*(\d+)", sl) else 0
         ish_m = re.search(r"ish\s+([\d:]+)", sl)
         dam_m = re.search(r"dam\s+([\d:]+)", sl)
-        ish = _parse_hms(ish_m.group(1)) if ish_m else _parse_hms(s)
-        dam = _parse_hms(dam_m.group(1)) if dam_m else 0
+        ish = _parse_omborga_time(ish_m.group(1)) if ish_m else _parse_hms(s)
+        dam = _parse_omborga_time(dam_m.group(1)) if dam_m else 0
         total = ish + dam
         if not reys and not total:
             return 0, 0
@@ -205,14 +222,15 @@ def _bot_metrics(key: str, summary: str, work_sec: int) -> list[tuple[str, str]]
         ish_m = re.search(r"ish\s+([\d:]+)", sl)
         dam_m = re.search(r"dam\s+([\d:]+)", sl)
         r = reys.group(1) if reys else "0"
-        ish = ish_m.group(1) if ish_m else _fmt_short(work_sec)
+        ish_sec = _parse_omborga_time(ish_m.group(1)) if ish_m else work_sec
         out = [
             ("reys", r),
-            ("ish vaqti", ish if ":" in ish else _fmt_hms(_parse_hms(ish))),
-            ("jami vaqt", _fmt_short(work_sec)),
+            ("ish vaqti", _fmt_work_duration(ish_sec)),
+            ("jami vaqt", _fmt_work_duration(work_sec)),
         ]
         if dam_m:
-            out.insert(2, ("dam", dam_m.group(1)))
+            dam_sec = _parse_omborga_time(dam_m.group(1))
+            out.insert(2, ("dam", _fmt_work_duration(dam_sec)))
         return out
     if key == "ombor":
         return [("ish vaqti", _fmt_hms(work_sec)), ("son", str(work_sec))]
@@ -238,9 +256,9 @@ def _parse_work_rest(events: dict[str, str]) -> tuple[str, str]:
     sl = summary.lower()
     ish_m = re.search(r"ish\s+([\d:]+)", sl)
     dam_m = re.search(r"dam\s+([\d:]+)", sl)
-    ish = ish_m.group(1) if ish_m else "00:00"
-    dam = dam_m.group(1) if dam_m else "00:00"
-    return ish, dam
+    ish_sec = _parse_omborga_time(ish_m.group(1)) if ish_m else 0
+    dam_sec = _parse_omborga_time(dam_m.group(1)) if dam_m else 0
+    return _fmt_work_duration(ish_sec), _fmt_work_duration(dam_sec)
 
 
 async def build_card_data(

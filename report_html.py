@@ -83,6 +83,8 @@ def _image_mime(data: bytes) -> str:
 
 
 def _format_omborga_body(summary: str) -> tuple[str, bool]:
+    from daily_report_card import _fmt_work_duration, _parse_omborga_time
+
     if not summary or not summary.strip():
         return EMPTY_BOT, True
     sl = summary.lower()
@@ -96,9 +98,9 @@ def _format_omborga_body(summary: str) -> tuple[str, bool]:
     if yuk:
         bits.append(f"Юк: {yuk.group(1)} м")
     if ish:
-        bits.append(f"Иш: {ish.group(1)}")
+        bits.append(f"Иш: {_fmt_work_duration(_parse_omborga_time(ish.group(1)))}")
     if dam:
-        bits.append(f"Дам: {dam.group(1)}")
+        bits.append(f"Дам: {_fmt_work_duration(_parse_omborga_time(dam.group(1)))}")
     if bits:
         return " · ".join(bits), False
     return summary.strip(), False
