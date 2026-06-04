@@ -1,0 +1,57 @@
+"""Kelishilgan ball qoidalari."""
+
+from __future__ import annotations
+
+import math
+import sys
+import os
+
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, ROOT)
+
+from daily_report_card import score_bot_summary, _ceil_minutes
+
+
+def test_ceil_minutes():
+    assert _ceil_minutes(0) == 0
+    assert _ceil_minutes(1) == 1
+    assert _ceil_minutes(60) == 1
+    assert _ceil_minutes(61) == 2
+    assert _ceil_minutes(24 * 60 + 42) == 25
+
+
+def test_omborga():
+    pts, sec = score_bot_summary("omborga", "Reys 9, ish 24:42, dam 14:22")
+    assert pts == 9 * 2 + 25 // 2  # 18 + 12 = 30
+    assert sec == 24 * 60 + 42
+    assert score_bot_summary("omborga", "Reys 0, ish 0:00, dam 5:00") == (0, 0)
+
+
+def test_ombor():
+    assert score_bot_summary("ombor", "Ombor (jami): 1 ta, ish vaqti 1377 soniya") == (23, 1377)
+    assert score_bot_summary("ombor", "ish vaqti 0 soniya") == (0, 0)
+
+
+def test_yuk():
+    assert score_bot_summary("yuk", "Yuk (jami): ish vaqti 6840 soniya") == (57, 6840)
+
+
+def test_sklad():
+    assert score_bot_summary("sklad", "Sklad (forward jami): sanaldi 5") == (10, 0)
+
+
+def test_ishxona():
+    assert score_bot_summary("ishxona", "Ishxona: ochiq=2, yopilgan=0, rad=0") == (-80, 0)
+    assert score_bot_summary("ishxona", "Ishxona: ochiq=0, yopilgan=1, rad=0") == (0, 0)
+    assert score_bot_summary("ishxona", "admin_card\n\n✅ Бартараф этилди") == (0, 0)
+    assert score_bot_summary("ishxona", "Shikoyat (Tolib): test") == (-40, 0)
+
+
+if __name__ == "__main__":
+    test_ceil_minutes()
+    test_omborga()
+    test_ombor()
+    test_yuk()
+    test_sklad()
+    test_ishxona()
+    print("PASS test_score_rules")

@@ -9,12 +9,8 @@ from daily_report_card import BOT_ORDER, LeaderRow, score_bot_summary, _fmt_cloc
 from cross_bot_hub import fetch_merged_latest_by_bot
 from employee_tg_map import employee_name_variants, tg_ids_for_employee
 
-# Reyting ro'yxatida ko'rinmaydigan xodimlar
-RANKING_EXCLUDE = frozenset({"Rajabboev Pulat"})
-
-
 def ranking_employees(employees: list[str]) -> list[str]:
-    return [e for e in employees if e not in RANKING_EXCLUDE]
+    return list(employees)
 
 
 def init_schema(conn) -> None:

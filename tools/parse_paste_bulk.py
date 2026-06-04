@@ -23,7 +23,7 @@ EMPLOYEES = [
     "Ravshanov Ziyodullo",
     "Yadullaev Umidjon",
     "Mustafoev Abdullo",
-    "Rajabboev Pulat",
+    "Tuvalov Farrux",
 ]
 
 ALIASES = {

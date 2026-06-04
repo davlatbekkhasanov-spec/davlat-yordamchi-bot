@@ -14,6 +14,7 @@ TG_EMPLOYEE: dict[int, str] = {
     6001619806: "Samadov Tulqin",
     5732350707: "Toxirov Muslimbek",
     8440127425: "Ravshanov Ziyodullo",
+    8472656729: "Tuvalov Farrux",
 }
 
 # Bot ro'yxatidagi ismlar (EMPLOYEES) → tg_id
@@ -37,6 +38,9 @@ EMPLOYEE_NAME_ALIASES: dict[str, int] = {
     "Толиб Шерназаров": 5465963344,
     "Sagdullaev Yunus": 6991673998,
     "Sagdullaev": 6991673998,
+    "Tuvalov Farrux": 8472656729,
+    "Тувалов Фаррух": 8472656729,
+    "Rajabboev Pulat": 8472656729,
 }
 
 
@@ -105,6 +109,10 @@ SHORT_NAME_ALIASES: dict[str, str] = {
     "to'lqin": "Samadov To'lqin",
     "sagdullaev": "Sagdullaev Yunus",
     "yunus": "Sagdullaev Yunus",
+    "tuvalov farrux": "Tuvalov Farrux",
+    "farrux": "Tuvalov Farrux",
+    "тувалов фаррух": "Tuvalov Farrux",
+    "rajabboev pulat": "Tuvalov Farrux",
 }
 
 

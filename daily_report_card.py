@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 import re
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
@@ -197,7 +198,23 @@ def _fmt_work_duration(seconds: int) -> str:
     return f"{m:02d}:{s:02d}"
 
 
+def _ceil_minutes(seconds: int) -> int:
+    """Soniya → daqiqa (yuqoriga yaxlitlash). 0 soniya → 0 daqiqa."""
+    sec = max(0, int(seconds))
+    if not sec:
+        return 0
+    return int(math.ceil(sec / 60))
+
+
 def score_bot_summary(key: str, summary: str) -> tuple[int, int]:
+    """
+    Ochko qoidalari (kelishilgan):
+    omborga: reys×2 + ceil(ish_daq)/2; dam=0
+    ombor: ceil(ish_daq)×1
+    yuk: ceil(ish_daq)/2
+    sklad: sanaldi×2
+    ishxona: ochiq shikoyat × (−40); bartaraf/rad = 0
+    """
     s = (summary or "").strip()
     if not s:
         return 0, 0
@@ -205,31 +222,61 @@ def score_bot_summary(key: str, summary: str) -> tuple[int, int]:
     if key == "omborga":
         reys = int(re.search(r"reys\s*(\d+)", sl).group(1)) if re.search(r"reys\s*(\d+)", sl) else 0
         ish_m = re.search(r"ish\s+([\d:]+)", sl)
-        dam_m = re.search(r"dam\s+([\d:]+)", sl)
-        ish = _parse_omborga_time(ish_m.group(1)) if ish_m else _parse_hms(s)
-        dam = _parse_omborga_time(dam_m.group(1)) if dam_m else 0
-        total = ish + dam
-        if not reys and not total:
+        ish = _parse_omborga_time(ish_m.group(1)) if ish_m else 0
+        if not reys and not ish:
             return 0, 0
-        mins = max(1, ish // 60) if ish else 0
-        return reys * 3 + mins // 2, total
+        pts = reys * 2 + (_ceil_minutes(ish) // 2 if ish else 0)
+        return pts, ish
     if key == "ombor":
         sec = _parse_ombor_duration(sl)
         if not sec:
             sec = _parse_hms(s)
         if not sec and re.search(r"(\d+)\s*son", sl):
             sec = int(re.search(r"(\d+)\s*son", sl).group(1))
-        if not sec:
+        mins = _ceil_minutes(sec)
+        if not mins:
             return 0, 0
-        return max(1, sec // 2 + 1), sec
+        return mins, sec
     if key == "yuk":
         sec = _parse_hms(s)
         if not sec:
+            sm = re.search(r"ish\s+vaqti\s+(\d+)", sl)
+            if sm:
+                sec = int(sm.group(1))
+        mins = _ceil_minutes(sec)
+        if not mins:
             return 0, 0
-        return max(1, sec // 130 + 1), sec
+        return mins // 2, sec
     if key == "sklad":
-        n = int(re.search(r"sanaldi\s*(\d+)", sl).group(1)) if re.search(r"sanaldi\s*(\d+)", sl) else 0
-        return n * 5, 0
+        n = 0
+        sm = re.search(r"sanaldi\s*(\d+)", sl)
+        if sm:
+            n = int(sm.group(1))
+        if not n:
+            sm = re.search(r"(\d+)\s*ta", sl)
+            if sm and "sklad" in sl:
+                n = int(sm.group(1))
+        if not n:
+            return 0, 0
+        return n * 2, 0
+    if key == "ishxona":
+        om = re.search(r"ochiq\s*=\s*(\d+)", sl)
+        if om:
+            n = int(om.group(1))
+            return (-40 * n, 0) if n else (0, 0)
+        if any(
+            x in sl
+            for x in (
+                "бартараф этилди",
+                "bartaraf etildi",
+                "рад этилди",
+                "rad etildi",
+            )
+        ):
+            return 0, 0
+        if "shikoyat" in sl:
+            return -40, 0
+        return 0, 0
     return 0, 0
 
 

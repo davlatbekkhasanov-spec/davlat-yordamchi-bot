@@ -69,8 +69,9 @@ def _run():
 
         assert pts_m > 0, pts_m
         assert pts_o == 0, pts_o
-        assert pts_m >= 250, pts_m
-        assert pts_bad >= 250, pts_bad
+        # Yangi tarif: omborga ~14 + ombor 23 = 37
+        assert 30 <= pts_m <= 45, pts_m
+        assert pts_bad >= pts_m, pts_bad
 
         # Kodda viewer_tg_id qolganmi
         import pathlib

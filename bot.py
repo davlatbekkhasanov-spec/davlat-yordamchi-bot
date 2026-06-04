@@ -141,7 +141,7 @@ EMPLOYEES = [
     "Ravshanov Ziyodullo",
     "Yadullaev Umidjon",
     "Mustafoev Abdullo",
-    "Rajabboev Pulat"
+    "Tuvalov Farrux",
 ]
 
 CATEGORIES = [
@@ -168,7 +168,7 @@ EMPLOYEE_PINS = {
     "Ravshanov Ziyodullo": "7777",
     "Yadullaev Umidjon": "8888",
     "Mustafoev Abdullo": "9999",
-    "Rajabboev Pulat": "0000",
+    "Tuvalov Farrux": "0000",
 }
 
 

@@ -79,6 +79,12 @@ def _find_employee(raw: str, employees: list[str]) -> str | None:
     return resolve_employee_name(raw, employees)
 
 
+def _split_jamoa_names(raw: str) -> list[str]:
+    """Jamoa: A, B yoki Jamoa (2 kishi): A, B."""
+    s = re.sub(r"\(\d+\s*kishi\)", "", raw or "", flags=re.I).strip()
+    return [p.strip() for p in re.split(r"[,،]\s*", s) if p.strip()]
+
+
 def _employees_in_text(text_lower: str, employees: list[str]) -> list[str]:
     found: list[str] = []
     for emp in employees:
@@ -192,7 +198,7 @@ def _try_ombor(raw: str, plain: str, employees: list[str], fallback_day: str | N
     ):
         return []
 
-    emp = None
+    jamoa_raw = None
     for pat in (
         r"(?:Xizmat|xizmat)\s+ko.?rsat\w*\s*:\s*(.+?)(?:\n|🔗|⏱|✅|$)",
         r"Jamoa[^:]*:\s*(.+?)(?:\n|⏱|👤|$)",
@@ -200,16 +206,21 @@ def _try_ombor(raw: str, plain: str, employees: list[str], fallback_day: str | N
     ):
         m = re.search(pat, raw, re.I | re.S)
         if m:
-            emp = _find_employee(m.group(1).strip(), employees)
-            if emp:
-                break
+            jamoa_raw = m.group(1).strip()
+            break
 
-    if not emp:
+    emps_found: list[str] = []
+    if jamoa_raw:
+        for part in _split_jamoa_names(jamoa_raw):
+            emp = _find_employee(part, employees)
+            if emp and emp not in emps_found:
+                emps_found.append(emp)
+    if not emps_found:
         for e in employees:
             if _norm_in_text(e, tl):
-                emp = e
+                emps_found.append(e)
                 break
-    if not emp:
+    if not emps_found:
         return []
 
     day = None
@@ -246,6 +257,7 @@ def _try_ombor(raw: str, plain: str, employees: list[str], fallback_day: str | N
             order_id=order_id,
             raw_hint=f"ombor #{order_id or '?'}",
         )
+        for emp in emps_found
     ]
 
 
@@ -538,7 +550,17 @@ def _try_sklad(raw: str, plain: str, employees: list[str], fallback_day: str | N
 
 def _try_ishxona(raw: str, plain: str, employees: list[str], fallback_day: str | None) -> list[dict]:
     tl = plain.lower()
-    if not any(x in tl for x in ("шикоят", "shikoyat", "янги шикоят", "yangi shikoyat")):
+    if not any(x in tl for x in ("шикоят", "shikoyat", "янги шикоят", "yangi shikoyat", "ishxona")):
+        return []
+    if any(
+        x in tl
+        for x in (
+            "бартараф этилди",
+            "bartaraf etildi",
+            "рад этилди",
+            "rad etildi",
+        )
+    ):
         return []
 
     emp = None
@@ -567,13 +589,18 @@ def _try_ishxona(raw: str, plain: str, employees: list[str], fallback_day: str |
     if not preview:
         preview = "forward"
 
+    om = re.search(r"ochiq\s*=\s*(\d+)", raw, re.I)
+    if om:
+        summary = f"Ishxona: ochiq={int(om.group(1))}, yopilgan=0, rad=0"
+    else:
+        summary = f"Ishxona: ochiq=1, yopilgan=0, rad=0"
     return [
         _event(
             bot_key="ishxona",
             employee=emp,
             day=day,
             ishxona_count=1,
-            summary_override=f"Shikoyat ({emp}): {preview}",
+            summary_override=summary,
             raw_hint="ishxona",
         )
     ]
@@ -727,7 +754,14 @@ def aggregate_hub_events(items: list[dict]) -> list[dict]:
     out: list[dict] = []
     for b in buckets.values():
         key = b["bot_key"]
-        if b["summaries"] and key in ("omborga", "ishxona"):
+        if key == "ishxona":
+            structured = [
+                x
+                for x in b["summaries"]
+                if re.search(r"ochiq\s*=", x, re.I)
+            ]
+            summary = structured[-1] if structured else b["summaries"][-1]
+        elif b["summaries"] and key == "omborga":
             summary = b["summaries"][-1]
         elif key == "ombor":
             summary = (
@@ -740,8 +774,7 @@ def aggregate_hub_events(items: list[dict]) -> list[dict]:
             n = b["sklad_sum"] or b["count"]
             summary = f"Sklad (forward jami): sanaldi {n}"
         elif key == "ishxona":
-            n = b["ishxona_n"] or b["count"]
-            summary = f"Ishxona (forward jami): shikoyat {n}"
+            summary = "Ishxona: ochiq=0, yopilgan=0, rad=0"
         elif b["summaries"]:
             summary = b["summaries"][-1]
         else:
