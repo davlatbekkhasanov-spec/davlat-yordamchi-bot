@@ -581,7 +581,6 @@ async def build_report_png_for_user(uid: int, emp: str, agg: dict[str, int]) -> 
         yday_iso=yday_iso,
         session_agg=agg,
         categories=CATEGORIES,
-        viewer_tg_id=uid,
         best_cat=best_cat,
         best_add=best_add,
         overall_text=overall_text,
@@ -1009,8 +1008,6 @@ async def finalize_report(message: Message):
         lines.append(f"⭐ Энг кучли йўналиш: {best_cat} (+{best_add})")
         lines.append(f"🔥 Умумий баҳо: {overall_text}")
         tg_set = tg_ids_for_employee(emp, employee_tg_map=await employee_tg_map())
-        if tg_id:
-            tg_set.add(int(tg_id))
         if tg_set:
             lines.extend(await build_appendix_lines_async(tg_set, today_iso))
         await safe_report_send(box(lines, title="КУНЛИК ҲИСОБОТ (ЯКУН)"), private_fallback=tg_id)

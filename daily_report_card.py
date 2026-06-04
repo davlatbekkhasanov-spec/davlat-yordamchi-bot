@@ -251,7 +251,6 @@ async def build_card_data(
     yday_iso: str,
     session_agg: dict[str, int],
     categories: list[str],
-    viewer_tg_id: int | None = None,
     best_cat: str,
     best_add: int,
     overall_text: str,
@@ -297,9 +296,8 @@ async def build_card_data(
 
     data.cat_total = cat_total
     data.period_sum = period_sum
+    # Faqat shu xodimga bog'langan tg_id — operator Telegrami boshqa profil uchun emas
     tg_set = tg_ids_for_employee(employee, employee_tg_map=employee_tg_map)
-    if viewer_tg_id:
-        tg_set.add(int(viewer_tg_id))
     events = await fetch_merged_latest_by_bot(tg_set, day_iso) if tg_set else {}
     total_work_sec = 0
     for key in BOT_ORDER:
