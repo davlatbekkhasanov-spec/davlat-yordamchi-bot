@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
+import asyncio
 import html
 import logging
 
 from aiogram import Bot
 from aiogram.types import BufferedInputFile, Message, ReplyKeyboardMarkup, KeyboardButton
 
+from adj_announcement_card import render_adj_card_png
 from employee_photos import load_photo_for_employee
 from employee_tg_map import resolve_owner_tg_id
 from ranking_adjustments import (
@@ -50,55 +52,18 @@ def _employee_mention(employee: str, tg_id: int | None) -> str:
     return f"<b>{safe}</b>"
 
 
-def format_bonus_announcement(
+def format_short_caption(
     *,
+    kind: str,
     employee: str,
     points: int,
-    period: str,
-    day_iso: str,
     tg_id: int | None,
 ) -> str:
+    """PNG kartochka ostidagi qisqa ping."""
     who = _employee_mention(employee, tg_id)
-    pts = html.escape(str(points))
-    return (
-        "🎊🎉🥇✨✨✨\n"
-        "<b>ТАНТАНАВИЙ БОНУС!</b>\n"
-        "✨✨✨🥇🎉🎊\n"
-        "══════════════════\n\n"
-        f"👤 {who}\n\n"
-        f"💫 <b>+{pts}</b> <b>БОНУС ОЧКО</b> 💫\n"
-        "<b>📈 Рейтинг жадвалида КЎТАРИЛДИ</b>\n\n"
-        f"🗓 <code>{html.escape(period)}</code>  ·  "
-        f"📅 <code>{html.escape(day_iso)}</code>\n\n"
-        "🌟🌟🌟🌟🌟\n"
-        "<i>Жамоа горди! Бундай темп — чемпионлик йўли!</i>\n"
-        "🏆🔥👏🚀"
-    )
-
-
-def format_penalty_announcement(
-    *,
-    employee: str,
-    points: int,
-    period: str,
-    day_iso: str,
-    tg_id: int | None,
-) -> str:
-    who = _employee_mention(employee, tg_id)
-    pts = html.escape(str(points))
-    return (
-        "🚨⛔🛑⚠️\n"
-        "<b>ЖАРИМА ОЧКО</b>\n"
-        "⚠️🛑⛔🚨\n"
-        "══════════════════\n\n"
-        f"👤 {who}\n\n"
-        f"📉 <b>−{pts}</b> <b>РЕЙТИНГДАН АЙИРИЛДИ</b>\n\n"
-        f"🗓 <code>{html.escape(period)}</code>  ·  "
-        f"📅 <code>{html.escape(day_iso)}</code>\n\n"
-        "▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬\n"
-        "<i>💢 Бу сигнал — жамоа кутмоқда.\n"
-        "Қайта такрорланмасин.</i> ⛔"
-    )
+    if kind == "bonus":
+        return f"🏆 {who}\n<b>+{points}</b> бонус · рейтингга қўшилди"
+    return f"⛔ {who}\n<b>−{points}</b> жарима · рейтингдан айирилди"
 
 
 def format_admin_saved_note(*, kind: str, points: int) -> str:
@@ -110,20 +75,20 @@ def format_admin_saved_note(*, kind: str, points: int) -> str:
 async def _send_private_announce(
     bot: Bot,
     chat_id: int,
-    text: str,
+    caption: str,
     *,
-    photo: bytes | None = None,
+    card_png: bytes | None = None,
 ) -> bool:
     try:
-        if photo:
+        if card_png:
             await bot.send_photo(
                 chat_id,
-                BufferedInputFile(photo, filename="xodim.jpg"),
-                caption=text[:1024],
+                BufferedInputFile(card_png, filename="bonus_jarima.png"),
+                caption=caption[:1024],
                 parse_mode="HTML",
             )
         else:
-            await bot.send_message(chat_id, text, parse_mode="HTML")
+            await bot.send_message(chat_id, caption, parse_mode="HTML")
         return True
     except Exception:
         log.exception("Bonus/jarima xabar (chat=%s)", chat_id)
@@ -279,49 +244,47 @@ async def handle_confirm(
     )
 
     emp_tg = resolve_owner_tg_id(emp)
-    photo = await load_photo_for_employee(
+    avatar = await load_photo_for_employee(
         db_fetchone,
         tg_id=emp_tg,
         employee=emp,
     )
-    if kind == "bonus":
-        announce = format_bonus_announcement(
-            employee=emp,
-            points=pts,
-            period=period,
-            day_iso=day_iso,
-            tg_id=emp_tg,
-        )
-    else:
-        announce = format_penalty_announcement(
-            employee=emp,
-            points=pts,
-            period=period,
-            day_iso=day_iso,
-            tg_id=emp_tg,
-        )
+    card_png = await asyncio.to_thread(
+        render_adj_card_png,
+        kind=kind,
+        employee=emp,
+        points=pts,
+        period=period,
+        day_iso=day_iso,
+        avatar=avatar,
+    )
+    caption = format_short_caption(
+        kind=kind,
+        employee=emp,
+        points=pts,
+        tg_id=emp_tg,
+    )
 
-    await _send_private_announce(bot, uid, announce, photo=photo)
+    await _send_private_announce(bot, uid, caption, card_png=card_png)
 
     emp_notified = False
     if emp_tg and int(emp_tg) != int(uid):
         emp_notified = await _send_private_announce(
-            bot, int(emp_tg), announce, photo=photo
+            bot, int(emp_tg), caption, card_png=card_png
         )
 
-    photo_note = " 📷" if photo else ""
     if emp_tg and int(emp_tg) != int(uid):
         tail = (
-            f"\n\n<i>Xodimga ham lichkada ping{photo_note} yuborildi.</i>"
+            "\n\n<i>Xodimga ham kartochka + ping yuborildi.</i>"
             if emp_notified
             else "\n\n⚠️ <i>Xodimga lichkaga yuborilmadi (/start kerak).</i>"
         )
     elif emp_tg:
-        tail = f"\n\n<i>(Sizning profilingiz — bitta xabar{photo_note}.)</i>"
+        tail = "\n\n<i>(Sizning profilingiz — bitta kartochka.)</i>"
     else:
-        tail = "\n\n<i>Telegram ID topilmadi — faqat sizda ko‘rinadi.</i>"
-    if not photo:
-        tail += "\n<i>Rasm yo‘q — 📷 Xodim rasmi orqali yuklang.</i>"
+        tail = "\n\n<i>Telegram ID topilmadi — faqat sizda.</i>"
+    if not avatar:
+        tail += "\n<i>📷 Xodim rasmini yuklasangiz — kartochkada surat ham chiqadi.</i>"
 
     await message.answer(
         format_admin_saved_note(kind=kind, points=pts) + tail,
