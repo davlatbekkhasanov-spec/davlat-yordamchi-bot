@@ -956,7 +956,6 @@ async def admin_adj_points(message: Message):
         message,
         user_state=user_state,
         is_admin=is_admin,
-        box=box,
     )
 
 
@@ -968,10 +967,8 @@ async def admin_adj_confirm(message: Message):
         user_state=user_state,
         db_execute=db_exec,
         is_admin=is_admin,
-        box=box,
         get_period_key=get_period_key,
         today_local=today_local,
-        group_id=GROUP_ID,
         admin_status_kb=admin_status_kb,
     )
 

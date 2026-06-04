@@ -1,18 +1,16 @@
-"""Admin: bonus / jarima — avval lichka, keyin guruh."""
+"""Admin: bonus / jarima — hozircha faqat lichkada (tanitanali xabar + ping)."""
 
 from __future__ import annotations
 
 import html
 import logging
-from datetime import date
 
 from aiogram import Bot
 from aiogram.types import Message, ReplyKeyboardMarkup, KeyboardButton
 
+from employee_tg_map import resolve_owner_tg_id
 from ranking_adjustments import (
     BTN_ADJ_CONFIRM,
-    BTN_BONUS,
-    BTN_PENALTY,
     insert_adjustment,
 )
 
@@ -42,6 +40,68 @@ def _start_adj(uid: int, kind: str) -> dict:
 
 def _kind_label(kind: str) -> str:
     return "Бонус" if kind == "bonus" else "Жарима"
+
+
+def _employee_mention(employee: str, tg_id: int | None) -> str:
+    safe = html.escape(employee)
+    if tg_id:
+        return f'<a href="tg://user?id={int(tg_id)}">{safe}</a>'
+    return f"<b>{safe}</b>"
+
+
+def format_bonus_announcement(
+    *,
+    employee: str,
+    points: int,
+    period: str,
+    day_iso: str,
+    tg_id: int | None,
+) -> str:
+    who = _employee_mention(employee, tg_id)
+    return (
+        "🎉✨ <b>ТАНТАНАВИЙ БОНУС!</b> ✨🎉\n"
+        "━━━━━━━━━━━━━━━━━━━━\n\n"
+        f"👤 {who}\n"
+        f"💎 <b>+{points}</b> бонус очко <b>рейтингга қўшилди</b>\n\n"
+        f"📈 Период: <code>{html.escape(period)}</code>\n"
+        f"📅 Сана: <code>{html.escape(day_iso)}</code>\n\n"
+        "🏆 <i>Аъло натижа — давом этинг, чемпион!</i> 🔥👏"
+    )
+
+
+def format_penalty_announcement(
+    *,
+    employee: str,
+    points: int,
+    period: str,
+    day_iso: str,
+    tg_id: int | None,
+) -> str:
+    who = _employee_mention(employee, tg_id)
+    return (
+        "⚠️🛑 <b>ЖАРИМА ОЧКО</b> 🛑⚠️\n"
+        "━━━━━━━━━━━━━━━━━━━━\n\n"
+        f"👤 {who}\n"
+        f"📉 <b>−{points}</b> очко <b>рейтингдан айирилди</b>\n\n"
+        f"📈 Период: <code>{html.escape(period)}</code>\n"
+        f"📅 Сана: <code>{html.escape(day_iso)}</code>\n\n"
+        "⛔ <i>Диққат: қайта такрорланмасин — жамоа кутяпти.</i>"
+    )
+
+
+def format_admin_saved_note(*, kind: str, points: int) -> str:
+    if kind == "bonus":
+        return f"✅ Базага сақланди · рейтингга <b>+{points}</b>"
+    return f"✅ Базага сақланди · рейтингдан <b>−{points}</b>"
+
+
+async def _send_private_html(bot: Bot, chat_id: int, text: str) -> bool:
+    try:
+        await bot.send_message(chat_id, text, parse_mode="HTML")
+        return True
+    except Exception:
+        log.exception("Bonus/jarima xabar (chat=%s)", chat_id)
+        return False
 
 
 async def handle_bonus_start(
@@ -119,7 +179,6 @@ async def handle_points(
     *,
     user_state: dict,
     is_admin,
-    box,
 ) -> bool:
     if not is_admin(message.from_user.id):
         return False
@@ -137,17 +196,14 @@ async def handle_points(
     pts = st["points"]
     kind = st["kind"]
     sign = "+" if kind == "bonus" else "−"
+    preview = (
+        f"👤 {html.escape(emp or '')}\n"
+        f"📌 {_kind_label(kind)}: <b>{sign}{pts}</b> (рейтинг)\n\n"
+        "Тасдиқласангиз — <b>личкада</b> тантанали хabar chiqadi.\n"
+        "(Guruhga hozircha yuborilmaydi.)"
+    )
     await message.answer(
-        box(
-            [
-                f"Ходим: {emp}",
-                f"Turi: {_kind_label(kind)}",
-                f"Очко: {sign}{pts}",
-                "",
-                "Тасдиқласангиз — аввал бу ерда, сўнг гуруҳга хабар юборилади.",
-            ],
-            title="ТАСДИҚ",
-        ),
+        preview,
         parse_mode="HTML",
         reply_markup=_adj_confirm_kb(),
     )
@@ -161,10 +217,8 @@ async def handle_confirm(
     user_state: dict,
     db_execute,
     is_admin,
-    box,
     get_period_key,
     today_local,
-    group_id: int,
     admin_status_kb,
 ) -> bool:
     if not is_admin(message.from_user.id):
@@ -197,35 +251,46 @@ async def handle_confirm(
         admin_tg_id=uid,
     )
 
-    sign = "+" if kind == "bonus" else "−"
+    emp_tg = resolve_owner_tg_id(emp)
     if kind == "bonus":
-        group_line = f"➕ {emp} ходимга <b>+{pts}</b> бонус очко қўшилди (рейтинг)."
+        announce = format_bonus_announcement(
+            employee=emp,
+            points=pts,
+            period=period,
+            day_iso=day_iso,
+            tg_id=emp_tg,
+        )
     else:
-        group_line = f"➖ {emp} ходимдан <b>−{pts}</b> жарима очко айирилди (рейтинг)."
+        announce = format_penalty_announcement(
+            employee=emp,
+            points=pts,
+            period=period,
+            day_iso=day_iso,
+            tg_id=emp_tg,
+        )
 
-    private_lines = [
-        f"✅ Сақланди: {_kind_label(kind)} {sign}{pts}",
-        f"👤 {emp}",
-        f"🗓 Период: {period}",
-        f"📅 {day_iso}",
-        "",
-        "Гуруҳга хабар юборилди.",
-    ]
+    await _send_private_html(bot, uid, announce)
+
+    emp_notified = False
+    if emp_tg and int(emp_tg) != int(uid):
+        emp_notified = await _send_private_html(bot, int(emp_tg), announce)
+
+    if emp_tg and int(emp_tg) != int(uid):
+        tail = (
+            "\n\n<i>Xodimga ham lichkada ping yuborildi.</i>"
+            if emp_notified
+            else "\n\n⚠️ <i>Xodimga lichkaga yuborilmadi (/start kerak).</i>"
+        )
+    elif emp_tg:
+        tail = "\n\n<i>(Sizning profilingiz — bitta xabar.)</i>"
+    else:
+        tail = "\n\n<i>Telegram ID topilmadi — faqat sizda ko‘rinadi.</i>"
+
     await message.answer(
-        box(private_lines, title="РЕЙТИНГ БОНУС/ЖАРИМА"),
+        format_admin_saved_note(kind=kind, points=pts) + tail,
         parse_mode="HTML",
         reply_markup=admin_status_kb(),
     )
-
-    group_html = box(
-        [group_line, f"Период: {period}", f"Сана: {day_iso}"],
-        title="🏆 РЕЙТИНГ",
-    )
-    try:
-        await bot.send_message(group_id, group_html, parse_mode="HTML")
-    except Exception:
-        log.exception("Bonus/jarima guruh xabari (chat=%s)", group_id)
-        await message.answer(f"⚠️ Guruhga yuborilmadi. GROUP_ID={group_id} ni tekshiring.")
 
     user_state.pop(uid, None)
     return True
