@@ -334,8 +334,52 @@ def confirm_kb():
 # ============================================================
 
 user_state: dict[int, dict] = {}
-forward_sessions: dict[int, list[dict]] = {}
-forward_skip_notice: dict[int, int] = {}
+_INTAKE_SKIP_TEXTS = frozenset(
+    {
+        BTN_ADMIN_STATUS,
+        BTN_PREVIEW_REPORT,
+        BTN_ADMIN_PHOTO,
+        BTN_RANKING,
+        "✅ Ҳамма ходим",
+        "✅ Ҳамма категория",
+        "➕ Яна категория",
+        "✅ Якунлаш",
+        "↩️ Ундо",
+        "❌ Бекор қилиш",
+        "📌 Бугун",
+        "📌 Кеча",
+        "🗓 Бошқа сана",
+        "🗑 Ўчиришни тасдиқлайман",
+    }
+    | set(EMPLOYEES)
+    | set(CATEGORIES)
+)
+
+
+def _skip_report_intake(message: Message) -> bool:
+    uid = message.from_user.id if message.from_user else 0
+    if uid in user_state:
+        return True
+    text = (message.text or message.caption or "").strip()
+    if not text or text.startswith("/"):
+        return True
+    if text in _INTAKE_SKIP_TEXTS:
+        return True
+    return False
+
+
+async def _save_hub_items(items: list[dict]) -> list[dict]:
+    if not items:
+        return []
+    merged = aggregate_hub_events(items)
+    for row in merged:
+        await record_event(
+            tg_id=int(row["tg_id"]),
+            day=row["day"],
+            bot_key=row["bot_key"],
+            summary=row["summary"],
+        )
+    return merged
 
 def is_private(m: Message) -> bool:
     return m.chat.type == "private"
@@ -1692,115 +1736,85 @@ async def import_metrics_file(message: Message):
         await message.answer(f"❌ CSV xato: {html.escape(str(e))}", parse_mode="HTML")
 
 
-def _message_is_forward(message: Message) -> bool:
-    return bool(getattr(message, "forward_origin", None) or message.forward_date)
-
-
-@dp.message(Command("forward"))
-async def forward_help_cmd(message: Message):
-    """Admin: guru xabarlarini shu botga forward qilish."""
+@dp.message(Command("kirit", "forward"))
+async def kirit_help_cmd(message: Message):
+    """Admin: hisobot yuborish — bot o'zi kiritadi."""
     if not is_private(message) or not is_admin(message.from_user.id):
         return
     uid = message.from_user.id if message.from_user else 0
-    forward_sessions[uid] = []
-    forward_skip_notice.pop(uid, None)
-    n = len(forward_sessions.get(uid, []))
     await message.answer(
-        "📨 <b>Forward rejimi</b>\n\n"
-        "1) <b>Barcha</b> ish guruhlaridan xabarlarni ketma-ket <b>shu botga forward</b> qiling\n"
-        "   (ombor, omborga, yuk, sklad, ishxona — bot o'zi ajratadi)\n"
-        "2) Har bir tanilgan xabar uchun tasdiq chiqadi\n"
-        "3) Tugatgach: <code>/forwarddone</code> — DB ga yoziladi\n"
-        "4) Bekor: <code>/forwardcancel</code>\n\n"
-        f"📦 Navbatda: {n} ta event\n"
-        "💡 Matnli xabar forward qiling; sana xabarda bo'lmasa — forward sanasi ishlatiladi.",
+        "📥 <b>Hisobot yuboring</b>\n\n"
+        "Guruhdan kartalarni <b>shu chatga</b> yuboring (forward yoki oddiy).\n"
+        "Har bir xabar <b>darhol DB ga</b> kiradi — /forwarddone kerak emas.\n\n"
+        "• Ombor, omborga, yuk, sklad, ishxona kartalari\n"
+        "• Kategoriya: <code>2026-06-03|Ism|Приход|12</code>\n\n"
+        "Tekshirish: /hubtoday · /backup",
         parse_mode="HTML",
         reply_markup=await keyboard_for_user(uid),
     )
 
 
-@dp.message(Command("forwarddone"))
-async def forward_done_cmd(message: Message):
-    if not is_private(message) or not is_admin(message.from_user.id):
-        return
-    uid = message.from_user.id if message.from_user else 0
-    items = forward_sessions.pop(uid, [])
-    if not items:
-        await message.answer("Navbat bo'sh. Avval /forward va xabarlarni forward qiling.")
-        return
-    merged = aggregate_hub_events(items)
-    for row in merged:
-        await record_event(
-            tg_id=row["tg_id"],
-            day=row["day"],
-            bot_key=row["bot_key"],
-            summary=row["summary"],
-        )
-    lines = [f"✅ {len(merged)} ta yozuv DB ga saqlandi ({len(items)} forward).", ""]
-    for row in merged[:12]:
-        label = BOT_LABELS.get(row["bot_key"], row["bot_key"])
-        lines.append(
-            f"• {row['employee']} · {row['day']} · {label} ({row['count']} ta)"
-        )
-    if len(merged) > 12:
-        lines.append(f"… va yana {len(merged) - 12} ta")
-    lines.append("\nTekshirish: /hubtoday")
-    await message.answer("\n".join(lines), reply_markup=await keyboard_for_user(uid))
-
-
-@dp.message(Command("forwardcancel"))
-async def forward_cancel_cmd(message: Message):
-    if not is_private(message) or not is_admin(message.from_user.id):
-        return
-    uid = message.from_user.id if message.from_user else 0
-    n = len(forward_sessions.pop(uid, []))
-    await message.answer(f"🗑 Bekor qilindi ({n} ta o'chirildi).")
-
-
-@dp.message(lambda m: is_private(m) and _message_is_forward(m))
-async def forward_message_handler(message: Message):
-    if not is_admin(message.from_user.id if message.from_user else 0):
+@dp.message(
+    lambda m: is_private(m)
+    and m.from_user
+    and is_admin(m.from_user.id)
+    and (m.text or m.caption)
+    and not m.document
+)
+async def admin_auto_report_intake(message: Message):
+    """Admin shaxsiy chatga yuborgan hisobotlarni avtomatik kiritish."""
+    if _skip_report_intake(message):
         return
     uid = message.from_user.id if message.from_user else 0
     text = (message.text or message.caption or "").strip()
     if not text:
-        await message.answer(
-            "⚠️ Matn yo'q.\n"
-            "Faqat rasm/video forward qilgansiz — <b>matnli</b> kartani forward qiling "
-            "(yoki surat ostidagi caption bilan).",
-            parse_mode="HTML",
-        )
         return
 
     fallback_day = forward_message_day(message)
+    if not fallback_day and message.date:
+        fallback_day = message.date.date().isoformat()
 
-    parsed_list = parse_forward_text(
+    hub_items = parse_forward_text(
         text, employees=EMPLOYEES, fallback_day=fallback_day
     )
-    if not parsed_list:
-        skipped = forward_skip_notice.get(uid, 0) + 1
-        forward_skip_notice[uid] = skipped
-        if skipped <= 2 or skipped % 6 == 0:
-            await message.answer(
-                forward_reject_hint(text, had_day=bool(fallback_day)),
-                parse_mode="HTML",
-            )
+    if hub_items:
+        merged = await _save_hub_items(hub_items)
+        lines = ["✅ <b>Saqlandi</b> (boshqa botlar):"]
+        for row in merged[:6]:
+            label = BOT_LABELS.get(row["bot_key"], row["bot_key"])
+            lines.append(f"• {row['employee']} · {label} · {row['day']}")
+        if len(merged) > 6:
+            lines.append(f"… +{len(merged) - 6} ta")
+        await message.answer(
+            "\n".join(lines),
+            parse_mode="HTML",
+            reply_markup=await keyboard_for_user(uid),
+        )
         return
-    forward_skip_notice[uid] = 0
 
-    sess = forward_sessions.setdefault(uid, [])
-    sess.extend(parsed_list)
-    lines = [f"✅ +{len(parsed_list)} ta (jami {len(sess)} event):"]
-    for p in parsed_list[:5]:
-        label = BOT_LABELS.get(p["bot_key"], p["bot_key"])
-        lines.append(f"• {p['employee']} · {label} · {p['day']}")
-    if len(parsed_list) > 5:
-        lines.append(f"… va yana {len(parsed_list) - 5} ta")
-    lines.append("\nTugatish: /forwarddone")
-    await message.answer(
-        "\n".join(lines),
-        reply_markup=await keyboard_for_user(uid),
+    cat_rows, cat_errs = parse_import_text(
+        text,
+        employees=EMPLOYEES,
+        categories=CATEGORIES,
+        default_day=fallback_day or today_local().isoformat(),
     )
+    if cat_rows:
+        n = await insert_import_rows(db_exec, cat_rows, tg_id=uid)
+        msg = f"✅ <b>Kategoriya:</b> {n} ta yozuv kiritildi."
+        if cat_errs:
+            msg += f"\n⚠️ {len(cat_errs)} qator o'tkazib yuborildi."
+        await message.answer(
+            msg,
+            parse_mode="HTML",
+            reply_markup=await keyboard_for_user(uid),
+        )
+        return
+
+    if len(text) >= 30:
+        await message.answer(
+            forward_reject_hint(text, had_day=bool(fallback_day)),
+            parse_mode="HTML",
+        )
 
 
 @dp.message(Command("reset_today"))
@@ -2189,34 +2203,120 @@ async def preview_btn(message: Message):
 
 
 # ============================================================
-# Hub: Telegram ingest (Worker rejimida HTTP o'rniga)
+# Hub: avtomatik qabul (HTTP + ingest guruh)
 # ============================================================
+
+
+async def _hub_apply_rows(rows: list[dict], *, via: str) -> int:
+    n = 0
+    for row in rows:
+        await record_event(
+            tg_id=int(row["tg_id"]),
+            day=row["day"],
+            bot_key=row["bot_key"],
+            summary=row["summary"],
+        )
+        n += 1
+    if n:
+        logging.info("Hub ingest %s: %s ta yozuv", via, n)
+    return n
+
+
+@dp.message(Command("hublink"))
+async def hublink_cmd(message: Message):
+    """Admin: avtomatik ulanish bo'yicha ko'rsatma."""
+    if not is_private(message) or not is_admin(message.from_user.id):
+        return
+    from admin_status import resolve_public_hub_url
+
+    url = resolve_public_hub_url()
+    ingest = INGEST_CHAT_ID
+    uid = message.from_user.id if message.from_user else 0
+    lines = [
+        "🔗 <b>Avtomatik ulanish</b> (forward shart emas)",
+        "",
+        "<b>1) Ish botlari o'zi yuboradi</b> (yakunlanganda):",
+        "Har bir bot Railway da:",
+    ]
+    if url:
+        lines.append(f"<code>YORDAMCHI_HUB_URL={url}</code>")
+    else:
+        lines.append("<code>YORDAMCHI_HUB_URL=https://…railway.app</code>")
+    lines.append("<code>YORDAMCHI_HUB_SECRET=…</code> (yordamchi bilan bir xil)")
+    lines.append("<code>TZ=Asia/Tashkent</code>")
+    lines.extend(
+        [
+            "",
+            "<b>2) Yordamchi bot</b>:",
+            "<code>YORDAMCHI_HUB_SECRET=…</code>",
+            "<code>DB_PATH=/data/data.db</code> + Volume /data",
+            "",
+            "<b>3) Zaxira (Telegram)</b> — Web/HTTP ishlamasa:",
+            "Yashirin guruh → <code>YORDAMCHI_INGEST_CHAT_ID</code>",
+            "Ish botlarda: <code>YORDAMCHI_BOT_TOKEN</code> + shu guruh ID",
+            f"Hozir ingest guruh: <code>{ingest or 'sozlanmagan'}</code>",
+            "",
+            "Guruhga guruhdan kartalarni <b>forward</b> qilsangiz ham bot o'zi ajratadi.",
+            "",
+            "Tekshirish: 📊 Tizim holati · /hubtoday",
+            "Qo'lda: /forward (faqat zaxira)",
+        ]
+    )
+    await message.answer(
+        "\n".join(lines),
+        parse_mode="HTML",
+        reply_markup=await keyboard_for_user(uid),
+    )
+
 
 @dp.message(
     lambda m: INGEST_CHAT_ID
     and m.chat
     and m.chat.id == INGEST_CHAT_ID
-    and (m.text or "").startswith("HUB|")
+    and (m.text or m.caption)
 )
-async def hub_telegram_ingest(message: Message):
+async def hub_chat_auto_ingest(message: Message):
+    """
+    Ingest guruh: HUB| qatorlari va guruh kartalari (forward_import).
+    Ish botlari push qiladi — admin forward qilishi shart emas.
+    """
+    text = (message.text or message.caption or "").strip()
+    if not text:
+        return
     try:
-        parts = (message.text or "").strip().split("|", 4)
-        if len(parts) < 5 or parts[0] != "HUB":
-            return
-        day_s, tg_s, bot_key, summary = parts[1], parts[2], parts[3], parts[4]
-        await record_event(
-            tg_id=int(tg_s),
-            day=day_s,
-            bot_key=bot_key,
-            summary=summary,
-        )
-        logging.info("Hub telegram ingest ok: tg=%s bot=%s", tg_s, bot_key)
+        if text.startswith("HUB|"):
+            parts = text.split("|", 4)
+            if len(parts) < 5 or parts[0] != "HUB":
+                return
+            day_s, tg_s, bot_key, summary = parts[1], parts[2], parts[3], parts[4]
+            await record_event(
+                tg_id=int(tg_s),
+                day=day_s,
+                bot_key=bot_key,
+                summary=summary,
+            )
+            logging.info("Hub telegram HUB| ok: tg=%s bot=%s", tg_s, bot_key)
+        else:
+            fallback = forward_message_day(message)
+            if not fallback and message.date:
+                fallback = message.date.date().isoformat()
+            items = parse_forward_text(
+                text, employees=EMPLOYEES, fallback_day=fallback
+            )
+            if not items:
+                return
+            merged = aggregate_hub_events(items)
+            await _hub_apply_rows(merged, via="ingest-parse")
         try:
             await message.delete()
         except Exception:
             pass
+        try:
+            await message.react([{"type": "emoji", "emoji": "👍"}])
+        except Exception:
+            pass
     except Exception as e:
-        logging.warning("Hub telegram ingest xato: %s", e)
+        logging.warning("Hub chat ingest xato: %s", e)
 
 
 # ============================================================
