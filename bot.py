@@ -966,6 +966,7 @@ async def admin_adj_confirm(message: Message):
         bot=bot,
         user_state=user_state,
         db_execute=db_exec,
+        db_fetchone=db_fetchone,
         is_admin=is_admin,
         get_period_key=get_period_key,
         today_local=today_local,
