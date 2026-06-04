@@ -53,6 +53,13 @@ from ranking_broadcast import (
     ranking_already_sent,
     ranking_employees,
 )
+from db_backup import (
+    export_payload,
+    payload_to_hub_csv,
+    payload_to_json_bytes,
+    payload_to_reports_csv,
+    payload_to_summary_csv,
+)
 
 
 # ============================================================
@@ -1809,6 +1816,51 @@ def _tg_to_employee_name(tg_id: int, etg_map: dict[str, int]) -> str:
     if tg_id in TG_EMPLOYEE:
         return TG_EMPLOYEE[tg_id]
     return "?"
+
+
+@dp.message(Command("backup"))
+async def backup_cmd(message: Message):
+    """Admin: barcha hisobotlar va hub eventlar zaxirasi (Telegram fayl)."""
+    if not is_private(message):
+        return
+    if not is_admin(message.from_user.id):
+        await message.answer(
+            f"Faqat admin.\nSizning ID: <code>{message.from_user.id}</code>",
+            parse_mode="HTML",
+        )
+        return
+
+    await message.answer("⏳ Zaxira tayyorlanmoqda…")
+    try:
+        payload = export_payload(DB_PATH)
+        counts = payload.get("counts", {})
+        stamp = datetime.now(TZ).strftime("%Y%m%d_%H%M%S")
+        files = [
+            (f"backup_{stamp}.json", payload_to_json_bytes(payload)),
+            (f"reports_{stamp}.csv", payload_to_reports_csv(payload)),
+            (f"summary_{stamp}.csv", payload_to_summary_csv(payload)),
+            (f"hub_events_{stamp}.csv", payload_to_hub_csv(payload)),
+        ]
+        for name, data in files:
+            await message.answer_document(
+                BufferedInputFile(data, filename=name),
+                caption=name,
+            )
+        lines = [
+            "✅ Zaxira tayyor",
+            f"DB: <code>{html.escape(DB_PATH)}</code>",
+            "",
+            "Jadval yozuvlari:",
+        ]
+        for t, c in counts.items():
+            lines.append(f"  • {t}: {c}")
+        lines.append("")
+        lines.append("Deploydan oldin shu fayllarni saqlang.")
+        lines.append("Tiklash: tools/restore_backup.py yoki menga CSV/JSON yuboring.")
+        await message.answer("\n".join(lines), parse_mode="HTML")
+    except Exception as e:
+        logging.exception("backup_cmd")
+        await message.answer(f"❌ Zaxira xato: {html.escape(str(e))}", parse_mode="HTML")
 
 
 @dp.message(Command("hubtoday"))

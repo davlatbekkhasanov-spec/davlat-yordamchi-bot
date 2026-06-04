@@ -208,6 +208,7 @@ __marimo__/
 
 # Local
 data.db
+backups/
 PREVIEW_*.png
 *.png
 !assets/**/*.png
