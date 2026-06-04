@@ -63,6 +63,7 @@ from db_backup import (
     write_backup_files,
 )
 from metrics_import import (
+    ensure_metrics_seed,
     insert_import_rows,
     parse_import_csv_bytes,
     parse_import_text,
@@ -1417,7 +1418,7 @@ async def del_quick(message: Message):
     txt = message.text.replace("/del", "", 1).strip()
     parts = [p.strip() for p in txt.split("|")] if "|" in txt else []
     if len(parts) < 2:
-        await message.answer("Формат:\n/del YYYY-MM-DD | Employee | Category/ALL\nМисол:\n/del 2026-03-02 | Rajabboev Pulat | Пересчет товаров")
+        await message.answer("Формат:\n/del YYYY-MM-DD | Employee | Category/ALL\nМисол:\n/del 2026-03-02 | Tuvalov Farrux | Пересчет товаров")
         return
 
     day_iso = parse_iso_date(parts[0])
@@ -2344,6 +2345,12 @@ async def main():
             logging.info("Boshlang'ich hub: %s yozuv yuklandi", n)
     except Exception:
         logging.exception("Hub seed xato")
+    try:
+        m = await ensure_metrics_seed(db_fetchone, db_exec, categories=CATEGORIES)
+        if m:
+            logging.info("Yordamchi seed: %s yozuv kiritildi", m)
+    except Exception:
+        logging.exception("Metrics seed xato")
     await seed_pins()
     for tg_id, emp_name in TG_EMPLOYEE.items():
         await db_exec(

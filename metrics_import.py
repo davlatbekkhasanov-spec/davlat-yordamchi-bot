@@ -160,6 +160,69 @@ def parse_import_csv_bytes(
     )
 
 
+async def ensure_metrics_seed(
+    db_fetchone,
+    db_execute,
+    *,
+    categories: list[str],
+) -> int:
+    """Kun+xodim+kategoriya bo'sh bo'lsa metrics_seed yozuvlarini qo'shadi."""
+    from metrics_seed import METRICS_SEED_ROWS, METRICS_SEED_VERSION
+
+    await db_execute(
+        """
+        CREATE TABLE IF NOT EXISTS reports_seed_meta (
+            id INTEGER PRIMARY KEY CHECK (id = 1),
+            version INTEGER NOT NULL,
+            applied_at TEXT NOT NULL
+        )
+        """
+    )
+    row = await db_fetchone("SELECT version FROM reports_seed_meta WHERE id = 1")
+    applied_ver = int(row["version"]) if row else 0
+
+    to_insert: list[dict] = []
+    for day, employee, category, value in METRICS_SEED_ROWS:
+        if category not in categories:
+            continue
+        existing = await db_fetchone(
+            """
+            SELECT COALESCE(SUM(value), 0) AS s FROM reports
+            WHERE day = ? AND employee = ? AND category = ?
+            """,
+            (day, employee, category),
+        )
+        if int(existing["s"] or 0) > 0:
+            continue
+        to_insert.append(
+            {
+                "day": day,
+                "period": period_key_for_day(day),
+                "employee": employee,
+                "category": category,
+                "value": int(value),
+            }
+        )
+
+    added = 0
+    if to_insert:
+        added = await insert_import_rows(db_execute, to_insert, tg_id=0)
+
+    if added or applied_ver < METRICS_SEED_VERSION:
+        now_iso = datetime.now().isoformat(timespec="seconds")
+        await db_execute(
+            """
+            INSERT INTO reports_seed_meta(id, version, applied_at)
+            VALUES (1, ?, ?)
+            ON CONFLICT(id) DO UPDATE SET
+                version = excluded.version,
+                applied_at = excluded.applied_at
+            """,
+            (METRICS_SEED_VERSION, now_iso),
+        )
+    return added
+
+
 async def insert_import_rows(
     db_execute,
     rows: list[dict],
