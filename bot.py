@@ -59,6 +59,12 @@ from db_backup import (
     payload_to_json_bytes,
     payload_to_reports_csv,
     payload_to_summary_csv,
+    write_backup_files,
+)
+from metrics_import import (
+    insert_import_rows,
+    parse_import_csv_bytes,
+    parse_import_text,
 )
 
 
@@ -453,37 +459,44 @@ async def maybe_catchup_ranking() -> None:
     await broadcast_daily_ranking(yday)
 
 
-def setup_ranking_scheduler():
-    if not RANKING_BROADCAST_ENABLED:
-        return None
+def setup_scheduler():
     from apscheduler.schedulers.asyncio import AsyncIOScheduler
     from apscheduler.triggers.cron import CronTrigger
 
     scheduler = AsyncIOScheduler(timezone=TZ)
 
-    async def _job():
-        try:
-            await broadcast_daily_ranking()
-        except Exception:
-            logging.exception("Rejalashtirilgan kunlik reyting xato")
+    if RANKING_BROADCAST_ENABLED:
+        async def _job():
+            try:
+                await broadcast_daily_ranking()
+            except Exception:
+                logging.exception("Rejalashtirilgan kunlik reyting xato")
+
+        scheduler.add_job(
+            _job,
+            CronTrigger(
+                hour=RANKING_BROADCAST_HOUR,
+                minute=RANKING_BROADCAST_MINUTE,
+                timezone=TZ,
+            ),
+            id="daily_ranking_broadcast",
+            replace_existing=True,
+        )
+        logging.info(
+            "Kunlik reyting rejalashtirildi: %02d:%02d (%s)",
+            RANKING_BROADCAST_HOUR,
+            RANKING_BROADCAST_MINUTE,
+            TZ,
+        )
 
     scheduler.add_job(
-        _job,
-        CronTrigger(
-            hour=RANKING_BROADCAST_HOUR,
-            minute=RANKING_BROADCAST_MINUTE,
-            timezone=TZ,
-        ),
-        id="daily_ranking_broadcast",
+        _auto_backup_db,
+        CronTrigger(hour=23, minute=50, timezone=TZ),
+        id="auto_backup_db",
         replace_existing=True,
     )
     scheduler.start()
-    logging.info(
-        "Kunlik reyting rejalashtirildi: %02d:%02d (%s)",
-        RANKING_BROADCAST_HOUR,
-        RANKING_BROADCAST_MINUTE,
-        TZ,
-    )
+    logging.info("Kunlik auto-backup: 23:50 (%s)", TZ)
     return scheduler
 
 
@@ -1599,6 +1612,78 @@ async def stats_cmd(message: Message):
 # АДМИН: RESET + PLAN
 # ============================================================
 
+@dp.message(Command("import", "importpaste"))
+async def import_metrics_cmd(message: Message):
+    """Admin: guruh ko'rsatkichlarini DB ga kiritish (period oxirigacha saqlanadi)."""
+    if not is_private(message) or not is_admin(message.from_user.id):
+        return
+    uid = message.from_user.id if message.from_user else 0
+    cmd = (message.text or "").split()[0].lower()
+    body = (message.text or "").strip()
+    if cmd.startswith("/import"):
+        body = body.split(maxsplit=1)[1] if " " in body else ""
+
+    if not body.strip():
+        await message.answer(
+            "📥 <b>Import</b> — guruh ko'rsatkichlari\n\n"
+            "Har qator (bir format):\n"
+            "<code>2026-06-03|Mustafoev Abdullo|Приход|12</code>\n"
+            "<code>03.06.2026  Ruziboev Sindor  Перемещение  +10</code>\n\n"
+            "Yoki CSV fayl yuboring (.csv).\n"
+            "Yoki matnni shu yerga yuboring: <code>/importpaste</code> + matn.",
+            parse_mode="HTML",
+            reply_markup=await keyboard_for_user(uid),
+        )
+        return
+
+    rows, errs = parse_import_text(
+        body,
+        employees=EMPLOYEES,
+        categories=CATEGORIES,
+        default_day=today_local().isoformat(),
+    )
+    if not rows:
+        await message.answer(
+            "❌ Import bo'lmadi.\n" + "\n".join(errs[:15]),
+            parse_mode="HTML",
+        )
+        return
+    n = await insert_import_rows(db_exec, rows, tg_id=uid)
+    summary = f"✅ {n} ta yozuv kiritildi."
+    if errs:
+        summary += f"\n⚠️ {len(errs)} xato:\n" + "\n".join(errs[:10])
+    await message.answer(summary, reply_markup=await keyboard_for_user(uid))
+
+
+@dp.message(lambda m: is_private(m) and m.document and is_admin(m.from_user.id))
+async def import_metrics_file(message: Message):
+    doc = message.document
+    if not doc or not (doc.file_name or "").lower().endswith(".csv"):
+        return
+    uid = message.from_user.id if message.from_user else 0
+    try:
+        f = await bot.get_file(doc.file_id)
+        buf = BytesIO()
+        await bot.download_file(f.file_path, buf)
+        rows, errs = parse_import_csv_bytes(
+            buf.getvalue(),
+            employees=EMPLOYEES,
+            categories=CATEGORIES,
+            default_day=today_local().isoformat(),
+        )
+        if not rows:
+            await message.answer("❌ CSV import xato.\n" + "\n".join(errs[:12]))
+            return
+        n = await insert_import_rows(db_exec, rows, tg_id=uid)
+        msg = f"✅ CSV: {n} ta yozuv kiritildi."
+        if errs:
+            msg += f"\n⚠️ {len(errs)} xato."
+        await message.answer(msg, reply_markup=await keyboard_for_user(uid))
+    except Exception as e:
+        logging.exception("import csv")
+        await message.answer(f"❌ CSV xato: {html.escape(str(e))}", parse_mode="HTML")
+
+
 @dp.message(Command("reset_today"))
 async def reset_today(message: Message):
     if not is_admin(message.from_user.id):
@@ -2019,6 +2104,15 @@ async def hub_telegram_ingest(message: Message):
 # MAIN
 # ============================================================
 
+async def _auto_backup_db() -> None:
+    try:
+        out = os.path.join(os.path.dirname(DB_PATH) or ".", "backups")
+        write_backup_files(DB_PATH, out)
+        logging.info("Auto backup yozildi: %s", out)
+    except Exception:
+        logging.exception("Auto backup xato")
+
+
 async def main():
     init_cross_bot_schema()
     await seed_pins()
@@ -2028,7 +2122,7 @@ async def main():
             (int(tg_id), emp_name),
         )
     hub_runner = await start_ingest_server()
-    scheduler = setup_ranking_scheduler()
+    scheduler = setup_scheduler()
     try:
         await maybe_catchup_ranking()
     except Exception:
