@@ -139,6 +139,25 @@ def _parse_hms(text: str) -> int:
     return 0
 
 
+def _parse_ombor_duration(text: str) -> int:
+    """'1 soat 38 daqiqa 27 soniya' yoki '5907 soniya'."""
+    sl = (text or "").lower()
+    m = re.search(r"ish\s+vaqti\s+(\d+)\s*soniya", sl)
+    if m:
+        return int(m.group(1))
+    total = 0
+    h = re.search(r"(\d+)\s*soat", sl)
+    daq = re.search(r"(\d+)\s*daqiqa", sl)
+    son = re.search(r"(\d+)\s*soniya", sl)
+    if h:
+        total += int(h.group(1)) * 3600
+    if daq:
+        total += int(daq.group(1)) * 60
+    if son:
+        total += int(son.group(1))
+    return total
+
+
 def _parse_omborga_time(token: str) -> int:
     """OmborgaKiritishBot fmt_duration_short: daqiqa:soniya (75:39 = 75 daq 39 son)."""
     token = (token or "").strip()
@@ -195,7 +214,9 @@ def score_bot_summary(key: str, summary: str) -> tuple[int, int]:
         mins = max(1, ish // 60) if ish else 0
         return reys * 3 + mins // 2, total
     if key == "ombor":
-        sec = _parse_hms(s)
+        sec = _parse_ombor_duration(sl)
+        if not sec:
+            sec = _parse_hms(s)
         if not sec and re.search(r"(\d+)\s*son", sl):
             sec = int(re.search(r"(\d+)\s*son", sl).group(1))
         if not sec:

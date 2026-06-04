@@ -66,6 +66,7 @@ from metrics_import import (
     parse_import_csv_bytes,
     parse_import_text,
 )
+from forward_import import aggregate_hub_events, parse_forward_text
 
 
 # ============================================================
@@ -328,6 +329,7 @@ def confirm_kb():
 # ============================================================
 
 user_state: dict[int, dict] = {}
+forward_sessions: dict[int, list[dict]] = {}
 
 def is_private(m: Message) -> bool:
     return m.chat.type == "private"
@@ -1682,6 +1684,112 @@ async def import_metrics_file(message: Message):
     except Exception as e:
         logging.exception("import csv")
         await message.answer(f"❌ CSV xato: {html.escape(str(e))}", parse_mode="HTML")
+
+
+def _message_is_forward(message: Message) -> bool:
+    return bool(getattr(message, "forward_origin", None) or message.forward_date)
+
+
+@dp.message(Command("forward"))
+async def forward_help_cmd(message: Message):
+    """Admin: guru xabarlarini shu botga forward qilish."""
+    if not is_private(message) or not is_admin(message.from_user.id):
+        return
+    uid = message.from_user.id if message.from_user else 0
+    forward_sessions[uid] = []
+    n = len(forward_sessions.get(uid, []))
+    await message.answer(
+        "📨 <b>Forward rejimi</b>\n\n"
+        "1) <b>Barcha</b> ish guruhlaridan xabarlarni ketma-ket <b>shu botga forward</b> qiling\n"
+        "   (ombor, omborga, yuk, sklad, ishxona — bot o'zi ajratadi)\n"
+        "2) Har bir tanilgan xabar uchun tasdiq chiqadi\n"
+        "3) Tugatgach: <code>/forwarddone</code> — DB ga yoziladi\n"
+        "4) Bekor: <code>/forwardcancel</code>\n\n"
+        f"📦 Navbatda: {n} ta event\n"
+        "💡 Matnli xabar forward qiling; sana xabarda bo'lmasa — forward sanasi ishlatiladi.",
+        parse_mode="HTML",
+        reply_markup=await keyboard_for_user(uid),
+    )
+
+
+@dp.message(Command("forwarddone"))
+async def forward_done_cmd(message: Message):
+    if not is_private(message) or not is_admin(message.from_user.id):
+        return
+    uid = message.from_user.id if message.from_user else 0
+    items = forward_sessions.pop(uid, [])
+    if not items:
+        await message.answer("Navbat bo'sh. Avval /forward va xabarlarni forward qiling.")
+        return
+    merged = aggregate_hub_events(items)
+    for row in merged:
+        await record_event(
+            tg_id=row["tg_id"],
+            day=row["day"],
+            bot_key=row["bot_key"],
+            summary=row["summary"],
+        )
+    lines = [f"✅ {len(merged)} ta yozuv DB ga saqlandi ({len(items)} forward).", ""]
+    for row in merged[:12]:
+        label = BOT_LABELS.get(row["bot_key"], row["bot_key"])
+        lines.append(
+            f"• {row['employee']} · {row['day']} · {label} ({row['count']} ta)"
+        )
+    if len(merged) > 12:
+        lines.append(f"… va yana {len(merged) - 12} ta")
+    lines.append("\nTekshirish: /hubtoday")
+    await message.answer("\n".join(lines), reply_markup=await keyboard_for_user(uid))
+
+
+@dp.message(Command("forwardcancel"))
+async def forward_cancel_cmd(message: Message):
+    if not is_private(message) or not is_admin(message.from_user.id):
+        return
+    uid = message.from_user.id if message.from_user else 0
+    n = len(forward_sessions.pop(uid, []))
+    await message.answer(f"🗑 Bekor qilindi ({n} ta o'chirildi).")
+
+
+@dp.message(lambda m: is_private(m) and _message_is_forward(m))
+async def forward_message_handler(message: Message):
+    if not is_admin(message.from_user.id if message.from_user else 0):
+        return
+    uid = message.from_user.id if message.from_user else 0
+    text = (message.text or message.caption or "").strip()
+    if not text:
+        await message.answer("⚠️ Forwardda matn yo'q (rasm/fayl emas, matnli xabar forward qiling).")
+        return
+
+    fallback_day = None
+    if message.forward_date:
+        fallback_day = message.forward_date.date().isoformat()
+
+    parsed_list = parse_forward_text(
+        text, employees=EMPLOYEES, fallback_day=fallback_day
+    )
+    if not parsed_list:
+        await message.answer(
+            "⚠️ Bu forward tanilmadi.\n"
+            "Qo'llab-quvvatlanadi: ombor, omborga, yuk, sklad, ishxona, "
+            "yoki <code>HUB|...</code> qatori.\n"
+            "Kategoriya (Приход va h.k.): /import",
+            parse_mode="HTML",
+        )
+        return
+
+    sess = forward_sessions.setdefault(uid, [])
+    sess.extend(parsed_list)
+    lines = [f"✅ +{len(parsed_list)} ta (jami {len(sess)} event):"]
+    for p in parsed_list[:5]:
+        label = BOT_LABELS.get(p["bot_key"], p["bot_key"])
+        lines.append(f"• {p['employee']} · {label} · {p['day']}")
+    if len(parsed_list) > 5:
+        lines.append(f"… va yana {len(parsed_list) - 5} ta")
+    lines.append("\nTugatish: /forwarddone")
+    await message.answer(
+        "\n".join(lines),
+        reply_markup=await keyboard_for_user(uid),
+    )
 
 
 @dp.message(Command("reset_today"))
