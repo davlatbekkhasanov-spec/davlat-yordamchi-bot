@@ -33,8 +33,20 @@ async def _ensure_playwright() -> bool:
         return False
 
 
-async def html_to_png(html: str, *, timeout: float = 25.0) -> bytes:
+async def html_to_png(
+    html: str,
+    *,
+    timeout: float = 25.0,
+    width: int | None = None,
+    height: int | None = None,
+    page_selector: str = ".page",
+    min_height: int | None = None,
+) -> bytes:
     from playwright.async_api import async_playwright
+
+    vw = width or A4_WIDTH
+    vh = height or A4_HEIGHT
+    floor_h = min_height if min_height is not None else (1754 if vw == A4_WIDTH else vh)
 
     async def _shot() -> bytes:
         async with async_playwright() as p:
@@ -44,20 +56,21 @@ async def html_to_png(html: str, *, timeout: float = 25.0) -> bytes:
             )
             try:
                 page = await browser.new_page(
-                    viewport={"width": A4_WIDTH, "height": A4_HEIGHT},
+                    viewport={"width": vw, "height": vh},
                     device_scale_factor=DEVICE_SCALE,
                 )
                 await page.set_content(html, wait_until="networkidle")
                 await page.evaluate("() => document.fonts.ready")
                 await page.emulate_media(media="screen")
+                sel = page_selector.replace("'", "\\'")
                 page_height = await page.evaluate(
-                    """() => Math.max(
-                        1754,
-                        Math.ceil(document.querySelector('.page').getBoundingClientRect().height) + 4
+                    f"""() => Math.max(
+                        {floor_h},
+                        Math.ceil(document.querySelector('{sel}').getBoundingClientRect().height) + 4
                     )"""
                 )
-                await page.set_viewport_size({"width": A4_WIDTH, "height": page_height})
-                return await page.locator(".page").screenshot(
+                await page.set_viewport_size({"width": vw, "height": page_height})
+                return await page.locator(page_selector).screenshot(
                     type="png",
                     animations="disabled",
                 )

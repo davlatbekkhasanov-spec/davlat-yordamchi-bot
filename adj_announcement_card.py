@@ -1,61 +1,137 @@
-"""Bonus / jarima — vizual PNG kartochka (kunlik hisobot uslubida)."""
+"""Bonus / jarima — premium HTML→PNG kartochka."""
 
 from __future__ import annotations
 
+import asyncio
+import base64
+import logging
 from io import BytesIO
-
-from PIL import Image, ImageDraw, ImageFont
-
 from pathlib import Path
 
-from daily_report_card import (
-    ACCENT,
-    BG,
-    FONT_DIR,
-    GOLD,
-    GREEN,
-    MUTED,
-    ORANGE,
-    PANEL,
-    TEAL,
-    TEAL_D,
-    WHITE,
-    _load_fonts,
-    _panel,
-    _truncate,
-)
+from jinja2 import Environment, FileSystemLoader, select_autoescape
+from PIL import Image, ImageDraw, ImageFont
 
-W, H = 920, 1180
-M = 28
+from daily_report_card import FONT_DIR, GOLD, GREEN, WHITE, _load_fonts, _truncate
+from report_html import _image_mime, _logo_b64
 
-PENALTY_BG = (18, 10, 22)
-PENALTY_HDR = (160, 35, 48)
-PENALTY_ACCENT = (255, 90, 100)
-RED_SCORE = (255, 70, 85)
+log = logging.getLogger(__name__)
+
+ASSETS = Path(__file__).resolve().parent / "assets" / "report"
+CARD_W, CARD_H = 1080, 1350
 
 
-def _paste_avatar(img: Image.Image, draw: ImageDraw.ImageDraw, avatar: bytes | None, cx: int, cy: int, size: int):
-    if not avatar:
-        draw.ellipse(
-            (cx - size // 2, cy - size // 2, cx + size // 2, cy + size // 2),
-            fill=PANEL,
-            outline=MUTED,
-            width=4,
-        )
-        draw.text((cx - 18, cy - 22), "👤", fill=WHITE)
-        return
-    try:
-        av = Image.open(BytesIO(avatar)).convert("RGB").resize((size, size))
-        mask = Image.new("L", (size, size), 0)
-        ImageDraw.Draw(mask).ellipse((0, 0, size, size), fill=255)
-        x0, y0 = cx - size // 2, cy - size // 2
-        img.paste(av, (x0, y0), mask)
-        draw.ellipse((x0 - 4, y0 - 4, x0 + size + 4, y0 + size + 4), outline=GOLD, width=5)
-    except Exception:
-        pass
+def _env() -> Environment:
+    return Environment(
+        loader=FileSystemLoader(str(ASSETS)),
+        autoescape=select_autoescape(["html"]),
+    )
 
 
-def render_adj_card_png(
+def _initials(employee: str) -> str:
+    parts = (employee or "").strip().split()
+    if len(parts) >= 2:
+        return (parts[0][0] + parts[-1][0]).upper()
+    if parts:
+        return parts[0][:2].upper()
+    return "?"
+
+
+def build_adj_card_html(
+    *,
+    kind: str,
+    employee: str,
+    points: int,
+    period: str,
+    day_iso: str,
+    avatar: bytes | None = None,
+) -> str:
+    is_bonus = kind == "bonus"
+    sign = "+" if is_bonus else "−"
+    avatar_b64 = base64.b64encode(avatar).decode("ascii") if avatar else ""
+    avatar_mime = _image_mime(avatar) if avatar else ""
+
+    ctx = {
+        "css": (ASSETS / "adj_card.css").read_text(encoding="utf-8"),
+        "kind_class": "bonus" if is_bonus else "penalty",
+        "is_bonus": is_bonus,
+        "logo_b64": _logo_b64(),
+        "ribbon_title": "ТАНТАНАВИЙ БОНУС" if is_bonus else "ЖАРИМА ОЧКО",
+        "ribbon_sub": "Рейтинг жадвалида кўтарилди" if is_bonus else "Рейтингдан айирилди",
+        "employee": employee,
+        "initials": _initials(employee),
+        "avatar_b64": avatar_b64,
+        "avatar_mime": avatar_mime,
+        "score_display": f"{sign}{points}",
+        "score_label": "БОНУС ОЧКО" if is_bonus else "ЖАРИМА",
+        "period": period,
+        "day_iso": day_iso,
+        "footer_quote": (
+            "Жамоа горди! Чемпионлик йўли — очиқ!"
+            if is_bonus
+            else "Диққат: қайта такрорланмасин — жамоа кутмоқда."
+        ),
+        "stars_line": "★ ★ ★ ★ ★" if is_bonus else "⚠ ⚠ ⚠",
+    }
+    return _env().get_template("adj_card.html").render(**ctx)
+
+
+async def _html_to_card_png(html: str) -> bytes:
+    from report_png import _ensure_playwright, html_to_png
+
+    if not await _ensure_playwright():
+        raise RuntimeError("playwright yo'q")
+    return await html_to_png(
+        html,
+        width=CARD_W,
+        height=CARD_H,
+        min_height=CARD_H,
+        page_selector=".page",
+    )
+
+
+def _render_pil_fallback(
+    *,
+    kind: str,
+    employee: str,
+    points: int,
+    period: str,
+    day_iso: str,
+    avatar: bytes | None,
+) -> bytes:
+    """Playwright bo'lmasa — soddaroq PIL."""
+    is_bonus = kind == "bonus"
+    W, H = CARD_W, CARD_H
+    img = Image.new("RGB", (W, H), (8, 14, 32) if is_bonus else (24, 8, 12))
+    draw = ImageDraw.Draw(img)
+    f_title, _, _, f_bold, f_body, _ = _load_fonts()
+    draw.rounded_rectangle((24, 24, W - 24, H - 24), radius=24, outline=GOLD if is_bonus else (200, 70, 80), width=4)
+    draw.text((W // 2 - 120, 80), "BONUS" if is_bonus else "JARIMA", fill=WHITE, font=f_title)
+    initials = _initials(employee)
+    cx, cy, sz = W // 2, 320, 200
+    draw.ellipse((cx - sz // 2, cy - sz // 2, cx + sz // 2, cy + sz // 2), fill=(20, 80, 100) if is_bonus else (80, 30, 40))
+    if avatar:
+        try:
+            av = Image.open(BytesIO(avatar)).convert("RGB").resize((sz, sz))
+            mask = Image.new("L", (sz, sz), 0)
+            ImageDraw.Draw(mask).ellipse((0, 0, sz, sz), fill=255)
+            img.paste(av, (cx - sz // 2, cy - sz // 2), mask)
+        except Exception:
+            draw.text((cx - 40, cy - 30), initials, fill=WHITE, font=f_title)
+    else:
+        draw.text((cx - 40, cy - 30), initials, fill=WHITE, font=f_title)
+    tw = draw.textlength(employee, font=f_bold)
+    draw.text(((W - tw) / 2, 460), employee, fill=WHITE, font=f_bold)
+    sign = "+" if is_bonus else "-"
+    sc = f"{sign}{points}"
+    draw.text(((W - 80) / 2, 520), sc, fill=GREEN if is_bonus else (255, 100, 110), font=f_title)
+    draw.text((80, 680), f"Period: {period}", fill=WHITE, font=f_body)
+    draw.text((80, 710), f"Sana: {day_iso}", fill=WHITE, font=f_body)
+    buf = BytesIO()
+    img.save(buf, format="PNG")
+    return buf.getvalue()
+
+
+async def render_adj_card_png(
     *,
     kind: str,
     employee: str,
@@ -64,79 +140,24 @@ def render_adj_card_png(
     day_iso: str,
     avatar: bytes | None = None,
 ) -> bytes:
-    is_bonus = kind == "bonus"
-    fonts = _load_fonts()
-    f_title, f_score, f_head, f_bold, f_body, f_small = fonts
-
-    bg = BG if is_bonus else PENALTY_BG
-    hdr_top = TEAL if is_bonus else PENALTY_HDR
-    hdr_bot = TEAL_D if is_bonus else (100, 22, 32)
-    accent = ACCENT if is_bonus else PENALTY_ACCENT
-    score_color = GREEN if is_bonus else RED_SCORE
-    border = GOLD if is_bonus else PENALTY_ACCENT
-
-    img = Image.new("RGB", (W, H), bg)
-    draw = ImageDraw.Draw(img)
-    _panel(draw, (M, M, W - M, H - M), fill=bg, outline=border, radius=22, width=4)
-
-    hdr_h = M + 120
-    draw.rounded_rectangle((M + 8, M + 8, W - M - 8, hdr_h), radius=16, fill=hdr_bot)
-    draw.rounded_rectangle((M + 8, M + 8, W - M - 8, hdr_h - 32), radius=16, fill=hdr_top)
-
-    if is_bonus:
-        title = "ТАНТАНАВИЙ БОНУС"
-        sub = "Рейтинг жадвалида КЎТАРИЛДИ"
-        motiv = "Жамоа горди! Чемпионлик йўли — очиқ!"
-    else:
-        title = "ЖАРИМА ОЧКО"
-        sub = "Рейтингдан АЙИРИЛДИ"
-        motiv = "Диққат: қайта такрорланмасин"
-
-    draw.text((M + 32, M + 22), title, fill=WHITE, font=f_head)
-    draw.text((M + 32, M + 52), sub, fill=accent, font=f_bold)
-
-    av_cx, av_cy = W // 2, M + 280
-    av_size = 220
-    _paste_avatar(img, draw, avatar, av_cx, av_cy, av_size)
-
-    name_y = av_cy + av_size // 2 + 36
-    name = _truncate(employee, 28)
-    tw = draw.textlength(name, font=f_title)
-    draw.text(((W - tw) / 2, name_y), name, fill=WHITE, font=f_title)
-
-    sign = "+" if is_bonus else "−"
-    score_txt = f"{sign}{points}"
-    f_huge = f_score
-    for bold_path in (
-        FONT_DIR / "NotoSans-Bold.ttf",
-        Path("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"),
-        Path("C:/Windows/Fonts/arialbd.ttf"),
-    ):
-        if bold_path.is_file():
-            try:
-                f_huge = ImageFont.truetype(str(bold_path), 96)
-            except Exception:
-                pass
-            break
-    sw = draw.textlength(score_txt, font=f_huge)
-    score_y = name_y + 56
-    draw.text(((W - sw) / 2, score_y), score_txt, fill=score_color, font=f_huge)
-
-    lbl = "БОНУС ОЧКО" if is_bonus else "ЖАРИМА ОЧКО"
-    lw = draw.textlength(lbl, font=f_bold)
-    draw.text(((W - lw) / 2, score_y + 88), lbl, fill=accent, font=f_bold)
-
-    mid_y = score_y + 150
-    _panel(draw, (M + 40, mid_y, W - M - 40, mid_y + 120), fill=PANEL, outline=(45, 65, 95), radius=14)
-    draw.text((M + 56, mid_y + 18), f"📈  Период: {period}", fill=WHITE, font=f_body)
-    draw.text((M + 56, mid_y + 48), f"📅  Сана: {day_iso}", fill=WHITE, font=f_body)
-    draw.text((M + 56, mid_y + 78), "Kanstik Samarqand", fill=MUTED, font=f_small)
-
-    foot_y = H - M - 100
-    draw.text((M + 40, foot_y), _truncate(motiv, 42), fill=ORANGE if is_bonus else PENALTY_ACCENT, font=f_body)
-    stars = "* * * * *" if is_bonus else "! ! ! ! !"
-    draw.text((M + 40, foot_y + 32), stars, fill=GOLD if is_bonus else RED_SCORE, font=f_head)
-
-    buf = BytesIO()
-    img.save(buf, format="PNG", optimize=True)
-    return buf.getvalue()
+    html = build_adj_card_html(
+        kind=kind,
+        employee=employee,
+        points=points,
+        period=period,
+        day_iso=day_iso,
+        avatar=avatar,
+    )
+    try:
+        return await _html_to_card_png(html)
+    except Exception as e:
+        log.warning("Adj card HTML→PNG, PIL fallback: %s", e)
+        return await asyncio.to_thread(
+            _render_pil_fallback,
+            kind=kind,
+            employee=employee,
+            points=points,
+            period=period,
+            day_iso=day_iso,
+            avatar=avatar,
+        )

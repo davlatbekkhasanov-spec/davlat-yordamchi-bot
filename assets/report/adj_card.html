@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="utf-8" />
+  <style>{{ css }}</style>
+</head>
+<body>
+  <div class="page {{ kind_class }}">
+    <div class="glow-ring"></div>
+    {% if is_bonus %}
+    <div class="confetti">
+      <span></span><span></span><span></span><span></span><span></span>
+    </div>
+    {% endif %}
+
+    <div class="brand">
+      <img src="data:image/svg+xml;base64,{{ logo_b64 }}" alt="Kanstik" />
+    </div>
+
+    <div class="ribbon">
+      {{ ribbon_title }}
+      <small>{{ ribbon_sub }}</small>
+    </div>
+
+    <div class="hero">
+      <div class="avatar-wrap">
+        <div class="avatar-ring">
+          <div class="avatar-inner">
+            {% if avatar_b64 %}
+            <img src="data:{{ avatar_mime }};base64,{{ avatar_b64 }}" alt="" />
+            {% else %}
+            <div class="initials">{{ initials }}</div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      <div class="employee-name">{{ employee }}</div>
+
+      <div class="score-block">
+        <div class="score-value">{{ score_display }}</div>
+        <div class="score-label">{{ score_label }}</div>
+      </div>
+    </div>
+
+    <div class="meta-card">
+      <div class="meta-row"><span>Период</span><span>{{ period }}</span></div>
+      <div class="meta-row"><span>Сана</span><span>{{ day_iso }}</span></div>
+    </div>
+
+    <p class="footer-quote">{{ footer_quote }}</p>
+    <div class="stars">{{ stars_line }}</div>
+    <div class="company">Kanstik Samarqand · Reyting</div>
+  </div>
+</body>
+</html>
