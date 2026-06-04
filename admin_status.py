@@ -13,6 +13,7 @@ from aiogram.exceptions import TelegramAPIError
 from aiogram.types import KeyboardButton, Message, ReplyKeyboardMarkup, ReplyKeyboardRemove
 
 from cross_bot_hub import BOT_LABELS, count_employee_links, hub_stats_today
+from ranking_adjustments import BTN_BONUS, BTN_PENALTY
 from yordamchi_push import today_iso
 
 BTN_ADMIN_STATUS = "📊 Tizim holati"
@@ -26,6 +27,7 @@ def admin_status_kb() -> ReplyKeyboardMarkup:
         keyboard=[
             [KeyboardButton(text=BTN_ADMIN_STATUS), KeyboardButton(text=BTN_PREVIEW_REPORT)],
             [KeyboardButton(text=BTN_ADMIN_PHOTO), KeyboardButton(text=BTN_RANKING)],
+            [KeyboardButton(text=BTN_BONUS), KeyboardButton(text=BTN_PENALTY)],
         ],
         resize_keyboard=True,
     )

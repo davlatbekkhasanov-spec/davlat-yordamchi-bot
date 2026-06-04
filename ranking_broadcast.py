@@ -8,6 +8,7 @@ from typing import Awaitable, Callable
 from daily_report_card import BOT_ORDER, LeaderRow, score_bot_summary, _fmt_clock
 from cross_bot_hub import fetch_merged_latest_by_bot
 from employee_tg_map import employee_name_variants, tg_ids_for_employee
+from ranking_adjustments import period_adjustment_net
 
 def ranking_employees(employees: list[str]) -> list[str]:
     return list(employees)
@@ -80,6 +81,7 @@ async def build_team_rankings(
     sum_period_total: Callable[[str, str], Awaitable[int]],
     get_period_key: Callable[[date | None], str],
     employee_tg_map: dict[str, int],
+    db_fetchone=None,
 ) -> tuple[list[LeaderRow], int, str]:
     period = get_period_key(ref_date)
     days = period_days_through(period, ref_date)
@@ -94,7 +96,10 @@ async def build_team_rankings(
         tg_set = tg_ids_for_employee(emp, employee_tg_map=employee_tg_map)
         if tg_set and days:
             bot_pts, work_sec = await _bot_points_in_period(tg_set, days)
-        scores.append((emp, cat_pts + bot_pts, work_sec))
+        adj_pts = 0
+        if db_fetchone is not None:
+            adj_pts = await period_adjustment_net(db_fetchone, period, emp)
+        scores.append((emp, cat_pts + bot_pts + adj_pts, work_sec))
 
     scores.sort(key=lambda x: (-x[1], x[0]))
     max_sc = max((s[1] for s in scores), default=0)

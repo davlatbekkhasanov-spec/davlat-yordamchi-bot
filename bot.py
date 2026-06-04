@@ -39,6 +39,20 @@ from admin_status import (
     admin_status_kb,
     handle_admin_status,
 )
+from admin_ranking_adj import (
+    handle_bonus_start,
+    handle_cancel as handle_adj_cancel,
+    handle_confirm as handle_adj_confirm,
+    handle_employee_pick as handle_adj_employee,
+    handle_penalty_start,
+    handle_points as handle_adj_points,
+)
+from ranking_adjustments import (
+    BTN_ADJ_CONFIRM,
+    BTN_BONUS,
+    BTN_PENALTY,
+    init_schema as init_ranking_adj_schema,
+)
 from employee_photo_admin import (
     admin_photo_state,
     handle_photo_cancel,
@@ -267,6 +281,7 @@ cur.execute("CREATE INDEX IF NOT EXISTS idx_reports_day_emp_cat ON reports(day, 
 cur.execute("CREATE INDEX IF NOT EXISTS idx_reports_tgid_created ON reports(tg_id, created_at)")
 init_photo_schema(conn)
 init_ranking_schema(conn)
+init_ranking_adj_schema(conn)
 conn.commit()
 
 
@@ -287,6 +302,7 @@ def categories_kb(user_id: int | None = None):
     if user_id and is_admin(user_id):
         rows.append([KeyboardButton(text=BTN_ADMIN_STATUS), KeyboardButton(text=BTN_PREVIEW_REPORT)])
         rows.append([KeyboardButton(text=BTN_ADMIN_PHOTO), KeyboardButton(text=BTN_RANKING)])
+        rows.append([KeyboardButton(text=BTN_BONUS), KeyboardButton(text=BTN_PENALTY)])
     return ReplyKeyboardMarkup(keyboard=rows, resize_keyboard=True)
 
 
@@ -342,6 +358,9 @@ _INTAKE_SKIP_TEXTS = frozenset(
         BTN_PREVIEW_REPORT,
         BTN_ADMIN_PHOTO,
         BTN_RANKING,
+        BTN_BONUS,
+        BTN_PENALTY,
+        BTN_ADJ_CONFIRM,
         "✅ Ҳамма ходим",
         "✅ Ҳамма категория",
         "➕ Яна категория",
@@ -499,6 +518,7 @@ async def broadcast_daily_ranking(day_iso: str | None = None, *, force: bool = F
         sum_period_total=sum_period_total,
         get_period_key=get_period_key,
         employee_tg_map=await employee_tg_map(),
+        db_fetchone=db_fetchone,
     )
     try:
         png = await render_ranking_png(period, ref, leaders, active)
@@ -868,13 +888,109 @@ async def start(message: Message):
 async def cancel_cmd(message: Message):
     if not is_private(message):
         return
-    user_state.pop(message.from_user.id, None)
+    uid = message.from_user.id if message.from_user else 0
+    if await handle_adj_cancel(
+        message,
+        user_state=user_state,
+        is_admin=is_admin,
+        admin_status_kb=admin_status_kb,
+    ):
+        return
+    user_state.pop(uid, None)
     await message.answer("Бекор қилинди. /start", reply_markup=ReplyKeyboardRemove())
 
 
 # ============================================================
 # Admin: xodim rasmi (boshqa handlerlar oldin)
 # ============================================================
+
+@dp.message(lambda m: is_private(m) and m.text == BTN_BONUS and is_admin(m.from_user.id))
+async def admin_bonus_start(message: Message):
+    await handle_bonus_start(
+        message,
+        user_state=user_state,
+        employees=EMPLOYEES,
+        employees_kb=employees_kb,
+        admin_status_kb=admin_status_kb,
+        is_admin=is_admin,
+    )
+
+
+@dp.message(lambda m: is_private(m) and m.text == BTN_PENALTY and is_admin(m.from_user.id))
+async def admin_penalty_start(message: Message):
+    await handle_penalty_start(
+        message,
+        user_state=user_state,
+        employees=EMPLOYEES,
+        employees_kb=employees_kb,
+        is_admin=is_admin,
+    )
+
+
+@dp.message(
+    lambda m: is_private(m)
+    and m.text in EMPLOYEES
+    and is_admin(m.from_user.id)
+    and m.from_user
+    and "admin_rank_adj" in user_state.get(m.from_user.id, {})
+)
+async def admin_adj_employee(message: Message):
+    await handle_adj_employee(
+        message,
+        user_state=user_state,
+        employees=EMPLOYEES,
+        is_admin=is_admin,
+    )
+
+
+@dp.message(
+    lambda m: is_private(m)
+    and m.text
+    and m.text.isdigit()
+    and is_admin(m.from_user.id)
+    and m.from_user
+    and user_state.get(m.from_user.id, {}).get("admin_rank_adj", {}).get("step") == "points"
+)
+async def admin_adj_points(message: Message):
+    await handle_adj_points(
+        message,
+        user_state=user_state,
+        is_admin=is_admin,
+        box=box,
+    )
+
+
+@dp.message(lambda m: is_private(m) and m.text == BTN_ADJ_CONFIRM and is_admin(m.from_user.id))
+async def admin_adj_confirm(message: Message):
+    await handle_adj_confirm(
+        message,
+        bot=bot,
+        user_state=user_state,
+        db_execute=db_exec,
+        is_admin=is_admin,
+        box=box,
+        get_period_key=get_period_key,
+        today_local=today_local,
+        group_id=GROUP_ID,
+        admin_status_kb=admin_status_kb,
+    )
+
+
+@dp.message(
+    lambda m: is_private(m)
+    and m.text == "❌ Бекор қилиш"
+    and is_admin(m.from_user.id)
+    and m.from_user
+    and "admin_rank_adj" in user_state.get(m.from_user.id, {})
+)
+async def admin_adj_cancel_btn(message: Message):
+    await handle_adj_cancel(
+        message,
+        user_state=user_state,
+        is_admin=is_admin,
+        admin_status_kb=admin_status_kb,
+    )
+
 
 @dp.message(lambda m: is_private(m) and m.text == BTN_ADMIN_PHOTO and is_admin(m.from_user.id))
 async def admin_photo_start(message: Message):
