@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import asyncio
 import html
 import logging
 
@@ -190,7 +189,7 @@ async def handle_points(
     preview = (
         f"👤 {html.escape(emp or '')}\n"
         f"📌 {_kind_label(kind)}: <b>{sign}{pts}</b> (рейтинг)\n\n"
-        "Тасдиқласангиз — <b>личкада</b> тантанали хabar chiqadi.\n"
+        "Тасдиқласангиз — <b>личкада PNG-карточка</b> chiqadi.\n"
         "(Guruhga hozircha yuborilmaydi.)"
     )
     await message.answer(
@@ -249,15 +248,27 @@ async def handle_confirm(
         tg_id=emp_tg,
         employee=emp,
     )
-    card_png = await asyncio.to_thread(
-        render_adj_card_png,
-        kind=kind,
-        employee=emp,
-        points=pts,
-        period=period,
-        day_iso=day_iso,
-        avatar=avatar,
-    )
+    try:
+        card_png = await render_adj_card_png(
+            kind=kind,
+            employee=emp,
+            points=pts,
+            period=period,
+            day_iso=day_iso,
+            avatar=avatar,
+        )
+    except Exception:
+        log.exception("Kartochka PNG yaratish xato")
+        card_png = b""
+
+    if not card_png or len(card_png) < 500:
+        await message.answer(
+            "❌ Kartochka yaratilmadi. Qayta urinib ko‘ring yoki admin bilan bog‘laning.",
+            reply_markup=admin_status_kb(),
+        )
+        user_state.pop(uid, None)
+        return True
+
     caption = format_short_caption(
         kind=kind,
         employee=emp,
@@ -265,7 +276,7 @@ async def handle_confirm(
         tg_id=emp_tg,
     )
 
-    await _send_private_announce(bot, uid, caption, card_png=card_png)
+    admin_ok = await _send_private_announce(bot, uid, caption, card_png=card_png)
 
     emp_notified = False
     if emp_tg and int(emp_tg) != int(uid):
@@ -273,19 +284,24 @@ async def handle_confirm(
             bot, int(emp_tg), caption, card_png=card_png
         )
 
+    tail_parts: list[str] = []
+    if not admin_ok:
+        tail_parts.append("⚠️ <i>Kartochka yuborilmadi — logni tekshiring.</i>")
     if emp_tg and int(emp_tg) != int(uid):
-        tail = (
-            "\n\n<i>Xodimga ham kartochka + ping yuborildi.</i>"
-            if emp_notified
-            else "\n\n⚠️ <i>Xodimga lichkaga yuborilmadi (/start kerak).</i>"
-        )
+        if emp_notified:
+            tail_parts.append("<i>Xodimga ham kartochka yuborildi.</i>")
+        else:
+            tail_parts.append(
+                "⚠️ <i>Xodimga lichkaga yuborilmadi — botda /start bosishi kerak.</i>"
+            )
     elif emp_tg:
-        tail = "\n\n<i>(Sizning profilingiz — bitta kartochka.)</i>"
+        tail_parts.append("<i>(Sizning profilingiz.)</i>")
     else:
-        tail = "\n\n<i>Telegram ID topilmadi — faqat sizda.</i>"
+        tail_parts.append("<i>Telegram ID topilmadi.</i>")
     if not avatar:
-        tail += "\n<i>📷 Xodim rasmini yuklasangiz — kartochkada surat ham chiqadi.</i>"
+        tail_parts.append("<i>📷 Xodim rasmi — kartochkada chiroyliroq chiqadi.</i>")
 
+    tail = "\n\n" + "\n".join(tail_parts) if tail_parts else ""
     await message.answer(
         format_admin_saved_note(kind=kind, points=pts) + tail,
         parse_mode="HTML",
