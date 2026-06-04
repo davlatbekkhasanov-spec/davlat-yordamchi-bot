@@ -16,13 +16,15 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if ROOT not in sys.path:
     sys.path.insert(0, ROOT)
 
-from db_backup import restore_hub_from_json, restore_reports_from_json  # noqa: E402
+from db_backup import restore_all_from_json, restore_hub_from_json, restore_links_from_json, restore_reports_from_json  # noqa: E402
 
 
 def main() -> int:
     p = argparse.ArgumentParser()
     p.add_argument("json_path")
     p.add_argument("--hub", action="store_true", help="cross_bot_events ham tiklash")
+    p.add_argument("--links", action="store_true", help="employee_links va pins tiklash")
+    p.add_argument("--all", action="store_true", help="Barcha mavjud jadvallarni tiklash")
     p.add_argument("--replace", action="store_true", help="Avval jadvalni tozalash")
     args = p.parse_args()
 
@@ -33,12 +35,23 @@ def main() -> int:
         print(f"Backup topilmadi: {args.json_path}")
         return 1
 
+    if args.all:
+        res = restore_all_from_json(db_path, args.json_path, replace=args.replace)
+        print("source counts:", res.get("counts_source"))
+        print("reports:", res.get("reports"))
+        print("hub:", res.get("hub"))
+        print("links:", res.get("links"))
+        return 0
+
     rep = restore_reports_from_json(db_path, args.json_path, replace=args.replace)
     print("reports:", rep)
     if args.hub:
         hub = restore_hub_from_json(db_path, args.json_path, replace=args.replace)
         print("hub:", hub)
-    return 0 if rep.get("ok") else 1
+    if args.links:
+        links = restore_links_from_json(db_path, args.json_path, replace=args.replace)
+        print("links:", links)
+    return 0
 
 
 if __name__ == "__main__":

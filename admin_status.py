@@ -10,7 +10,7 @@ import urllib.request
 
 from aiogram import Bot
 from aiogram.exceptions import TelegramAPIError
-from aiogram.types import KeyboardButton, Message, ReplyKeyboardMarkup
+from aiogram.types import KeyboardButton, Message, ReplyKeyboardMarkup, ReplyKeyboardRemove
 
 from cross_bot_hub import BOT_LABELS, count_employee_links, hub_stats_today
 from yordamchi_push import today_iso
@@ -200,7 +200,15 @@ async def build_admin_status_report(bot: Bot, admin_uid: int) -> str:
     return "\n".join(lines)
 
 
-async def handle_admin_status(message: Message, bot: Bot) -> None:
+async def handle_admin_status(
+    message: Message,
+    bot: Bot,
+    *,
+    reply_markup: ReplyKeyboardMarkup | ReplyKeyboardRemove | None = None,
+) -> None:
     uid = message.from_user.id if message.from_user else 0
     text = await build_admin_status_report(bot, uid)
-    await message.answer(text, parse_mode="HTML")
+    kwargs: dict = {"parse_mode": "HTML"}
+    if reply_markup is not None:
+        kwargs["reply_markup"] = reply_markup
+    await message.answer(text, **kwargs)

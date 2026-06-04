@@ -174,6 +174,48 @@ def restore_reports_from_json(db_path: str, backup_json_path: str, *, replace: b
         conn.close()
 
 
+def restore_links_from_json(db_path: str, backup_json_path: str, *, replace: bool = False) -> dict:
+    with open(backup_json_path, "r", encoding="utf-8") as f:
+        payload = json.load(f)
+    links = payload.get("tables", {}).get("employee_links", [])
+    pins = payload.get("tables", {}).get("employee_pins", [])
+    conn = _connect(db_path)
+    try:
+        if replace:
+            conn.execute("DELETE FROM employee_links")
+            conn.execute("DELETE FROM employee_pins")
+        link_n = 0
+        for r in links:
+            conn.execute(
+                "INSERT OR REPLACE INTO employee_links(tg_id, employee) VALUES (?, ?)",
+                (int(r["tg_id"]), r["employee"]),
+            )
+            link_n += 1
+        pin_n = 0
+        for r in pins:
+            conn.execute(
+                "INSERT OR REPLACE INTO employee_pins(employee, pin) VALUES (?, ?)",
+                (r["employee"], r["pin"]),
+            )
+            pin_n += 1
+        conn.commit()
+        return {"ok": True, "links": link_n, "pins": pin_n, "replace": replace}
+    finally:
+        conn.close()
+
+
+def restore_all_from_json(db_path: str, backup_json_path: str, *, replace: bool = False) -> dict:
+    """JSON zaxiradan mavjud jadvallarni tiklash."""
+    out: dict = {"reports": {}, "hub": {}, "links": {}}
+    out["reports"] = restore_reports_from_json(db_path, backup_json_path, replace=replace)
+    out["hub"] = restore_hub_from_json(db_path, backup_json_path, replace=replace)
+    out["links"] = restore_links_from_json(db_path, backup_json_path, replace=replace)
+    with open(backup_json_path, "r", encoding="utf-8") as f:
+        payload = json.load(f)
+    out["counts_source"] = payload.get("counts", {})
+    return out
+
+
 def restore_hub_from_json(db_path: str, backup_json_path: str, *, replace: bool = False) -> dict:
     with open(backup_json_path, "r", encoding="utf-8") as f:
         payload = json.load(f)

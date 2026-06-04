@@ -633,6 +633,15 @@ async def get_linked_employee(tg_id: int) -> str | None:
     row = await db_fetchone("SELECT employee FROM employee_links WHERE tg_id = ?", (tg_id,))
     return row["employee"] if row else None
 
+
+async def keyboard_for_user(uid: int) -> ReplyKeyboardMarkup | ReplyKeyboardRemove:
+    """Har javobdan keyin tugmalar yo'qolmasligi uchun."""
+    if await get_linked_employee(uid):
+        return categories_kb(uid)
+    if is_admin(uid):
+        return admin_status_kb()
+    return ReplyKeyboardRemove()
+
 async def sum_day(day_iso: str, employee: str, category: str) -> int:
     row = await db_fetchone("""
         SELECT COALESCE(SUM(value),0) AS s FROM reports
@@ -1680,7 +1689,8 @@ async def admin_status_cmd(message: Message):
             parse_mode="HTML",
         )
         return
-    await handle_admin_status(message, bot)
+    uid = message.from_user.id if message.from_user else 0
+    await handle_admin_status(message, bot, reply_markup=await keyboard_for_user(uid))
 
 
 @dp.message(lambda m: is_private(m) and m.text == BTN_ADMIN_STATUS)
@@ -1691,7 +1701,8 @@ async def admin_status_btn(message: Message):
             parse_mode="HTML",
         )
         return
-    await handle_admin_status(message, bot)
+    uid = message.from_user.id if message.from_user else 0
+    await handle_admin_status(message, bot, reply_markup=await keyboard_for_user(uid))
 
 
 @dp.message(Command("botdebug"))
@@ -1806,7 +1817,12 @@ async def botdebug_cmd(message: Message):
                 )
         lines.append("")
 
-    await message.answer(box(lines, title="BOT DEBUG"), parse_mode="HTML")
+    uid = message.from_user.id if message.from_user else 0
+    await message.answer(
+        box(lines, title="BOT DEBUG"),
+        parse_mode="HTML",
+        reply_markup=await keyboard_for_user(uid),
+    )
 
 
 def _tg_to_employee_name(tg_id: int, etg_map: dict[str, int]) -> str:
@@ -1857,10 +1873,20 @@ async def backup_cmd(message: Message):
         lines.append("")
         lines.append("Deploydan oldin shu fayllarni saqlang.")
         lines.append("Tiklash: tools/restore_backup.py yoki menga CSV/JSON yuboring.")
-        await message.answer("\n".join(lines), parse_mode="HTML")
+        uid = message.from_user.id if message.from_user else 0
+        await message.answer(
+            "\n".join(lines),
+            parse_mode="HTML",
+            reply_markup=await keyboard_for_user(uid),
+        )
     except Exception as e:
         logging.exception("backup_cmd")
-        await message.answer(f"❌ Zaxira xato: {html.escape(str(e))}", parse_mode="HTML")
+        uid = message.from_user.id if message.from_user else 0
+        await message.answer(
+            f"❌ Zaxira xato: {html.escape(str(e))}",
+            parse_mode="HTML",
+            reply_markup=await keyboard_for_user(uid),
+        )
 
 
 @dp.message(Command("hubtoday"))
@@ -1907,7 +1933,12 @@ async def hubtoday_cmd(message: Message):
         tgs = tg_ids_for_employee(emp, employee_tg_map=etg_map)
         lines.append(f"  {emp}: {', '.join(str(t) for t in sorted(tgs)) or '—'}")
 
-    await message.answer(box(lines, title="HUB TODAY"), parse_mode="HTML")
+    uid = message.from_user.id if message.from_user else 0
+    await message.answer(
+        box(lines, title="HUB TODAY"),
+        parse_mode="HTML",
+        reply_markup=await keyboard_for_user(uid),
+    )
 
 
 @dp.message(lambda m: is_private(m) and m.text == BTN_RANKING)
@@ -1922,10 +1953,19 @@ async def ranking_btn(message: Message):
     try:
         await broadcast_daily_ranking(day_iso, force=True)
         period = get_period_key(today_local())
-        await message.answer(f"✅ Period reyting yuborildi: {period} · {day_iso}")
+        uid = message.from_user.id if message.from_user else 0
+        await message.answer(
+            f"✅ Period reyting yuborildi: {period} · {day_iso}",
+            reply_markup=await keyboard_for_user(uid),
+        )
     except Exception as e:
         logging.exception("Reyting tugmasi xato")
-        await message.answer(f"❌ Xato: {html.escape(str(e))}", parse_mode="HTML")
+        uid = message.from_user.id if message.from_user else 0
+        await message.answer(
+            f"❌ Xato: {html.escape(str(e))}",
+            parse_mode="HTML",
+            reply_markup=await keyboard_for_user(uid),
+        )
 
 
 @dp.message(Command("preview"))
