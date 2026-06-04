@@ -21,8 +21,16 @@ __all__ = [
     "resolve_owner_tg_id",
     "employee_name_variants",
     "resolve_tg_id",
+    "resolve_employee_label",
     "tg_ids_for_employee",
 ]
+
+
+def resolve_employee_label(raw: str, employees: list[str]) -> str | None:
+    """Guruh/forward xabaridagi ism → EMPLOYEES dagi rasmiy ism."""
+    from metrics_import import resolve_employee_name
+
+    return resolve_employee_name(raw, employees)
 
 
 def _norm_name(name: str) -> str:

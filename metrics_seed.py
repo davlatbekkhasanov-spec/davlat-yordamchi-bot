@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-METRICS_SEED_VERSION = 1
+METRICS_SEED_VERSION = 2
 
 # (day, employee, category, value) — faqat Ёрдамчи бот
 METRICS_SEED_ROWS: tuple[tuple[str, str, str, int], ...] = (
@@ -45,4 +45,8 @@ METRICS_SEED_ROWS: tuple[tuple[str, str, str, int], ...] = (
     ("2026-06-03", "Toxirov Muslimbek", "Пересчет товаров", 48),
     ("2026-06-03", "Toxirov Muslimbek", "Места хр", 18),
     ("2026-06-03", "Ravshanov Ziyodullo", "Места хр", 100),
+    # 2026-06-04 — yordamchi (kunlik hisobot)
+    ("2026-06-04", "Sagdullaev Yunus", "Приход", 59),
+    ("2026-06-04", "Sagdullaev Yunus", "Перемещение", 214),
+    ("2026-06-04", "Sagdullaev Yunus", "Переоценка", 50),
 )

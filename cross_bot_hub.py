@@ -177,11 +177,12 @@ async def ensure_hub_seed() -> int:
         row = cur.execute("SELECT version FROM hub_seed_meta WHERE id = 1").fetchone()
         applied_ver = int(row["version"]) if row else 0
 
+    force_refresh = applied_ver < HUB_SEED_VERSION
     added = 0
     for day, tg_id, bot_key, summary in HUB_SEED_ROWS:
         key = normalize_bot_key(bot_key)
         existing = await fetch_latest_by_bot(int(tg_id), day)
-        if key in existing:
+        if not force_refresh and key in existing:
             continue
         await record_event(tg_id=int(tg_id), day=day, bot_key=bot_key, summary=summary)
         added += 1
