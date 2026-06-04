@@ -66,7 +66,12 @@ from metrics_import import (
     parse_import_csv_bytes,
     parse_import_text,
 )
-from forward_import import aggregate_hub_events, parse_forward_text
+from forward_import import (
+    aggregate_hub_events,
+    forward_message_day,
+    forward_reject_hint,
+    parse_forward_text,
+)
 
 
 # ============================================================
@@ -330,6 +335,7 @@ def confirm_kb():
 
 user_state: dict[int, dict] = {}
 forward_sessions: dict[int, list[dict]] = {}
+forward_skip_notice: dict[int, int] = {}
 
 def is_private(m: Message) -> bool:
     return m.chat.type == "private"
@@ -1697,6 +1703,7 @@ async def forward_help_cmd(message: Message):
         return
     uid = message.from_user.id if message.from_user else 0
     forward_sessions[uid] = []
+    forward_skip_notice.pop(uid, None)
     n = len(forward_sessions.get(uid, []))
     await message.answer(
         "📨 <b>Forward rejimi</b>\n\n"
@@ -1757,25 +1764,29 @@ async def forward_message_handler(message: Message):
     uid = message.from_user.id if message.from_user else 0
     text = (message.text or message.caption or "").strip()
     if not text:
-        await message.answer("⚠️ Forwardda matn yo'q (rasm/fayl emas, matnli xabar forward qiling).")
+        await message.answer(
+            "⚠️ Matn yo'q.\n"
+            "Faqat rasm/video forward qilgansiz — <b>matnli</b> kartani forward qiling "
+            "(yoki surat ostidagi caption bilan).",
+            parse_mode="HTML",
+        )
         return
 
-    fallback_day = None
-    if message.forward_date:
-        fallback_day = message.forward_date.date().isoformat()
+    fallback_day = forward_message_day(message)
 
     parsed_list = parse_forward_text(
         text, employees=EMPLOYEES, fallback_day=fallback_day
     )
     if not parsed_list:
-        await message.answer(
-            "⚠️ Bu forward tanilmadi.\n"
-            "Qo'llab-quvvatlanadi: ombor, omborga, yuk, sklad, ishxona, "
-            "yoki <code>HUB|...</code> qatori.\n"
-            "Kategoriya (Приход va h.k.): /import",
-            parse_mode="HTML",
-        )
+        skipped = forward_skip_notice.get(uid, 0) + 1
+        forward_skip_notice[uid] = skipped
+        if skipped <= 2 or skipped % 6 == 0:
+            await message.answer(
+                forward_reject_hint(text, had_day=bool(fallback_day)),
+                parse_mode="HTML",
+            )
         return
+    forward_skip_notice[uid] = 0
 
     sess = forward_sessions.setdefault(uid, [])
     sess.extend(parsed_list)

@@ -65,6 +65,37 @@ def _find_employee(raw: str, employees: list[str]) -> str | None:
     return resolve_employee_name(raw, employees)
 
 
+def _employees_in_text(text_lower: str, employees: list[str]) -> list[str]:
+    found: list[str] = []
+    for emp in employees:
+        if _norm_in_text(emp, text_lower):
+            found.append(emp)
+    return found
+
+
+def _resolve_day(raw: str, fallback_day: str | None) -> str | None:
+    return _parse_day_from_text(raw) or fallback_day
+
+
+def forward_message_day(message) -> str | None:
+    """Forward qilingan xabar sanasi (Telegram API 6/7)."""
+    fd = getattr(message, "forward_date", None)
+    if fd is not None:
+        try:
+            return fd.date().isoformat()
+        except Exception:
+            pass
+    origin = getattr(message, "forward_origin", None)
+    if origin is not None:
+        odate = getattr(origin, "date", None)
+        if odate is not None:
+            try:
+                return odate.date().isoformat()
+            except Exception:
+                return str(odate)[:10]
+    return None
+
+
 def _event(
     *,
     bot_key: str,
@@ -133,10 +164,16 @@ def _try_ombor(raw: str, plain: str, employees: list[str], fallback_day: str | N
         x in tl
         for x in (
             "mijozga qarang",
+            "mijozga",
+            "ombor xizmat",
             "xizmat ko'rsat",
             "xizmat korsat",
+            "xizmat ko'rsat",
             "xizmat yakunlandi",
+            "xizmat tugadi",
             "bajarildi",
+            "ariza #",
+            "holat:",
         )
     ):
         return []
@@ -166,7 +203,7 @@ def _try_ombor(raw: str, plain: str, employees: list[str], fallback_day: str | N
     if done_m:
         day = done_m.group(1)
     if not day:
-        day = _parse_day_from_text(raw) or fallback_day
+        day = _resolve_day(raw, fallback_day)
     if not day:
         return []
 
@@ -207,8 +244,15 @@ def _try_omborga(raw: str, plain: str, employees: list[str], fallback_day: str |
     )
     yakun = "ishini yakunladi" in tl or "yakuniy hisobot" in tl or "ish muvaffaqiyatli yakunlandi" in tl
 
+    live_panel = "ombor live" in tl or "reys taqsimoti" in tl
+    reys_count_m = re.search(r"(\d+)\s*reys", tl)
+
     if not compact and not (yakun and re.search(r"reys", tl)):
-        if not (re.search(r"reys\s+\d+", tl) and re.search(r"\bish\b", tl)):
+        if not (
+            live_panel
+            or (re.search(r"reys\s+\d+", tl) and re.search(r"\bish\b", tl))
+            or (reys_count_m and re.search(r"reys", tl))
+        ):
             return []
 
     emp = None
@@ -227,9 +271,34 @@ def _try_omborga(raw: str, plain: str, employees: list[str], fallback_day: str |
     if not emp:
         return []
 
-    day = _parse_day_from_text(raw) or fallback_day
+    day = _resolve_day(raw, fallback_day)
     if not day:
         return []
+
+    if live_panel and not compact and not yakun:
+        out: list[dict] = []
+        for line in raw.splitlines():
+            pl = _plain(line).lower()
+            if "reys" not in pl:
+                continue
+            rm = re.search(r"(\d+)\s*reys", pl)
+            if not rm:
+                continue
+            reys_n = int(rm.group(1))
+            for emp in employees:
+                if _norm_in_text(emp, pl):
+                    out.append(
+                        _event(
+                            bot_key="omborga",
+                            employee=emp,
+                            day=day,
+                            summary_override=f"Reys {reys_n}, ish 0:00, dam 0:00",
+                            raw_hint="omborga live",
+                        )
+                    )
+                    break
+        if out:
+            return out
 
     if compact:
         reys_n = int(compact.group(1))
@@ -276,14 +345,18 @@ def _try_yuk(raw: str, plain: str, employees: list[str], fallback_day: str | Non
             "reyting",
             "yuk #",
             "yuk keldi",
+            "yuk jarayoni",
             "jarayon yakunlandi",
             "yuk muvaffaqiyatli",
             "jamoa ish vaqti",
+            "sessiya",
+            "kaizen",
+            "yakun surat",
         )
     ):
         return []
 
-    day = _parse_day_from_text(raw) or fallback_day
+    day = _resolve_day(raw, fallback_day)
     if not day:
         return []
 
@@ -393,7 +466,19 @@ def _try_yuk(raw: str, plain: str, employees: list[str], fallback_day: str | Non
 
 def _try_sklad(raw: str, plain: str, employees: list[str], fallback_day: str | None) -> list[dict]:
     tl = plain.lower()
-    if not any(x in tl for x in ("tekshiruv", "sanaldi", "саналди", "papka", "папка", "📁")):
+    if not any(
+        x in tl
+        for x in (
+            "tekshiruv",
+            "sanaldi",
+            "саналди",
+            "papka",
+            "папка",
+            "folder",
+            "natiija",
+            "натижа",
+        )
+    ):
         return []
 
     emp = None
@@ -408,7 +493,7 @@ def _try_sklad(raw: str, plain: str, employees: list[str], fallback_day: str | N
     if not emp:
         return []
 
-    day = _parse_day_from_text(raw) or fallback_day
+    day = _resolve_day(raw, fallback_day)
     if not day:
         return []
 
@@ -436,7 +521,7 @@ def _try_sklad(raw: str, plain: str, employees: list[str], fallback_day: str | N
 
 def _try_ishxona(raw: str, plain: str, employees: list[str], fallback_day: str | None) -> list[dict]:
     tl = plain.lower()
-    if "шикоят" not in tl and "shikoyat" not in tl:
+    if not any(x in tl for x in ("шикоят", "shikoyat", "янги шикоят", "yangi shikoyat")):
         return []
 
     emp = None
@@ -454,7 +539,7 @@ def _try_ishxona(raw: str, plain: str, employees: list[str], fallback_day: str |
     if not emp:
         return []
 
-    day = _parse_day_from_text(raw) or fallback_day
+    day = _resolve_day(raw, fallback_day)
     if not day:
         return []
 
@@ -477,6 +562,72 @@ def _try_ishxona(raw: str, plain: str, employees: list[str], fallback_day: str |
     ]
 
 
+def _try_generic(raw: str, plain: str, employees: list[str], fallback_day: str | None) -> list[dict]:
+    """Oxirgi imkoniyat: matnda xodim + bot kaliti."""
+    if not fallback_day:
+        return []
+    tl = plain.lower()
+    emps = _employees_in_text(tl, employees)
+    if len(emps) != 1:
+        return []
+
+    bot_key = ""
+    if any(x in tl for x in ("mijoz", "ariza", "ombor xizmat", "xizmat")):
+        bot_key = "ombor"
+    elif any(x in tl for x in ("reys", "yuksiz", "masofa", "ombor live")):
+        bot_key = "omborga"
+    elif any(x in tl for x in ("yuk", "sessiya", "tushirish", "kaizen")):
+        bot_key = "yuk"
+    elif any(x in tl for x in ("sanaldi", "саналди", "papka", "tekshiruv")):
+        bot_key = "sklad"
+    elif any(x in tl for x in ("shikoyat", "шикоят")):
+        bot_key = "ishxona"
+    if not bot_key:
+        return []
+
+    emp = emps[0]
+    day = _resolve_day(raw, fallback_day)
+    if not day:
+        return []
+    sec = parse_uz_duration(raw)
+    if bot_key == "omborga":
+        rm = re.search(r"(\d+)\s*reys", tl) or re.search(r"reys\s+(\d+)", tl)
+        reys_n = int(rm.group(1)) if rm else 0
+        return [
+            _event(
+                bot_key="omborga",
+                employee=emp,
+                day=day,
+                summary_override=f"Reys {reys_n}, ish 0:00, dam 0:00",
+                raw_hint="generic omborga",
+            )
+        ]
+    if bot_key == "sklad":
+        sm = re.search(r"(?:sanaldi|саналди)\s*[: ]\s*(\d+)", tl)
+        cnt = int(sm.group(1)) if sm else 1
+        return [_event(bot_key="sklad", employee=emp, day=day, sklad_count=cnt, raw_hint="generic sklad")]
+    if bot_key == "ishxona":
+        return [
+            _event(
+                bot_key="ishxona",
+                employee=emp,
+                day=day,
+                ishxona_count=1,
+                summary_override=f"Shikoyat ({emp}): forward",
+                raw_hint="generic ishxona",
+            )
+        ]
+    return [
+        _event(
+            bot_key=bot_key,
+            employee=emp,
+            day=day,
+            service_sec=sec,
+            raw_hint=f"generic {bot_key}",
+        )
+    ]
+
+
 def parse_forward_text(
     text: str,
     *,
@@ -487,7 +638,7 @@ def parse_forward_text(
     Bitta forward xabardan 0..n ta event.
     Bot turi avtomatik aniqlanadi; aralash forwardlar /forwarddone da jamlanadi.
     """
-    if not text or len(text.strip()) < 12:
+    if not text or len(text.strip()) < 6:
         return []
 
     raw = text.strip()
@@ -500,11 +651,34 @@ def parse_forward_text(
         lambda: _try_yuk(raw, plain, employees, fallback_day),
         lambda: _try_sklad(raw, plain, employees, fallback_day),
         lambda: _try_ishxona(raw, plain, employees, fallback_day),
+        lambda: _try_generic(raw, plain, employees, fallback_day),
     ):
         found = parser()
         if found:
             return found
     return []
+
+
+def forward_reject_hint(text: str, *, had_day: bool) -> str:
+    """Admin uchun qisqa diagnostika."""
+    preview = html.escape(_plain(text)[:90].replace("\n", " "))
+    lines = [
+        "⚠️ Bu forward tanilmadi.",
+        f"<i>Matn: {preview or '(boʻsh)'}…</i>",
+    ]
+    if not had_day:
+        lines.append(
+            "📅 Sana topilmadi — xabarda sana yoki forward sanasi bo‘lishi kerak."
+        )
+    lines.extend(
+        [
+            "",
+            "✅ Ishlaydi: <b>tugagan</b> xabarlar (Yakunlandi, REYTING, Текширув, шикоят).",
+            "❌ Ishlamaydi: faqat rasm/video (matn/caption yo‘q), LIVE yangilanishlar.",
+            "Kategoriya: /import",
+        ]
+    )
+    return "\n".join(lines)
 
 
 def aggregate_hub_events(items: list[dict]) -> list[dict]:
