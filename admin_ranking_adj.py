@@ -1,4 +1,4 @@
-"""Admin: bonus / jarima — hozircha faqat lichkada (tanitanali xabar + ping)."""
+"""Admin: bonus / jarima — guruh + xodim lichkasi (PNG kartochka + ping)."""
 
 from __future__ import annotations
 
@@ -71,7 +71,7 @@ def format_admin_saved_note(*, kind: str, points: int) -> str:
     return f"✅ Базага сақланди · рейтингдан <b>−{points}</b>"
 
 
-async def _send_private_announce(
+async def _send_adj_card(
     bot: Bot,
     chat_id: int,
     caption: str,
@@ -189,8 +189,8 @@ async def handle_points(
     preview = (
         f"👤 {html.escape(emp or '')}\n"
         f"📌 {_kind_label(kind)}: <b>{sign}{pts}</b> (рейтинг)\n\n"
-        "Тасдиқласангиз — <b>личкада PNG-карточка</b> chiqadi.\n"
-        "(Guruhga hozircha yuborilmaydi.)"
+        "Тасдиқласангиз — <b>guruhga</b> PNG-kartochka chiqadi "
+        "(xodimga ham lichkada yuboriladi)."
     )
     await message.answer(
         preview,
@@ -211,6 +211,8 @@ async def handle_confirm(
     get_period_key,
     today_local,
     admin_status_kb,
+    group_id: int = 0,
+    adj_to_group: bool = True,
 ) -> bool:
     if not is_admin(message.from_user.id):
         return False
@@ -276,17 +278,24 @@ async def handle_confirm(
         tg_id=emp_tg,
     )
 
-    admin_ok = await _send_private_announce(bot, uid, caption, card_png=card_png)
+    group_ok = False
+    if adj_to_group and group_id:
+        group_ok = await _send_adj_card(bot, int(group_id), caption, card_png=card_png)
 
     emp_notified = False
     if emp_tg and int(emp_tg) != int(uid):
-        emp_notified = await _send_private_announce(
+        emp_notified = await _send_adj_card(
             bot, int(emp_tg), caption, card_png=card_png
         )
 
     tail_parts: list[str] = []
-    if not admin_ok:
-        tail_parts.append("⚠️ <i>Kartochka yuborilmadi — logni tekshiring.</i>")
+    if adj_to_group and group_id:
+        if group_ok:
+            tail_parts.append(f"<i>Guruhga yuborildi</i> (<code>{group_id}</code>).")
+        else:
+            tail_parts.append(
+                "⚠️ <i>Guruhga yuborilmadi — bot admini va guruhda yozish huquqini tekshiring.</i>"
+            )
     if emp_tg and int(emp_tg) != int(uid):
         if emp_notified:
             tail_parts.append("<i>Xodimga ham kartochka yuborildi.</i>")
@@ -295,8 +304,8 @@ async def handle_confirm(
                 "⚠️ <i>Xodimga lichkaga yuborilmadi — botda /start bosishi kerak.</i>"
             )
     elif emp_tg:
-        tail_parts.append("<i>(Sizning profilingiz.)</i>")
-    else:
+        tail_parts.append("<i>(Xodim sizning profilingiz.)</i>")
+    elif not (adj_to_group and group_id and group_ok):
         tail_parts.append("<i>Telegram ID topilmadi.</i>")
     if not avatar:
         tail_parts.append("<i>📷 Xodim rasmi — kartochkada chiroyliroq chiqadi.</i>")

@@ -131,8 +131,9 @@ REPORT_ADMIN_DM_ID = int(os.getenv("REPORT_ADMIN_DM_ID", "1432810519") or "14328
 RANKING_BROADCAST_ENABLED = _env_bool("RANKING_BROADCAST_ENABLED", True)
 RANKING_BROADCAST_HOUR = int(os.getenv("RANKING_BROADCAST_HOUR", "0") or "0")
 RANKING_BROADCAST_MINUTE = int(os.getenv("RANKING_BROADCAST_MINUTE", "1") or "1")
-RANKING_TO_GROUP = _env_bool("RANKING_TO_GROUP", False)
+RANKING_TO_GROUP = _env_bool("RANKING_TO_GROUP", True)
 _RANKING_CHAT_RAW = os.getenv("RANKING_CHAT_ID", "").strip()
+ADJ_TO_GROUP = _env_bool("ADJ_TO_GROUP", True)
 
 
 def ranking_chat_id() -> int:
@@ -971,6 +972,8 @@ async def admin_adj_confirm(message: Message):
         get_period_key=get_period_key,
         today_local=today_local,
         admin_status_kb=admin_status_kb,
+        group_id=GROUP_ID,
+        adj_to_group=ADJ_TO_GROUP,
     )
 
 
