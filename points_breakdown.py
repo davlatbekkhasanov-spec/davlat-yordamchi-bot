@@ -20,12 +20,11 @@ from employee_tg_map import employee_name_variants, tg_ids_for_employee
 from ranking_broadcast import period_days_through
 
 RULES_FOOTER = (
-    "📐 <b>Qoidalar:</b>\n"
-    "Kat — yordamchi: 1 birlik = 1 ochko\n"
-    "Ombg — omborga: reys×2 + ⌈ish daqiqa⌉÷2\n"
-    "Omb — ombor xizmat: ⌈ish daqiqa⌉×1\n"
-    "Yuk — ⌈ish daqiqa⌉÷2 · Skl — sanaldi×2\n"
-    "In — ishxona ochiq shikoyat −40"
+    "📐 <b>Ҳисоблаш қоидалари:</b>\n"
+    "Ёрдамчи — 1 бирлик = 1 очко\n"
+    "Омборга — рейс×2 + иш вақти÷2\n"
+    "Омбор — иш вақти×1 · Юк — иш вақти÷2\n"
+    "Склад — саналди×2 · Ишхона — очиқ шикоят −40"
 )
 
 _MEDALS = {1: "🥇", 2: "🥈", 3: "🥉"}
@@ -99,7 +98,7 @@ def _n(val: int, w: int) -> str:
     """Jadval raqami — 0 bo'lsa chiziqcha."""
     v = int(val or 0)
     if not v:
-        return "·".rjust(w)
+        return "—".rjust(w)
     s = str(v)
     if len(s) > w:
         return s[-w:].rjust(w)
@@ -254,9 +253,9 @@ async def build_period_breakdown_html(
     )
 
     header = (
-        "📊 <b>OCHKO JADVALI</b>\n"
-        f"Период: {period} (2-sana) · holat: {ref_date.isoformat()}\n"
-        "<i>Σ = Kat + Ombg + Omb + Yuk + Skl + In</i>\n"
+        "📊 <b>ОЧКО ЖАДВАЛИ</b>\n"
+        f"Период: {period} (2-санадан) · ҳолат: {ref_date.isoformat()}\n"
+        "<i>— = 0 очко · Жами = барча устунлар йиғиндиси</i>\n"
     )
     footer = f"\n{RULES_FOOTER}"
 

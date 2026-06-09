@@ -17,7 +17,7 @@ def _cell_cls(val: int) -> str:
 
 def _cell_disp(val: int) -> str:
     v = int(val or 0)
-    return "·" if not v else str(v)
+    return "—" if not v else str(v)
 
 
 def period_rows_for_template(

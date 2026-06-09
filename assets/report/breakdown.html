@@ -15,6 +15,7 @@
       </div>
       <div class="hero-center">
         <h1 class="hero-title hero-title-ranking">Очко тафсилоти</h1>
+        <p class="hero-subtitle-bd">Ҳар бир очко қай манбадан ҳисоблангани</p>
       </div>
       <div class="hero-trophy hero-trophy-wow" aria-hidden="true">
         <span class="hero-trophy-icon">📊</span>
@@ -26,40 +27,42 @@
         <span class="meta-ico">🗓</span>
         <div class="meta-body">
           <span class="meta-label">Период</span>
-          <span class="meta-value">{{ period }} (2-сана)</span>
+          <span class="meta-value">{{ period }} (2-санадан)</span>
         </div>
       </div>
       <div class="meta-item">
         <span class="meta-ico">📅</span>
         <div class="meta-body">
-          <span class="meta-label">Холат</span>
+          <span class="meta-label">Ҳолат санаси</span>
           <span class="meta-value">{{ ref_date }}</span>
         </div>
       </div>
       <div class="meta-item">
         <span class="meta-ico">👥</span>
         <div class="meta-body">
-          <span class="meta-label">Ходимлар</span>
+          <span class="meta-label">Жамоа</span>
           <span class="meta-value">{{ team_size }} нафар</span>
         </div>
       </div>
     </div>
 
+    <div class="bd-hint">— белгиси = 0 очко · Жами = барча устунлар йиғиндиси</div>
+
     <div class="section-block ranking-block-wow">
-      <div class="section-bar section-bar-wow">ОЧКО МАНБАЛАРИ · ЖАМОА</div>
+      <div class="section-bar section-bar-wow">ЖАМОА · ОЧКО МАНБАЛАРИ</div>
       <div class="table-wrap">
         <table class="data-table breakdown-table">
           <thead>
-            <tr>
-              <th>#</th>
+            <tr class="bd-head-main">
+              <th>№</th>
               <th class="col-name-h">Ходим</th>
-              <th>Kat</th>
-              <th>Ombg</th>
-              <th>Omb</th>
-              <th>Yuk</th>
-              <th>Skl</th>
-              <th>In</th>
-              <th class="col-sum-h">Σ</th>
+              <th><span class="th-main">Ёрдамчи</span><span class="th-sub">категория</span></th>
+              <th><span class="th-main">Омборга</span><span class="th-sub">рейс+иш</span></th>
+              <th><span class="th-main">Омбор</span><span class="th-sub">хизмат</span></th>
+              <th><span class="th-main">Юк</span><span class="th-sub">жараён</span></th>
+              <th><span class="th-main">Склад</span><span class="th-sub">саналди</span></th>
+              <th><span class="th-main">Ишхона</span><span class="th-sub">шикоят</span></th>
+              <th class="col-sum-h"><span class="th-main">Жами</span><span class="th-sub">очко</span></th>
             </tr>
           </thead>
           <tbody>
@@ -82,19 +85,19 @@
     </div>
 
     <div class="breakdown-rules">
-      <div class="breakdown-rules-title">Қоидалар</div>
-      <div class="breakdown-rules-grid">
-        <div><b>Kat</b> — йордамчи: 1 бирлик = 1 очко</div>
-        <div><b>Ombg</b> — омборга: рейс×2 + ⌈иш дақ⌉÷2</div>
-        <div><b>Omb</b> — омбор хизмат: ⌈иш дақ⌉×1</div>
-        <div><b>Yuk</b> — ⌈иш дақ⌉÷2 · <b>Skl</b> — саналди×2</div>
-        <div><b>In</b> — ишхона очик шикоят −40</div>
-        <div><b>Σ</b> = Kat + Ombg + Omb + Yuk + Skl + In</div>
+      <div class="breakdown-rules-title">Ҳисоблаш қоидалари</div>
+      <div class="breakdown-rules-list">
+        <div class="bd-rule"><span class="bd-rule-key">Ёрдамчи</span> — ҳар бир киритилган бирлик = <b>1 очко</b></div>
+        <div class="bd-rule"><span class="bd-rule-key">Омборга</span> — рейс × 2 + иш вақти (дақиқа, юқорига) ÷ 2</div>
+        <div class="bd-rule"><span class="bd-rule-key">Омбор</span> — иш вақти (дақиқа, юқорига) × 1</div>
+        <div class="bd-rule"><span class="bd-rule-key">Юк</span> — иш вақти (дақиқа, юқорига) ÷ 2</div>
+        <div class="bd-rule"><span class="bd-rule-key">Склад</span> — саналган жой × 2</div>
+        <div class="bd-rule"><span class="bd-rule-key">Ишхона</span> — очиқ шикоят <b>−40</b> очко</div>
       </div>
     </div>
 
     <div class="footer footer-ranking">
-      <span class="footer-brand">Период очко тизими</span>
+      <span class="footer-brand">Период очко тизими · Kanstik Samarqand</span>
       <span class="footer-date">{{ period }} · {{ ref_date_fmt }}</span>
     </div>
   </div>

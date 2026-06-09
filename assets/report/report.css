@@ -1012,23 +1012,58 @@ body {
   height: auto;
 }
 
+.hero-subtitle-bd {
+  font-size: 18px;
+  font-weight: 600;
+  color: #475569;
+  margin-top: 6px;
+  text-align: center;
+}
+
+.bd-hint {
+  text-align: center;
+  font-size: 16px;
+  font-weight: 600;
+  color: #64748b;
+  margin: 12px 0 16px;
+  padding: 10px 16px;
+  background: #f1f5f9;
+  border-radius: 8px;
+}
+
 .breakdown-table thead th {
-  font-size: 15px;
-  padding: 12px 6px;
+  font-size: 14px;
+  padding: 10px 5px;
+  vertical-align: bottom;
+  line-height: 1.2;
+}
+
+.breakdown-table thead th .th-main {
+  display: block;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.breakdown-table thead th .th-sub {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  opacity: 0.85;
+  margin-top: 2px;
 }
 
 .breakdown-table thead th.col-name-h {
   text-align: left;
-  width: 28%;
+  width: 24%;
 }
 
 .breakdown-table thead th.col-sum-h {
-  width: 9%;
+  width: 10%;
 }
 
 .breakdown-table tbody td {
-  font-size: 19px;
-  padding: 14px 6px;
+  font-size: 18px;
+  padding: 13px 5px;
 }
 
 .breakdown-table .col-rank {
@@ -1077,13 +1112,27 @@ body {
   margin-bottom: 12px;
 }
 
-.breakdown-rules-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px 24px;
-  font-size: 16px;
-  color: #334155;
-  line-height: 1.45;
+.breakdown-rules-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.bd-rule {
+  font-size: 17px;
+  color: #1e293b;
+  line-height: 1.5;
+  padding: 8px 12px;
+  background: #fff;
+  border-radius: 8px;
+  border-left: 4px solid #003f8f;
+}
+
+.bd-rule-key {
+  display: inline-block;
+  min-width: 88px;
+  font-weight: 800;
+  color: #003f8f;
 }
 
 .breakdown-daily-table .col-src-h { width: 32%; text-align: left; }
