@@ -40,7 +40,6 @@ from points_breakdown import (
     split_messages,
 )
 from report_png import (
-    render_daily_breakdown_png,
     render_demo_preview_png,
     render_period_breakdown_png,
     render_ranking_png,
@@ -476,15 +475,6 @@ async def safe_report_send(html_text: str, *, private_fallback: int = 0):
         await bot.send_message(chat_id, html_text, parse_mode="HTML")
     except Exception as e:
         logging.exception("Hisobot xabarini yuborishda xato (chat=%s): %s", chat_id, e)
-
-
-async def send_daily_points_breakdown(
-    card: DailyReportCardData,
-    *,
-    private_fallback: int = 0,
-) -> None:
-    """Ochko jadvali endi asosiy kunlik PNG ichida — alohida xabar yuborilmaydi."""
-    return
 
 
 async def send_period_points_breakdown(ref: date, period: str) -> None:
@@ -1227,7 +1217,6 @@ async def finalize_report(message: Message):
                     png,
                     private_fallback=tg_id,
                 )
-                await send_daily_points_breakdown(card, private_fallback=tg_id)
                 sent_card = True
         except Exception as e:
             logging.exception("PNG hisobot xato, matn fallback: %s", e)
@@ -2607,6 +2596,8 @@ async def main():
             logging.warning("Baseline tiklandi: %s hisobot", br.get("after"))
         if maintenance.get("hub_purge"):
             logging.info("Hub purge: %s yozuv", maintenance["hub_purge"])
+        if maintenance.get("hub_restore"):
+            logging.info("Hub restore: %s yozuv", maintenance["hub_restore"])
         if maintenance.get("hub_repair"):
             logging.info("Hub repair: %s guruh", maintenance["hub_repair"])
     except Exception:

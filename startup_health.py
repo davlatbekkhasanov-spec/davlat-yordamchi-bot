@@ -60,6 +60,9 @@ def format_startup_admin_message(stats: dict, maintenance: dict) -> str:
     hp = maintenance.get("hub_purge") or 0
     if hp:
         lines.append(f"🧹 Hub purge: {hp} ta noto'g'ri yozuv o'chirildi")
+    hres = maintenance.get("hub_restore") or 0
+    if hres:
+        lines.append(f"♻️ Hub restore: {hres} ta yozuv tiklandi")
     hr = maintenance.get("hub_repair") or 0
     if hr:
         lines.append(f"🔧 Hub repair: {hr} ta guruh tuzatildi")
@@ -89,7 +92,7 @@ def format_startup_admin_message(stats: dict, maintenance: dict) -> str:
 
     lines.append("")
     lines.append(
-        "📐 Ochko jadvali: hisobot/reytingdan keyin alohida xabar keladi."
+        "📐 Kunlik ochko jadvali asosiy hisobot PNG ichida (bitta xabar)."
     )
     return "\n".join(lines)
 
@@ -106,7 +109,7 @@ def html_esc(text: str) -> str:
 async def run_startup_maintenance(db_path: str) -> dict[str, Any]:
     """Baseline, purge, hub repair — ketma-ket."""
     from baseline_restore import ensure_baseline_restored
-    from hub_corrections import apply_hub_purges
+    from hub_corrections import apply_hub_purges, apply_hub_restores
     from hub_repair import repair_hub_db
 
     out: dict[str, Any] = {}
@@ -116,6 +119,11 @@ async def run_startup_maintenance(db_path: str) -> dict[str, Any]:
     except Exception:
         log.exception("hub purge")
         out["hub_purge"] = 0
+    try:
+        out["hub_restore"] = await apply_hub_restores()
+    except Exception:
+        log.exception("hub restore")
+        out["hub_restore"] = 0
     try:
         fixes = repair_hub_db(db_path, apply=True)
         out["hub_repair"] = len(fixes)
