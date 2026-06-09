@@ -111,3 +111,31 @@ async def render_ranking_png(
         except Exception as e:
             log.warning("Reyting HTML→PNG xato: %s", e)
     raise RuntimeError("Reyting PNG uchun Playwright kerak")
+
+
+async def render_period_breakdown_png(
+    period: str,
+    ref_date: date,
+    rows: list,
+) -> bytes:
+    from breakdown_html import build_period_breakdown_png_html
+
+    html = build_period_breakdown_png_html(period, ref_date, rows)
+    if await _ensure_playwright():
+        try:
+            return await html_to_png(html, min_height=900)
+        except Exception as e:
+            log.warning("Ochko jadvali HTML→PNG xato: %s", e)
+    raise RuntimeError("Ochko jadvali PNG uchun Playwright kerak")
+
+
+async def render_daily_breakdown_png(card, *, lines: list[dict[str, str]]) -> bytes:
+    from breakdown_html import build_daily_breakdown_png_html
+
+    html = build_daily_breakdown_png_html(card, lines=lines)
+    if await _ensure_playwright():
+        try:
+            return await html_to_png(html, min_height=700)
+        except Exception as e:
+            log.warning("Kunlik ochko HTML→PNG xato: %s", e)
+    raise RuntimeError("Kunlik ochko PNG uchun Playwright kerak")

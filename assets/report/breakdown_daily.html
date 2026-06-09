@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="uz-Cyrl">
+<head>
+  <meta charset="utf-8"/>
+  <title>Кунлик очко</title>
+  <style>{{ css }}</style>
+</head>
+<body>
+  <div class="page page-breakdown">
+    <div class="ranking-bg-glow"></div>
+
+    <div class="hero-header hero-ranking hero-ranking-wow">
+      <div class="hero-brand">
+        <img class="company-logo" src="data:image/svg+xml;base64,{{ logo_b64 }}" alt="Kanstik Samarqand"/>
+      </div>
+      <div class="hero-center">
+        <h1 class="hero-title hero-title-ranking">Кунлик очко</h1>
+      </div>
+      <div class="hero-trophy hero-trophy-wow" aria-hidden="true">
+        <span class="hero-trophy-icon">📊</span>
+      </div>
+    </div>
+
+    <div class="meta-bar meta-bar-2">
+      <div class="meta-item">
+        <span class="meta-ico">👤</span>
+        <div class="meta-body">
+          <span class="meta-label">Ходим</span>
+          <span class="meta-value">{{ employee }}</span>
+        </div>
+      </div>
+      <div class="meta-item">
+        <span class="meta-ico">📅</span>
+        <div class="meta-body">
+          <span class="meta-label">Кун</span>
+          <span class="meta-value">{{ day_iso }}</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-block ranking-block-wow">
+      <div class="section-bar section-bar-wow">МАНБА ВА ҲИСОБЛАШ</div>
+      <div class="table-wrap">
+        <table class="data-table breakdown-daily-table">
+          <thead>
+            <tr>
+              <th class="col-src-h">Манба</th>
+              <th class="col-formula-h">Ҳисоблаш</th>
+              <th class="col-pts-h">Очко</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in lines %}
+            <tr>
+              <td class="col-src">{{ row.source }}</td>
+              <td class="col-formula">{{ row.formula }}</td>
+              <td class="col-pts">{{ row.points }}</td>
+            </tr>
+            {% endfor %}
+            <tr class="bd-total-row">
+              <td class="col-src"><b>ЖАМИ</b></td>
+              <td class="col-formula">йордамчи +{{ cat_total }} · ботлар +{{ bot_total }}</td>
+              <td class="col-pts">+{{ grand_total }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="footer footer-ranking">
+      <span class="footer-brand">Кунлик очко тизими</span>
+      <span class="footer-date">{{ day_iso }}</span>
+    </div>
+  </div>
+</body>
+</html>

@@ -177,15 +177,15 @@ def format_daily_breakdown_html(card: DailyReportCardData) -> str:
     return "\n".join(lines)
 
 
-async def build_period_breakdown_html(
+async def gather_period_breakdown_rows(
     ref_date: date,
     period: str,
     *,
     employees: list[str],
     sum_period_total,
     employee_tg_map: dict[str, int],
-) -> list[str]:
-    """Period reyting — jamoa jadvali (ping)."""
+) -> list[tuple[str, int, dict[str, int], int]]:
+    """Period bo'yicha jamoa ochko qatorlari."""
     days = period_days_through(period, ref_date)
     rows: list[tuple[str, int, dict[str, int], int]] = []
 
@@ -210,6 +210,48 @@ async def build_period_breakdown_html(
         rows.append((emp, cat_pts, bot_by_key, total))
 
     rows.sort(key=lambda x: (-x[3], x[0]))
+    return rows
+
+
+def build_daily_breakdown_lines(card: DailyReportCardData) -> list[dict[str, str]]:
+    """Kunlik PNG jadval qatorlari."""
+    lines: list[dict[str, str]] = []
+    for row in card.categories:
+        if row.added <= 0:
+            continue
+        lines.append(
+            {
+                "source": row.name,
+                "formula": f"{row.today} birlik (1:1)",
+                "points": f"+{row.added}",
+            }
+        )
+    for bot in card.bots:
+        if bot.score == 0 and not (bot.summary or "").strip():
+            continue
+        _, formula = explain_bot_formula(bot.key, bot.summary)
+        label = BOT_LABELS.get(bot.key, bot.key)
+        sign = f"+{bot.score}" if bot.score >= 0 else str(bot.score)
+        lines.append({"source": label, "formula": formula, "points": sign})
+    return lines
+
+
+async def build_period_breakdown_html(
+    ref_date: date,
+    period: str,
+    *,
+    employees: list[str],
+    sum_period_total,
+    employee_tg_map: dict[str, int],
+) -> list[str]:
+    """Period reyting — matn fallback (ping)."""
+    rows = await gather_period_breakdown_rows(
+        ref_date,
+        period,
+        employees=employees,
+        sum_period_total=sum_period_total,
+        employee_tg_map=employee_tg_map,
+    )
 
     header = (
         "📊 <b>OCHKO JADVALI</b>\n"

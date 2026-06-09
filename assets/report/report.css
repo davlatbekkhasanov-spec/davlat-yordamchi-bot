@@ -1005,3 +1005,104 @@ body {
   font-weight: 600;
   color: #475569;
 }
+
+/* Ochko jadvali PNG */
+.page-breakdown {
+  min-height: auto;
+  height: auto;
+}
+
+.breakdown-table thead th {
+  font-size: 15px;
+  padding: 12px 6px;
+}
+
+.breakdown-table thead th.col-name-h {
+  text-align: left;
+  width: 28%;
+}
+
+.breakdown-table thead th.col-sum-h {
+  width: 9%;
+}
+
+.breakdown-table tbody td {
+  font-size: 19px;
+  padding: 14px 6px;
+}
+
+.breakdown-table .col-rank {
+  font-weight: 800;
+  font-size: 20px;
+}
+
+.breakdown-table .col-name {
+  text-align: left;
+  font-weight: 700;
+  font-size: 18px;
+}
+
+.breakdown-table .col-zero {
+  color: #c0c8d4;
+  font-weight: 600;
+}
+
+.breakdown-table .col-val {
+  font-weight: 700;
+  color: #1e3a5f;
+}
+
+.breakdown-table .col-sum {
+  color: #0a7a0a;
+  font-weight: 900;
+  font-size: 22px;
+}
+
+.breakdown-table tr.bd-tier-green-1 td { background: #ecfdf5; }
+.breakdown-table tr.bd-tier-green-2 td { background: #f0fdf4; }
+.breakdown-table tr.bd-tier-green-3 td { background: #f7fee7; }
+
+.breakdown-rules {
+  margin-top: 20px;
+  border: 2px solid #b8cfe6;
+  border-radius: 12px;
+  padding: 18px 22px;
+  background: #f8fbff;
+}
+
+.breakdown-rules-title {
+  font-size: 20px;
+  font-weight: 800;
+  color: #003f8f;
+  margin-bottom: 12px;
+}
+
+.breakdown-rules-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 24px;
+  font-size: 16px;
+  color: #334155;
+  line-height: 1.45;
+}
+
+.breakdown-daily-table .col-src-h { width: 32%; text-align: left; }
+.breakdown-daily-table .col-formula-h { width: 48%; text-align: left; }
+.breakdown-daily-table .col-pts-h { width: 20%; }
+
+.breakdown-daily-table .col-src,
+.breakdown-daily-table .col-formula {
+  text-align: left;
+  font-size: 19px;
+}
+
+.breakdown-daily-table .col-pts {
+  color: #0a7a0a;
+  font-weight: 800;
+  font-size: 22px;
+}
+
+.breakdown-daily-table tr.bd-total-row td {
+  background: #ecfdf5;
+  border-top: 2px solid #86efac;
+}

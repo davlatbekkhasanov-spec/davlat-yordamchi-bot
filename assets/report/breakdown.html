@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="uz-Cyrl">
+<head>
+  <meta charset="utf-8"/>
+  <title>Очко тафсилоти</title>
+  <style>{{ css }}</style>
+</head>
+<body>
+  <div class="page page-breakdown">
+    <div class="ranking-bg-glow"></div>
+
+    <div class="hero-header hero-ranking hero-ranking-wow">
+      <div class="hero-brand">
+        <img class="company-logo" src="data:image/svg+xml;base64,{{ logo_b64 }}" alt="Kanstik Samarqand"/>
+      </div>
+      <div class="hero-center">
+        <h1 class="hero-title hero-title-ranking">Очко тафсилоти</h1>
+      </div>
+      <div class="hero-trophy hero-trophy-wow" aria-hidden="true">
+        <span class="hero-trophy-icon">📊</span>
+      </div>
+    </div>
+
+    <div class="meta-bar meta-bar-3">
+      <div class="meta-item">
+        <span class="meta-ico">🗓</span>
+        <div class="meta-body">
+          <span class="meta-label">Период</span>
+          <span class="meta-value">{{ period }} (2-сана)</span>
+        </div>
+      </div>
+      <div class="meta-item">
+        <span class="meta-ico">📅</span>
+        <div class="meta-body">
+          <span class="meta-label">Холат</span>
+          <span class="meta-value">{{ ref_date }}</span>
+        </div>
+      </div>
+      <div class="meta-item">
+        <span class="meta-ico">👥</span>
+        <div class="meta-body">
+          <span class="meta-label">Ходимлар</span>
+          <span class="meta-value">{{ team_size }} нафар</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-block ranking-block-wow">
+      <div class="section-bar section-bar-wow">ОЧКО МАНБАЛАРИ · ЖАМОА</div>
+      <div class="table-wrap">
+        <table class="data-table breakdown-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th class="col-name-h">Ходим</th>
+              <th>Kat</th>
+              <th>Ombg</th>
+              <th>Omb</th>
+              <th>Yuk</th>
+              <th>Skl</th>
+              <th>In</th>
+              <th class="col-sum-h">Σ</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in rows %}
+            <tr class="bd-tier-{{ row.tier }}">
+              <td class="col-rank">{{ row.medal }}</td>
+              <td class="col-name">{{ row.name }}</td>
+              <td class="{{ row.kat_cls }}">{{ row.kat }}</td>
+              <td class="{{ row.ombg_cls }}">{{ row.ombg }}</td>
+              <td class="{{ row.omb_cls }}">{{ row.omb }}</td>
+              <td class="{{ row.yuk_cls }}">{{ row.yuk }}</td>
+              <td class="{{ row.skl_cls }}">{{ row.skl }}</td>
+              <td class="{{ row.in_cls }}">{{ row.in_pts }}</td>
+              <td class="col-sum">{{ row.total }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="breakdown-rules">
+      <div class="breakdown-rules-title">Қоидалар</div>
+      <div class="breakdown-rules-grid">
+        <div><b>Kat</b> — йордамчи: 1 бирлик = 1 очко</div>
+        <div><b>Ombg</b> — омборга: рейс×2 + ⌈иш дақ⌉÷2</div>
+        <div><b>Omb</b> — омбор хизмат: ⌈иш дақ⌉×1</div>
+        <div><b>Yuk</b> — ⌈иш дақ⌉÷2 · <b>Skl</b> — саналди×2</div>
+        <div><b>In</b> — ишхона очик шикоят −40</div>
+        <div><b>Σ</b> = Kat + Ombg + Omb + Yuk + Skl + In</div>
+      </div>
+    </div>
+
+    <div class="footer footer-ranking">
+      <span class="footer-brand">Период очко тизими</span>
+      <span class="footer-date">{{ period }} · {{ ref_date_fmt }}</span>
+    </div>
+  </div>
+</body>
+</html>

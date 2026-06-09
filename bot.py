@@ -34,11 +34,18 @@ from daily_report_card import (
     score_bot_summary,
 )
 from points_breakdown import (
+    build_daily_breakdown_lines,
     build_period_breakdown_html,
-    format_daily_breakdown_html,
+    gather_period_breakdown_rows,
     split_messages,
 )
-from report_png import render_demo_preview_png, render_ranking_png, render_report_png
+from report_png import (
+    render_daily_breakdown_png,
+    render_demo_preview_png,
+    render_period_breakdown_png,
+    render_ranking_png,
+    render_report_png,
+)
 from employee_photos import (
     init_schema as init_photo_schema,
     load_photo_for_employee,
@@ -476,21 +483,48 @@ async def send_daily_points_breakdown(
     *,
     private_fallback: int = 0,
 ) -> None:
-    """Kunlik hisobotdan keyin ochko jadvali (alohida xabar)."""
+    """Kunlik hisobotdan keyin ochko jadvali (PNG)."""
     if not POINTS_BREAKDOWN_ENABLED:
         return
+    lines = build_daily_breakdown_lines(card)
+    if not lines:
+        return
     try:
+        png = await render_daily_breakdown_png(card, lines=lines)
+        await safe_report_send_photo(
+            png,
+            caption=f"📊 Kunlik ochko · {card.employee} · {card.day_iso}",
+            private_fallback=private_fallback,
+        )
+    except Exception:
+        logging.exception("Kunlik ochko PNG xato, matn fallback")
+        from points_breakdown import format_daily_breakdown_html
+
         for part in split_messages(format_daily_breakdown_html(card)):
             await safe_report_send(part, private_fallback=private_fallback)
-    except Exception:
-        logging.exception("Ochko tafsiloti yuborilmadi")
 
 
 async def send_period_points_breakdown(ref: date, period: str) -> None:
-    """Period reytingdan keyin jamoa ochko jadvali."""
+    """Period reytingdan keyin jamoa ochko jadvali (PNG)."""
     if not POINTS_BREAKDOWN_ENABLED:
         return
     try:
+        rows = await gather_period_breakdown_rows(
+            ref,
+            period,
+            employees=ranking_employees(EMPLOYEES),
+            sum_period_total=sum_period_total,
+            employee_tg_map=await employee_tg_map(),
+        )
+        if not rows:
+            return
+        png = await render_period_breakdown_png(period, ref, rows)
+        await safe_ranking_send_png(
+            png,
+            caption=f"📊 Ochko jadvali · {period} · {ref.isoformat()}",
+        )
+    except Exception:
+        logging.exception("Period ochko PNG xato, matn fallback")
         parts = await build_period_breakdown_html(
             ref,
             period,
@@ -500,8 +534,6 @@ async def send_period_points_breakdown(ref: date, period: str) -> None:
         )
         for part in parts:
             await safe_ranking_send(part)
-    except Exception:
-        logging.exception("Period ochko tafsiloti yuborilmadi")
 
 
 async def safe_report_send_photo(png: bytes, caption: str = "", *, private_fallback: int = 0):
@@ -760,8 +792,13 @@ async def send_report_preview(message: Message, *, demo: bool = False) -> None:
     )
     if POINTS_BREAKDOWN_ENABLED and card.grand_total > 0:
         try:
-            for part in split_messages(format_daily_breakdown_html(card)):
-                await message.answer(part, parse_mode="HTML")
+            lines = build_daily_breakdown_lines(card)
+            if lines:
+                bd_png = await render_daily_breakdown_png(card, lines=lines)
+                await message.answer_photo(
+                    BufferedInputFile(bd_png, filename="ochko_jadvali.png"),
+                    caption=f"📊 Ochko jadvali · {card.employee}",
+                )
         except Exception:
             logging.exception("Preview ochko tafsiloti")
     domain = os.getenv("RAILWAY_PUBLIC_DOMAIN", "").strip()
