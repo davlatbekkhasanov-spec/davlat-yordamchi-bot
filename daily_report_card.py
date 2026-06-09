@@ -159,13 +159,28 @@ def _parse_ombor_duration(text: str) -> int:
     return total
 
 
+_MAX_DAILY_WORK_SEC = 12 * 3600
+
+
+def _cap_daily_work(seconds: int) -> int:
+    """Kunlik ish vaqti 12 soatdan oshmasin (noto'g'ri format himoyasi)."""
+    sec = max(0, int(seconds))
+    if sec > _MAX_DAILY_WORK_SEC:
+        return _MAX_DAILY_WORK_SEC
+    return sec
+
+
 def _parse_omborga_time(token: str) -> int:
     """OmborgaKiritishBot fmt_duration_short: daqiqa:soniya (75:39 = 75 daq 39 son)."""
     token = (token or "").strip()
     m = re.match(r"^(\d+):(\d{2})$", token)
     if m:
-        return int(m.group(1)) * 60 + int(m.group(2))
-    return _parse_hms(token)
+        mins = int(m.group(1))
+        # 10 soatdan ortiq daqiqa — format xato (982:00 kabi), ish vaqtini hisoblamaymiz
+        if mins > 600:
+            return 0
+        return mins * 60 + int(m.group(2))
+    return _cap_daily_work(_parse_hms(token))
 
 
 def _fmt_hms(seconds: int) -> str:
@@ -222,7 +237,7 @@ def score_bot_summary(key: str, summary: str) -> tuple[int, int]:
     if key == "omborga":
         reys = int(re.search(r"reys\s*(\d+)", sl).group(1)) if re.search(r"reys\s*(\d+)", sl) else 0
         ish_m = re.search(r"ish\s+([\d:]+)", sl)
-        ish = _parse_omborga_time(ish_m.group(1)) if ish_m else 0
+        ish = _cap_daily_work(_parse_omborga_time(ish_m.group(1)) if ish_m else 0)
         if not reys and not ish:
             return 0, 0
         pts = reys * 2 + (_ceil_minutes(ish) // 2 if ish else 0)

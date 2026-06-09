@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-HUB_SEED_VERSION = 6
+HUB_SEED_VERSION = 7
 
 # (day, tg_id, bot_key, summary)
 HUB_SEED_ROWS: tuple[tuple[str, int, str, str], ...] = (
@@ -96,7 +96,7 @@ HUB_SEED_ROWS: tuple[tuple[str, int, str, str], ...] = (
     ("2026-06-08", 8547365654, "omborga", "Reys 5, yuk 190m, ish 3:29, dam 1:10"),
     # 2026-06-09
     ("2026-06-09", 5412958249, "omborga", "Reys 25, ish 29:07, dam 0:00"),
-    ("2026-06-09", 5465963344, "omborga", "Reys 18, yuk 522m, ish 982:00, dam 6:12"),
+    ("2026-06-09", 5465963344, "omborga", "Reys 18, yuk 522m, dam 6:12"),
     ("2026-06-09", 8440127425, "yuk", "Yuk (bugun jami): ish vaqti 0:00"),
     ("2026-06-09", 8547365654, "omborga", "Reys 1, yuk 69m, ish 2:06, dam 0:07"),
     # 2026-06-08
