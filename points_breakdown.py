@@ -1,4 +1,4 @@
-"""Har bir ochko qanday hisoblanganini ko'rsatadigan alohida xabar."""
+"""Har bir ochko qanday hisoblanganini ko'rsatadigan alohida xabar (ping jadval)."""
 
 from __future__ import annotations
 
@@ -21,21 +21,16 @@ from ranking_broadcast import period_days_through
 
 RULES_FOOTER = (
     "📐 <b>Qoidalar:</b>\n"
-    "• Yordamchi kategoriya: 1 birlik = +1 ochko\n"
-    "• Omborga: reys×2 + ⌈ish daqiqa⌉÷2\n"
-    "• Ombor: ⌈ish daqiqa⌉×1\n"
-    "• Yuk: ⌈ish daqiqa⌉÷2\n"
-    "• Sklad: sanaldi×2\n"
-    "• Ishxona: ochiq shikoyat −40"
-)
-
-_COMPACT_LEGEND = (
-    "<i>Manba: Kat=yordamchi · Ombg=omborga · Omb=ombor · Yuk · Skl=sklad · In=ishxona</i>"
+    "Kat — yordamchi: 1 birlik = 1 ochko\n"
+    "Ombg — omborga: reys×2 + ⌈ish daqiqa⌉÷2\n"
+    "Omb — ombor xizmat: ⌈ish daqiqa⌉×1\n"
+    "Yuk — ⌈ish daqiqa⌉÷2 · Skl — sanaldi×2\n"
+    "In — ishxona ochiq shikoyat −40"
 )
 
 _MEDALS = {1: "🥇", 2: "🥈", 3: "🥉"}
 
-_BOT_SHORT = (
+_BOT_COLS = (
     ("omborga", "Ombg"),
     ("ombor", "Omb"),
     ("yuk", "Yuk"),
@@ -60,11 +55,11 @@ def explain_bot_formula(key: str, summary: str) -> tuple[int, str]:
         ish = _parse_omborga_time(ish_m.group(1)) if ish_m else sec
         mins = _ceil_minutes(ish)
         half = mins // 2 if mins else 0
-        return pts, f"reys {reys}×2 + ⌈{mins} daq⌉÷2 = {reys * 2}+{half}"
+        return pts, f"{reys}×2 + {half} = {pts}"
     if key == "ombor":
         sec = _parse_ombor_duration(sl) or sec or _parse_hms(s)
         mins = _ceil_minutes(sec)
-        return pts, f"⌈{sec} son⌉ → {mins} daq×1"
+        return pts, f"{mins} daq×1"
     if key == "yuk":
         sec = _parse_hms(s)
         if not sec:
@@ -73,72 +68,112 @@ def explain_bot_formula(key: str, summary: str) -> tuple[int, str]:
                 sec = int(sm.group(1))
         mins = _ceil_minutes(sec)
         half = mins // 2 if mins else 0
-        return pts, f"⌈{mins} daq⌉÷2 = {half}"
+        return pts, f"{mins} daq÷2 = {half}"
     if key == "sklad":
         sm = re.search(r"sanaldi\s*(\d+)", sl)
         n = int(sm.group(1)) if sm else 0
-        return pts, f"sanaldi {n}×2"
+        return pts, f"{n}×2"
     if key == "ishxona":
         om = re.search(r"ochiq\s*=\s*(\d+)", sl)
         if om:
             n = int(om.group(1))
-            return pts, f"ochiq {n}×(−40)" if n else (0, "ochiq=0")
+            return pts, f"ochiq {n}×(−40)" if n else (0, "0")
         if "shikoyat" in sl:
-            return pts, "shikoyat −40"
-        return pts, "bartaraf/rad"
+            return pts, "−40"
+        return pts, "0"
     return pts, "—"
 
 
-def _format_sources_line(cat_pts: int, bot_by_key: dict[str, int]) -> str:
-    """Mobil uchun qisqa manba qatori."""
-    parts: list[str] = []
-    if cat_pts:
-        parts.append(f"Kat <b>+{cat_pts}</b>")
-    for key, short in _BOT_SHORT:
-        val = int(bot_by_key.get(key) or 0)
-        if not val:
-            continue
-        sign = f"+{val}" if val > 0 else str(val)
-        parts.append(f"{short} <b>{sign}</b>")
-    return " · ".join(parts)
+def _short_name(full: str, width: int = 13) -> str:
+    parts = (full or "").split()
+    if len(parts) >= 2 and len(parts[0]) + len(parts[-1]) + 2 <= width:
+        short = f"{parts[0]} {parts[-1][0]}."
+    else:
+        short = full
+    if len(short) > width:
+        return short[: width - 1] + "…"
+    return short.ljust(width)
+
+
+def _n(val: int, w: int) -> str:
+    """Jadval raqami — 0 bo'lsa chiziqcha."""
+    v = int(val or 0)
+    if not v:
+        return "·".rjust(w)
+    s = str(v)
+    if len(s) > w:
+        return s[-w:].rjust(w)
+    return s.rjust(w)
+
+
+def _pre_table(lines: list[str]) -> str:
+    return "<pre>" + "\n".join(html.escape(ln) for ln in lines) + "</pre>"
+
+
+def _period_table_lines(
+    rows: list[tuple[str, int, dict[str, int], int]],
+) -> list[str]:
+    """Period jamoa jadvali — bir qator = bir xodim."""
+    hdr = (
+        f"{'#':>2} {'Xodim':13} "
+        f"{'Kat':>4} {'Ombg':>4} {'Omb':>4} {'Yuk':>3} {'Skl':>3} {'In':>3} "
+        f"{'Σ':>5}"
+    )
+    sep = "─" * len(hdr)
+    out = [hdr, sep]
+    for rank, (emp, cat_pts, bot_by_key, total) in enumerate(rows, 1):
+        tag = _MEDALS.get(rank, "")
+        name = _short_name(emp, 12 if tag else 13)
+        if tag:
+            name = f"{tag}{name[1:]}" if len(name) > 1 else tag
+            name = name[:13].ljust(13)
+        out.append(
+            f"{rank:>2} {name} "
+            f"{_n(cat_pts, 4)} {_n(bot_by_key.get('omborga', 0), 4)} "
+            f"{_n(bot_by_key.get('ombor', 0), 4)} {_n(bot_by_key.get('yuk', 0), 3)} "
+            f"{_n(bot_by_key.get('sklad', 0), 3)} {_n(bot_by_key.get('ishxona', 0), 3)} "
+            f"{_n(total, 5)}"
+        )
+    return out
 
 
 def format_daily_breakdown_html(card: DailyReportCardData) -> str:
-    """Bitta xodim kunlik ochko — reyting uslubida."""
+    """Bitta xodim kunlik ochko — jadval ping."""
     lines = [
-        "📊 <b>OCHKO TAFSILOTI</b>",
+        "📊 <b>OCHKO JADVALI</b>",
         f"👤 {html.escape(card.employee)} · {card.day_iso}",
         "",
+    ]
+    tbl = [
+        f"{'Manba':<14} {'Hisoblash':<16} {'Ochko':>5}",
+        "─" * 38,
     ]
     n = 0
     for row in card.categories:
         if row.added <= 0:
             continue
         n += 1
-        lines.append(
-            f"• {html.escape(row.name)}: {row.today} birlik → <b>+{row.added}</b>"
+        tbl.append(
+            f"{row.name[:14]:<14} {str(row.today) + ' ta (1:1)':<16} {('+' + str(row.added)):>5}"
         )
     for bot in card.bots:
         if bot.score == 0 and not (bot.summary or "").strip():
             continue
         n += 1
         _, formula = explain_bot_formula(bot.key, bot.summary)
-        label = BOT_LABELS.get(bot.key, bot.key)
+        label = BOT_LABELS.get(bot.key, bot.key)[:14]
         sign = f"+{bot.score}" if bot.score >= 0 else str(bot.score)
-        lines.append(
-            f"• {html.escape(label)}: {html.escape(formula)} → <b>{sign}</b>"
-        )
+        tbl.append(f"{label:<14} {formula[:16]:<16} {sign:>5}")
     if not n:
         lines.append("<i>Bugun ochko yo'q</i>")
-    lines.extend(
-        [
-            "",
-            f"🏁 <b>JAMI: +{card.grand_total}</b> "
-            f"(yordamchi +{card.cat_total} · botlar +{card.bot_total})",
-            "",
-            RULES_FOOTER,
-        ]
-    )
+    else:
+        tbl.append("─" * 38)
+        tbl.append(
+            f"{'JAMI':<14} {'yord+' + str(card.cat_total) + ' bot+' + str(card.bot_total):<16} "
+            f"{'+' + str(card.grand_total):>5}"
+        )
+        lines.append(_pre_table(tbl))
+    lines.extend(["", RULES_FOOTER])
     return "\n".join(lines)
 
 
@@ -150,7 +185,7 @@ async def build_period_breakdown_html(
     sum_period_total,
     employee_tg_map: dict[str, int],
 ) -> list[str]:
-    """Period reyting — har xodim bo'yicha manba (mobilga qulay ping)."""
+    """Period reyting — jamoa jadvali (ping)."""
     days = period_days_through(period, ref_date)
     rows: list[tuple[str, int, dict[str, int], int]] = []
 
@@ -177,42 +212,38 @@ async def build_period_breakdown_html(
     rows.sort(key=lambda x: (-x[3], x[0]))
 
     header = (
-        "📊 <b>OCHKO TAFSILOTI</b>\n"
+        "📊 <b>OCHKO JADVALI</b>\n"
         f"Период: {period} (2-sana) · holat: {ref_date.isoformat()}\n"
-        "<i>Har bir ochko qayerdan yig'ilgani</i>\n"
+        "<i>Σ = Kat + Ombg + Omb + Yuk + Skl + In</i>\n"
     )
-    footer = f"\n\n{_COMPACT_LEGEND}"
+    footer = f"\n{RULES_FOOTER}"
 
-    blocks: list[str] = []
-    for rank, (emp, cat_pts, bot_by_key, total) in enumerate(rows, 1):
-        medal = _MEDALS.get(rank, f"{rank}.")
-        sources = _format_sources_line(cat_pts, bot_by_key)
-        block = f"{medal} <b>{html.escape(emp)}</b> — <b>{total}</b> ochko"
-        if sources:
-            block += f"\n   {sources}"
-        blocks.append(block)
+    if not rows:
+        return [header + "\n<i>Periodda ochko yo'q</i>\n\n" + footer]
 
-    if not blocks:
-        return [header + "\n<i>Periodda ochko yo'q</i>" + footer]
+    table_lines = _period_table_lines(rows)
+    body = header + "\n" + _pre_table(table_lines)
 
-    return _chunk_blocks(header, blocks, footer)
+    # Juda uzun bo'lsa — jadvalni bo'laklarga
+    if len(body) + len(footer) <= _TG_MAX:
+        return [body + footer]
 
-
-def _chunk_blocks(header: str, blocks: list[str], footer: str) -> list[str]:
-    """Xodimlarni bir nechta xabarga bo'lish."""
-    out: list[str] = []
-    current = header
-    for block in blocks:
-        sep = "\n\n" if current.strip() != header.strip() else ""
-        candidate = f"{current}{sep}{block}"
-        if len(candidate) + len(footer) > _TG_MAX and current != header:
-            out.append(current.rstrip() + footer)
-            current = header + block
+    chunks: list[str] = []
+    part_hdr = header + "\n"
+    batch: list[str] = []
+    for i, ln in enumerate(table_lines):
+        if i < 2:
+            batch.append(ln)
+            continue
+        candidate = part_hdr + _pre_table(batch + [ln])
+        if len(candidate) + len(footer) > _TG_MAX and len(batch) > 2:
+            chunks.append(part_hdr + _pre_table(batch) + footer)
+            batch = table_lines[:2] + [ln]
         else:
-            current = candidate
-    if current.strip():
-        out.append(current.rstrip() + footer)
-    return out or [header + footer]
+            batch.append(ln)
+    if batch:
+        chunks.append(part_hdr + _pre_table(batch) + footer)
+    return chunks or [body + footer]
 
 
 def split_messages(text: str) -> list[str]:

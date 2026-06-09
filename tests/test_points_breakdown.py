@@ -15,7 +15,7 @@ def test_explain_omborga():
         "omborga", "Reys 7, yuk 105m, ish 2:45, dam 0:14"
     )
     assert pts == 15  # 7*2 + ceil(165)/2 = 14+1
-    assert "reys 7" in formula
+    assert "7×2" in formula
 
 
 def test_format_daily_has_table():
@@ -44,20 +44,26 @@ def test_format_daily_has_table():
     assert "+56" in text
     assert "JAMI" in text
     assert "+68" in text
-    assert "OCHKO TAFSILOTI" in text
+    assert "OCHKO JADVALI" in text
+    assert "<pre>" in text
+    assert "Hisoblash" in text
 
 
-def test_format_sources_line():
-    from points_breakdown import _format_sources_line
+def test_period_table_lines():
+    from points_breakdown import _period_table_lines
 
-    line = _format_sources_line(1795, {"omborga": 0, "ombor": 1, "yuk": 0, "sklad": 0, "ishxona": 0})
-    assert "Kat" in line and "+1795" in line
-    assert "Omb" in line and "+1" in line
-    assert "Ombg" not in line
+    rows = [
+        ("Sagdullaev Yunus", 1795, {"omborga": 0, "ombor": 1, "yuk": 0, "sklad": 0, "ishxona": 0}, 1796),
+        ("Ruziboev Sindor", 735, {"omborga": 322, "ombor": 355, "yuk": 0, "sklad": 0, "ishxona": 0}, 1412),
+    ]
+    lines = _period_table_lines(rows)
+    assert any("1796" in ln for ln in lines)
+    assert any("1412" in ln for ln in lines)
+    assert lines[0].startswith(" #") or lines[0].strip().startswith("#")
 
 
 if __name__ == "__main__":
     test_explain_omborga()
     test_format_daily_has_table()
-    test_format_sources_line()
+    test_period_table_lines()
     print("PASS test_points_breakdown")
