@@ -84,7 +84,22 @@ def test_omborga_sessions_sum():
     assert pts > score_bot_summary("omborga", s2)[0]
 
 
+def test_fetch_replay_not_latest_zero():
+    from cross_bot_hub import _replay_merged_by_bot
+
+    rows = [
+        {"bot_key": "ombor", "summary": "#47 bajarildi, 50 daqiqa 26 soniya"},
+        {"bot_key": "ombor", "summary": "Ombor (jami): 0 ta, ish vaqti 0 soniya"},
+        {"bot_key": "ombor", "summary": "#51 bajarildi, 53 daqiqa 36 soniya"},
+    ]
+    out = _replay_merged_by_bot(rows)
+    pts, sec = score_bot_summary("ombor", out["ombor"])
+    assert sec > 6000, (sec, out["ombor"])
+    assert "0 soniya" not in out["ombor"]
+
+
 if __name__ == "__main__":
+    test_fetch_replay_not_latest_zero()
     test_ombor_two_orders_not_zero()
     test_ombor_three_orders_sindor_day()
     test_ombor_cumulative_replaces_not_adds()

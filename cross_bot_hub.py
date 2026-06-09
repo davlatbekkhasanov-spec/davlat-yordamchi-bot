@@ -270,8 +270,27 @@ async def ensure_hub_seed() -> int:
     return added
 
 
+def _replay_merged_by_bot(rows: list) -> dict[str, str]:
+    """Kunlik barcha eventlarni ketma-ket birlashtirish (oxirgi emas, jami)."""
+    groups: dict[str, list[str]] = {}
+    for row in rows:
+        k = row["bot_key"]
+        s = str(row["summary"] or "").strip()
+        if not s:
+            continue
+        groups.setdefault(k, []).append(s)
+    out: dict[str, str] = {}
+    for k, summaries in groups.items():
+        merged = ""
+        for s in summaries:
+            merged = _merge_hub_summary(k, merged, s) if merged else s
+        if merged:
+            out[k] = merged
+    return out
+
+
 async def fetch_merged_latest_by_bot(tg_ids: set[int] | list[int], day: str) -> dict[str, str]:
-    """Bir nechta tg_id uchun har bot_key bo'yicha eng so'nggi xulosa."""
+    """Bir nechta tg_id uchun har bot_key bo'yicha kunlik birlashtirilgan xulosa."""
     ids = sorted({int(x) for x in tg_ids if x})
     if not ids:
         return {}
@@ -282,17 +301,12 @@ async def fetch_merged_latest_by_bot(tg_ids: set[int] | list[int], day: str) -> 
             f"""
             SELECT bot_key, summary, id FROM cross_bot_events
             WHERE day = ? AND tg_id IN ({placeholders})
-            ORDER BY id DESC
+            ORDER BY id ASC
             """,
             (day, *ids),
         )
         rows = cur.fetchall()
-    out: dict[str, str] = {}
-    for row in rows:
-        k = row["bot_key"]
-        if k not in out:
-            out[k] = row["summary"]
-    return out
+    return _replay_merged_by_bot(rows)
 
 
 def _latest_by_bot_sync(tg_id: int, day: str) -> dict[str, str]:
