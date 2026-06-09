@@ -23,9 +23,8 @@ from cross_bot_hub import (
     init_schema as init_cross_bot_schema,
     record_event,
 )
-from baseline_restore import ensure_baseline_restored
-from hub_corrections import apply_hub_purges
 from persist_data import has_railway_volume, persistence_status_line
+from startup_health import format_startup_admin_message, run_startup_maintenance
 from daily_report_card import (
     BOT_ORDER,
     DailyReportCardData,
@@ -2269,9 +2268,9 @@ async def repairhub_cmd(message: Message):
     uid = message.from_user.id if message.from_user else 0
     await message.answer("⏳ Hub qayta birlashtirilmoqda…")
     try:
-        from tools.repair_hub_db import repair_db
+        from hub_repair import repair_hub_db
 
-        fixes = await asyncio.to_thread(repair_db, DB_PATH, apply=True)
+        fixes = await asyncio.to_thread(repair_hub_db, DB_PATH, apply=True)
         if not fixes:
             await message.answer(
                 "✅ Hub: tuzatish kerak bo'lgan yozuv topilmadi.",
@@ -2591,18 +2590,18 @@ async def main():
     except Exception:
         logging.exception("Startup JSON zaxira xato")
     init_cross_bot_schema()
+    maintenance: dict = {}
     try:
-        br = await asyncio.to_thread(ensure_baseline_restored, DB_PATH)
+        maintenance = await run_startup_maintenance(DB_PATH)
+        br = maintenance.get("baseline") or {}
         if br.get("restored"):
             logging.warning("Baseline tiklandi: %s hisobot", br.get("after"))
+        if maintenance.get("hub_purge"):
+            logging.info("Hub purge: %s yozuv", maintenance["hub_purge"])
+        if maintenance.get("hub_repair"):
+            logging.info("Hub repair: %s guruh", maintenance["hub_repair"])
     except Exception:
-        logging.exception("Baseline restore xato")
-    try:
-        purged = await apply_hub_purges()
-        if purged:
-            logging.info("Hub tuzatish: %s ta noto'g'ri yozuv o'chirildi", purged)
-    except Exception:
-        logging.exception("Hub purge xato")
+        logging.exception("Startup maintenance xato")
     try:
         n = await ensure_hub_seed()
         if n:
@@ -2621,18 +2620,15 @@ async def main():
             "INSERT OR IGNORE INTO employee_links(tg_id, employee) VALUES (?, ?)",
             (int(tg_id), emp_name),
         )
-    if os.getenv("RAILWAY_ENVIRONMENT") and not has_railway_volume():
-        try:
-            await bot.send_message(
-                REPORT_ADMIN_DM_ID,
-                "⚠️ <b>Railway Volume yo'q!</b>\n\n"
-                "Har deploy ma'lumotni o'chiradi.\n"
-                "Volumes → mount <code>/data</code>, "
-                "<code>DB_PATH=/data/data.db</code>",
-                parse_mode="HTML",
-            )
-        except Exception:
-            logging.exception("Volume ogohlantirish yuborilmadi")
+    try:
+        stats = (maintenance.get("stats") if maintenance else None) or {}
+        await bot.send_message(
+            REPORT_ADMIN_DM_ID,
+            format_startup_admin_message(stats, maintenance or {}),
+            parse_mode="HTML",
+        )
+    except Exception:
+        logging.exception("Startup admin xabari yuborilmadi")
     hub_runner = await start_ingest_server()
     scheduler = setup_scheduler()
     try:
