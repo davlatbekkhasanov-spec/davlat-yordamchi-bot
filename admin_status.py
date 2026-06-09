@@ -188,8 +188,17 @@ async def build_admin_status_report(bot: Bot, admin_uid: int) -> str:
         problems.append("HTTP /health ishlamayapti — Web servis + PORT tekshiring")
     if not g_ok:
         problems.append("Guruhga yozib bo'lmayapti")
-    if not db_path.startswith("/data/"):
-        problems.append("DB_PATH /data da emas — deployda ma'lumot yo'qolishi mumkin")
+    try:
+        from persist_data import has_railway_volume, persistence_status_line
+
+        lines.append(f"  {persistence_status_line(db_path)}")
+        if not has_railway_volume():
+            problems.append(
+                "Railway Volume ulanmagan — Service → Volumes → mount /data (deployda DB o'chadi!)"
+            )
+    except Exception:
+        if not db_path.startswith("/data/"):
+            problems.append("DB_PATH /data da emas — deployda ma'lumot yo'qolishi mumkin")
     if total_events == 0 and hub_receive_ok:
         problems.append(
             "Bugun event 0 — ish botlarda URL+SECRET qo'yilganmi? (yakunlangandan keyin yangilanadi)"

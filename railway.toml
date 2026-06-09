@@ -1,3 +1,7 @@
+# Railway Volume: Dashboard -> Volumes -> Add -> Mount path /data
+# Env: DB_PATH=/data/data.db  TZ=Asia/Tashkent
+# Ko'rsatma: ../PERSISTENCE.md
+
 [build]
 builder = "DOCKERFILE"
 dockerfilePath = "Dockerfile"

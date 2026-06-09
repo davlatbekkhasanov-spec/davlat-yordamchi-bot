@@ -6,7 +6,6 @@ import asyncio
 import logging
 import os
 import re
-import shutil
 import sqlite3
 from datetime import datetime
 from zoneinfo import ZoneInfo
@@ -14,7 +13,9 @@ from zoneinfo import ZoneInfo
 log = logging.getLogger(__name__)
 TZ = ZoneInfo(os.getenv("TZ", "Asia/Tashkent"))
 
-DB_PATH = os.getenv("DB_PATH", "/data/data.db").strip() or "/data/data.db"
+from persist_data import bootstrap_persistence, resolve_db_path
+
+DB_PATH = resolve_db_path(default_filename="data.db")
 HUB_SECRET = os.getenv("YORDAMCHI_HUB_SECRET", "").strip()
 MAX_SUMMARY_LEN = 420
 MAX_APPENDIX_CHARS = 1050
@@ -35,17 +36,8 @@ _BOT_KEY_ALIASES = {
     "ishxona": {"ishxona", "ishxonanazorat", "ishxona_nazorat"},
 }
 
-_db_dir = os.path.dirname(DB_PATH)
-if _db_dir:
-    os.makedirs(_db_dir, exist_ok=True)
-
-_legacy_db = "data.db"
-if DB_PATH != _legacy_db and not os.path.exists(DB_PATH) and os.path.exists(_legacy_db):
-    try:
-        shutil.copy2(_legacy_db, DB_PATH)
-        log.warning("Legacy DB migrated to %s", DB_PATH)
-    except Exception as e:
-        log.warning("Legacy DB migration failed: %s", e)
+_PERSIST = bootstrap_persistence(DB_PATH, legacy_names=("data.db",))
+DB_PATH = _PERSIST["db_path"]
 
 _conn = sqlite3.connect(DB_PATH, check_same_thread=False, timeout=30)
 _conn.row_factory = sqlite3.Row
@@ -249,12 +241,11 @@ async def ensure_hub_seed() -> int:
         row = cur.execute("SELECT version FROM hub_seed_meta WHERE id = 1").fetchone()
         applied_ver = int(row["version"]) if row else 0
 
-    force_refresh = applied_ver < HUB_SEED_VERSION
     added = 0
     for day, tg_id, bot_key, summary in HUB_SEED_ROWS:
         key = normalize_bot_key(bot_key)
         existing = await fetch_latest_by_bot(int(tg_id), day)
-        if not force_refresh and key in existing:
+        if key in existing:
             continue
         await record_event(tg_id=int(tg_id), day=day, bot_key=bot_key, summary=summary)
         added += 1
