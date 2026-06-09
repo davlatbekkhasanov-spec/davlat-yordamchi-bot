@@ -26,7 +26,19 @@ from cross_bot_hub import (
 from baseline_restore import ensure_baseline_restored
 from hub_corrections import apply_hub_purges
 from persist_data import has_railway_volume, persistence_status_line
-from daily_report_card import BOT_ORDER, _fmt_clock, build_card_data, build_demo_card_data, score_bot_summary
+from daily_report_card import (
+    BOT_ORDER,
+    DailyReportCardData,
+    _fmt_clock,
+    build_card_data,
+    build_demo_card_data,
+    score_bot_summary,
+)
+from points_breakdown import (
+    build_period_breakdown_html,
+    format_daily_breakdown_html,
+    split_messages,
+)
 from report_png import render_demo_preview_png, render_ranking_png, render_report_png
 from employee_photos import (
     init_schema as init_photo_schema,
@@ -139,6 +151,7 @@ RANKING_BROADCAST_MINUTE = int(os.getenv("RANKING_BROADCAST_MINUTE", "1") or "1"
 RANKING_TO_GROUP = _env_bool("RANKING_TO_GROUP", False)
 _RANKING_CHAT_RAW = os.getenv("RANKING_CHAT_ID", "").strip()
 ADJ_TO_GROUP = _env_bool("ADJ_TO_GROUP", True)
+POINTS_BREAKDOWN_ENABLED = _env_bool("POINTS_BREAKDOWN_ENABLED", True)
 
 
 def ranking_chat_id() -> int:
@@ -459,6 +472,39 @@ async def safe_report_send(html_text: str, *, private_fallback: int = 0):
         logging.exception("Hisobot xabarini yuborishda xato (chat=%s): %s", chat_id, e)
 
 
+async def send_daily_points_breakdown(
+    card: DailyReportCardData,
+    *,
+    private_fallback: int = 0,
+) -> None:
+    """Kunlik hisobotdan keyin ochko jadvali (alohida xabar)."""
+    if not POINTS_BREAKDOWN_ENABLED:
+        return
+    try:
+        for part in split_messages(format_daily_breakdown_html(card)):
+            await safe_report_send(part, private_fallback=private_fallback)
+    except Exception:
+        logging.exception("Ochko tafsiloti yuborilmadi")
+
+
+async def send_period_points_breakdown(ref: date, period: str) -> None:
+    """Period reytingdan keyin jamoa ochko jadvali."""
+    if not POINTS_BREAKDOWN_ENABLED:
+        return
+    try:
+        parts = await build_period_breakdown_html(
+            ref,
+            period,
+            employees=ranking_employees(EMPLOYEES),
+            sum_period_total=sum_period_total,
+            employee_tg_map=await employee_tg_map(),
+        )
+        for part in parts:
+            await safe_ranking_send(part)
+    except Exception:
+        logging.exception("Period ochko tafsiloti yuborilmadi")
+
+
 async def safe_report_send_photo(png: bytes, caption: str = "", *, private_fallback: int = 0):
     chat_id = report_chat_id(private_fallback)
     try:
@@ -520,6 +566,7 @@ async def broadcast_daily_ranking(day_iso: str | None = None, *, force: bool = F
         logging.exception("Reyting PNG xato, matn fallback")
         lines = format_ranking_lines(period, ref, leaders, active)
         await safe_ranking_send(box(lines, title="🏆 PERIOD REYTING"))
+    await send_period_points_breakdown(ref, period)
     await mark_ranking_sent(db_exec, send_key)
     logging.info("Period reyting yuborildi: %s / %s (%s faol)", period, send_key, active)
     return True
@@ -712,6 +759,12 @@ async def send_report_preview(message: Message, *, demo: bool = False) -> None:
         BufferedInputFile(png, filename="preview.png"),
         caption=note,
     )
+    if POINTS_BREAKDOWN_ENABLED and card.grand_total > 0:
+        try:
+            for part in split_messages(format_daily_breakdown_html(card)):
+                await message.answer(part, parse_mode="HTML")
+        except Exception:
+            logging.exception("Preview ochko tafsiloti")
     domain = os.getenv("RAILWAY_PUBLIC_DOMAIN", "").strip()
     if domain:
         url = domain if domain.startswith("http") else f"https://{domain}"
@@ -1166,6 +1219,7 @@ async def finalize_report(message: Message):
                     png,
                     private_fallback=tg_id,
                 )
+                await send_daily_points_breakdown(card, private_fallback=tg_id)
                 sent_card = True
         except Exception as e:
             logging.exception("PNG hisobot xato, matn fallback: %s", e)
