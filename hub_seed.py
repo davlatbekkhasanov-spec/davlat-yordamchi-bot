@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-HUB_SEED_VERSION = 5
+HUB_SEED_VERSION = 6
 
 # (day, tg_id, bot_key, summary)
 HUB_SEED_ROWS: tuple[tuple[str, int, str, str], ...] = (
@@ -72,7 +72,6 @@ HUB_SEED_ROWS: tuple[tuple[str, int, str, str], ...] = (
     ("2026-06-07", 6931958983, "sklad", "Papka Точилки: sanaldi 1, joy 1, xato 0, kun 12/28"),
     ("2026-06-07", 7703650930, "ombor", "#59 📦 Tovar buyurtma: bajarildi, 22 daqiqa 14 soniya"),
     ("2026-06-07", 7703650930, "omborga", "Reys 5, ish 20:31, dam 0:00"),
-    ("2026-06-07", 8440127425, "ombor", "#55 🙋 Xizmat so'rovi: bajarildi, 17 soat 3 daqiqa 49 soniya"),
     ("2026-06-07", 8440127425, "omborga", "Reys 8, ish 64:06, dam 0:00"),
     ("2026-06-07", 8547365654, "ombor", "#63 🙋 Xizmat so'rovi: bajarildi, 7 daqiqa 10 soniya"),
     ("2026-06-07", 8547365654, "omborga", "Reys 1, yuk 69m, ish 11:52, dam 0:03"),

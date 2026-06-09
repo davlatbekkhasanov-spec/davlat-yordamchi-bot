@@ -20,6 +20,10 @@ LOST = json.loads((ROOT / "tools" / "hub_lost_events.json").read_text(encoding="
 
 SINDOR_OMBOR_FIX = "Ombor (bugun jami): 3 ta, ish vaqti 6892 soniya"
 
+HUB_EXCLUDE: tuple[tuple[str, int, str, str], ...] = (
+    ("2026-06-07", 8440127425, "ombor", "17 soat"),
+)
+
 # Skrinshot / yakuniy hisobot bo'yicha tuzatishlar (SUM noto'g'ri bo'lsa)
 METRIC_OVERRIDES: dict[tuple[str, str, str], int | None] = {
     ("2026-06-08", "Ravshanov Oxunjon", "Счет ТСД"): 73,
@@ -88,7 +92,14 @@ def _metrics_rows(reports: list[dict]) -> list[tuple[str, str, str, int]]:
 def _hub_final_rows(events: list[dict]) -> list[tuple[str, int, str, str]]:
     groups: dict[tuple[str, int, str], list[dict]] = defaultdict(list)
     for e in events:
-        groups[(e["day"], int(e["tg_id"]), e["bot_key"])].append(e)
+        day, tg, bot = e["day"], int(e["tg_id"]), e["bot_key"]
+        summary = e.get("summary") or ""
+        if any(
+            day == d and tg == t and bot == b and n in summary
+            for d, t, b, n in HUB_EXCLUDE
+        ):
+            continue
+        groups[(day, tg, bot)].append(e)
 
     lost_extra: dict[tuple[str, int, str], list[str]] = defaultdict(list)
     for row in LOST:

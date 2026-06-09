@@ -24,6 +24,7 @@ from cross_bot_hub import (
     record_event,
 )
 from baseline_restore import ensure_baseline_restored
+from hub_corrections import apply_hub_purges
 from persist_data import has_railway_volume, persistence_status_line
 from daily_report_card import BOT_ORDER, _fmt_clock, build_card_data, build_demo_card_data, score_bot_summary
 from report_png import render_demo_preview_png, render_ranking_png, render_report_png
@@ -2542,6 +2543,12 @@ async def main():
             logging.warning("Baseline tiklandi: %s hisobot", br.get("after"))
     except Exception:
         logging.exception("Baseline restore xato")
+    try:
+        purged = await apply_hub_purges()
+        if purged:
+            logging.info("Hub tuzatish: %s ta noto'g'ri yozuv o'chirildi", purged)
+    except Exception:
+        logging.exception("Hub purge xato")
     try:
         n = await ensure_hub_seed()
         if n:
