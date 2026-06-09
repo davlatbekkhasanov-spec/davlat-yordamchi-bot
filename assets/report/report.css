@@ -1135,6 +1135,35 @@ body {
   color: #003f8f;
 }
 
+.bd-rule-note {
+  font-size: 14px;
+  color: #64748b;
+  font-weight: 600;
+}
+
+.bd-examples {
+  margin-top: 14px;
+  padding: 14px 16px;
+  background: #e8f4fc;
+  border-radius: 8px;
+  font-size: 16px;
+  color: #1e3a5f;
+  line-height: 1.55;
+}
+
+.bd-examples-title {
+  font-weight: 800;
+  margin-bottom: 6px;
+  color: #003f8f;
+}
+
+.bd-examples-note {
+  margin-top: 8px;
+  font-size: 14px;
+  color: #475569;
+  font-style: italic;
+}
+
 .breakdown-daily-table .col-src-h { width: 32%; text-align: left; }
 .breakdown-daily-table .col-formula-h { width: 48%; text-align: left; }
 .breakdown-daily-table .col-pts-h { width: 20%; }
