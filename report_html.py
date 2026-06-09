@@ -10,6 +10,7 @@ from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 from cross_bot_hub import BOT_LABELS
 from daily_report_card import DailyReportCardData
+from points_breakdown import build_daily_breakdown_lines
 
 ASSETS = Path(__file__).resolve().parent / "assets" / "report"
 
@@ -141,8 +142,14 @@ def build_report_html(data: DailyReportCardData, avatar: bytes | None = None) ->
                 "icon": BOT_ICONS.get(bot.key, "📌"),
                 "body": body,
                 "empty": empty,
+                "score": bot.score,
+                "score_text": (
+                    f"+{bot.score}" if bot.score > 0 else (str(bot.score) if bot.score else "")
+                ),
             }
         )
+
+    breakdown_lines = build_daily_breakdown_lines(data)
 
     row_count = len(data.categories)
     density = _report_density(row_count)
@@ -168,6 +175,7 @@ def build_report_html(data: DailyReportCardData, avatar: bytes | None = None) ->
         "bot_total": data.bot_total,
         "total_work": data.total_work,
         "bots": bots,
+        "breakdown_lines": breakdown_lines,
         "avatar_b64": avatar_b64,
         "avatar_mime": avatar_mime,
         "logo_b64": _logo_b64(),

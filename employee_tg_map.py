@@ -118,6 +118,9 @@ def tg_ids_for_employee(
 ) -> set[int]:
     """Bir xodim uchun barcha mumkin tg_id (alias + PIN link + ro'yxat)."""
     out: set[int] = set()
+    owner = resolve_owner_tg_id(name)
+    if owner:
+        out.add(int(owner))
     for n in employee_name_variants(name):
         if employee_tg_map and n in employee_tg_map:
             out.add(int(employee_tg_map[n]))

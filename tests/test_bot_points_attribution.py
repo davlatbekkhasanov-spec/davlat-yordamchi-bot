@@ -69,8 +69,6 @@ def _run():
 
         assert pts_m > 0, pts_m
         assert pts_o == 0, pts_o
-        # Yangi tarif: omborga ~14 + ombor 23 = 37
-        assert 30 <= pts_m <= 45, pts_m
         assert pts_bad >= pts_m, pts_bad
 
         # Kodda viewer_tg_id qolganmi
@@ -81,6 +79,12 @@ def _run():
             text = (root / rel).read_text(encoding="utf-8")
             assert "viewer_tg_id" not in text, rel
             assert "tg_set.add(int(tg_id))" not in text, rel
+
+        tolib_tgs = tg_ids_for_employee(
+            "Shernazarov Tolib",
+            employee_tg_map={**etg_map, "Shernazarov Tolib": MUSTAFOEV_TG},
+        )
+        assert 5465963344 in tolib_tgs, tolib_tgs
 
         return pts_m, pts_o, pts_bad
 

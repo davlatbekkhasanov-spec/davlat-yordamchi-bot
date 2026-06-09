@@ -1184,3 +1184,12 @@ body {
   background: #ecfdf5;
   border-top: 2px solid #86efac;
 }
+
+.bots-stack-compact {
+  margin-top: 12px;
+  gap: 8px;
+}
+
+.bots-stack-compact .bot-card {
+  padding: 10px 12px;
+}

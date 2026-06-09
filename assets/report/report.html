@@ -119,16 +119,49 @@
 
       <div class="right-col">
         <div class="section-block section-block-fill">
-          <div class="section-bar">БОШҚА БОТЛАР</div>
-          <div class="bots-stack">
+          <div class="section-bar">МАНБА ВА ҲИСОБЛАШ</div>
+          <div class="table-wrap">
+            <table class="data-table breakdown-daily-table">
+              <thead>
+                <tr>
+                  <th class="col-src-h">Манба</th>
+                  <th class="col-formula-h">Қандай ҳисобланди</th>
+                  <th class="col-pts-h">Очко</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for row in breakdown_lines %}
+                <tr>
+                  <td class="col-src">{{ row.source }}</td>
+                  <td class="col-formula">{{ row.formula }}</td>
+                  <td class="col-pts">{{ row.points }}</td>
+                </tr>
+                {% endfor %}
+                {% if breakdown_lines %}
+                <tr class="bd-total-row">
+                  <td class="col-src"><b>ЖАМИ</b></td>
+                  <td class="col-formula">ёрдамчи +{{ cat_total }} + ботлар +{{ bot_total }}</td>
+                  <td class="col-pts">+{{ grand_total }}</td>
+                </tr>
+                {% else %}
+                <tr>
+                  <td class="col-src" colspan="3">Бугун очко йўқ</td>
+                </tr>
+                {% endif %}
+              </tbody>
+            </table>
+          </div>
+          <div class="bots-stack bots-stack-compact">
           {% for bot in bots %}
-          <div class="bot-card{% if bot.empty %} empty{% endif %}">
+          {% if not bot.empty %}
+          <div class="bot-card">
             <div class="bot-ico">{{ bot.icon }}</div>
             <div class="bot-body">
-              <div class="bot-title">{{ bot.title }}</div>
-              <div class="bot-text{% if bot.empty %} is-dash{% endif %}">{{ bot.body }}</div>
+              <div class="bot-title">{{ bot.title }}{% if bot.score_text %} · {{ bot.score_text }}{% endif %}</div>
+              <div class="bot-text">{{ bot.body }}</div>
             </div>
           </div>
+          {% endif %}
           {% endfor %}
           <div class="bot-card time-summary">
             <div class="bot-ico">⏱</div>

@@ -483,25 +483,8 @@ async def send_daily_points_breakdown(
     *,
     private_fallback: int = 0,
 ) -> None:
-    """Kunlik hisobotdan keyin ochko jadvali (PNG)."""
-    if not POINTS_BREAKDOWN_ENABLED:
-        return
-    lines = build_daily_breakdown_lines(card)
-    if not lines:
-        return
-    try:
-        png = await render_daily_breakdown_png(card, lines=lines)
-        await safe_report_send_photo(
-            png,
-            caption=f"📊 Kunlik ochko · {card.employee} · {card.day_iso}",
-            private_fallback=private_fallback,
-        )
-    except Exception:
-        logging.exception("Kunlik ochko PNG xato, matn fallback")
-        from points_breakdown import format_daily_breakdown_html
-
-        for part in split_messages(format_daily_breakdown_html(card)):
-            await safe_report_send(part, private_fallback=private_fallback)
+    """Ochko jadvali endi asosiy kunlik PNG ichida — alohida xabar yuborilmaydi."""
+    return
 
 
 async def send_period_points_breakdown(ref: date, period: str) -> None:
@@ -697,7 +680,7 @@ async def employee_tg_map() -> dict[str, int]:
     linked = {r["employee"]: int(r["tg_id"]) for r in rows}
     out: dict[str, int] = {}
     for emp in EMPLOYEES:
-        tid = resolve_tg_id(emp, linked=linked)
+        tid = resolve_owner_tg_id(emp) or resolve_tg_id(emp, linked=linked)
         if tid:
             out[emp] = tid
     return out
@@ -790,17 +773,6 @@ async def send_report_preview(message: Message, *, demo: bool = False) -> None:
         BufferedInputFile(png, filename="preview.png"),
         caption=note,
     )
-    if POINTS_BREAKDOWN_ENABLED and card.grand_total > 0:
-        try:
-            lines = build_daily_breakdown_lines(card)
-            if lines:
-                bd_png = await render_daily_breakdown_png(card, lines=lines)
-                await message.answer_photo(
-                    BufferedInputFile(bd_png, filename="ochko_jadvali.png"),
-                    caption=f"📊 Ochko jadvali · {card.employee}",
-                )
-        except Exception:
-            logging.exception("Preview ochko tafsiloti")
     domain = os.getenv("RAILWAY_PUBLIC_DOMAIN", "").strip()
     if domain:
         url = domain if domain.startswith("http") else f"https://{domain}"

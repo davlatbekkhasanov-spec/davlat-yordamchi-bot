@@ -317,10 +317,12 @@ async def ensure_hub_seed() -> int:
 def _replay_merged_by_bot(rows: list) -> dict[str, str]:
     """Kunlik xulosa: omborga — kunlik jami; ombor — ketma-ket merge."""
     groups: dict[str, list[str]] = {}
+    from hub_sanity import hub_summary_blocked
+
     for row in rows:
         k = row["bot_key"]
         s = str(row["summary"] or "").strip()
-        if not s:
+        if not s or hub_summary_blocked(s, bot_key=k):
             continue
         groups.setdefault(k, []).append(s)
     out: dict[str, str] = {}

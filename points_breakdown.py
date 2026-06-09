@@ -37,6 +37,14 @@ _BOT_COLS = (
     ("ishxona", "In"),
 )
 
+BOT_SOURCE_CYRL = {
+    "omborga": "Омборга киритиш",
+    "ombor": "Омбор хизмат",
+    "yuk": "Юк жараёни",
+    "sklad": "Склад назорат",
+    "ishxona": "Ишхона шикоят",
+}
+
 _TG_MAX = 3900
 
 
@@ -54,11 +62,13 @@ def explain_bot_formula(key: str, summary: str) -> tuple[int, str]:
         ish = _parse_omborga_time(ish_m.group(1)) if ish_m else sec
         mins = _ceil_minutes(ish)
         half = mins // 2 if mins else 0
-        return pts, f"{reys}×2 + {half} = {pts}"
+        if half:
+            return pts, f"{reys}×2 + {half} = {pts}"
+        return pts, f"{reys}×2 = {pts}"
     if key == "ombor":
         sec = _parse_ombor_duration(sl) or sec or _parse_hms(s)
         mins = _ceil_minutes(sec)
-        return pts, f"{mins} daq×1"
+        return pts, f"{mins} дақ×1"
     if key == "yuk":
         sec = _parse_hms(s)
         if not sec:
@@ -67,7 +77,7 @@ def explain_bot_formula(key: str, summary: str) -> tuple[int, str]:
                 sec = int(sm.group(1))
         mins = _ceil_minutes(sec)
         half = mins // 2 if mins else 0
-        return pts, f"{mins} daq÷2 = {half}"
+        return pts, f"{mins} дақ÷2 = {half}"
     if key == "sklad":
         sm = re.search(r"sanaldi\s*(\d+)", sl)
         n = int(sm.group(1)) if sm else 0
@@ -213,7 +223,7 @@ async def gather_period_breakdown_rows(
 
 
 def build_daily_breakdown_lines(card: DailyReportCardData) -> list[dict[str, str]]:
-    """Kunlik PNG jadval qatorlari."""
+    """Kunlik hisobot ichidagi «Манба ва ҳисоблаш» qatorlari (kirill)."""
     lines: list[dict[str, str]] = []
     for row in card.categories:
         if row.added <= 0:
@@ -221,7 +231,7 @@ def build_daily_breakdown_lines(card: DailyReportCardData) -> list[dict[str, str
         lines.append(
             {
                 "source": row.name,
-                "formula": f"{row.today} birlik (1:1)",
+                "formula": f"{row.today} бирлик (1:1)",
                 "points": f"+{row.added}",
             }
         )
@@ -229,7 +239,7 @@ def build_daily_breakdown_lines(card: DailyReportCardData) -> list[dict[str, str
         if bot.score == 0 and not (bot.summary or "").strip():
             continue
         _, formula = explain_bot_formula(bot.key, bot.summary)
-        label = BOT_LABELS.get(bot.key, bot.key)
+        label = BOT_SOURCE_CYRL.get(bot.key, BOT_LABELS.get(bot.key, bot.key))
         sign = f"+{bot.score}" if bot.score >= 0 else str(bot.score)
         lines.append({"source": label, "formula": formula, "points": sign})
     return lines
