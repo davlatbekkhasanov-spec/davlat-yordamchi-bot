@@ -84,6 +84,23 @@ def test_omborga_sessions_sum():
     assert pts > score_bot_summary("omborga", s2)[0]
 
 
+def test_omborga_seed_not_doubled_with_trips():
+    from cross_bot_hub import _best_omborga_daily, _replay_merged_by_bot
+    from daily_report_card import score_bot_summary
+
+    summaries = [
+        "Reys 21, ish 55:36, dam 0:00",
+        "Reys 2, yuk 138m, ish 7:06, dam 3:14",
+        "Reys 6, yuk 222m, ish 12:56, dam 7:53",
+    ]
+    merged = _best_omborga_daily(summaries)
+    pts, _ = score_bot_summary("omborga", merged)
+    assert "Reys 21" in merged, merged
+    assert pts < 120, (pts, merged)
+    rows = [{"bot_key": "omborga", "summary": s} for s in summaries]
+    assert _replay_merged_by_bot(rows)["omborga"] == merged
+
+
 def test_fetch_replay_not_latest_zero():
     from cross_bot_hub import _replay_merged_by_bot
 

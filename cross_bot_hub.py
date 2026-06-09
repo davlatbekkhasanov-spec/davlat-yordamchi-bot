@@ -175,11 +175,44 @@ def _merge_hub_summary(bot_key: str, old: str, new: str) -> str:
     if key == "omborga":
         or_, oi = _parse_omborga_totals(old)
         nr, ni = _parse_omborga_totals(new)
+        # Kunlik jami (seed / yakuniy) — qo'shmasdan kattasini olish
+        if _omborga_looks_daily_total(old) or _omborga_looks_daily_total(new):
+            if (nr, ni) >= (or_, oi):
+                return new
+            return old
         total_reys = or_ + nr
         total_ish = oi + ni
         ish_t = f"{total_ish // 60}:{total_ish % 60:02d}"
         return f"Reys {total_reys}, ish {ish_t}, dam 0:00"
     return new
+
+
+def _omborga_looks_daily_total(summary: str) -> bool:
+    """Kunlik yakuniy xulosa (seed) — alohida reyslar bilan qo'shilmasin."""
+    sl = (summary or "").lower()
+    reys, ish = _parse_omborga_totals(summary)
+    if reys >= 12 and "dam 0:00" in sl:
+        return True
+    if reys >= 18:
+        return True
+    if reys >= 8 and ish >= 3 * 3600:
+        return True
+    return False
+
+
+def _best_omborga_daily(summaries: list[str]) -> str:
+    from hub_sanity import hub_summary_blocked
+
+    clean = [s for s in summaries if s and not hub_summary_blocked(s, bot_key="omborga")]
+    if not clean:
+        return ""
+    totals = [s for s in clean if _omborga_looks_daily_total(s)]
+    if totals:
+        return max(totals, key=lambda s: _parse_omborga_totals(s))
+    merged = ""
+    for s in clean:
+        merged = _merge_hub_summary("omborga", merged, s) if merged else s
+    return merged
 
 
 def _now_iso() -> str:
@@ -282,7 +315,7 @@ async def ensure_hub_seed() -> int:
 
 
 def _replay_merged_by_bot(rows: list) -> dict[str, str]:
-    """Kunlik barcha eventlarni ketma-ket birlashtirish (oxirgi emas, jami)."""
+    """Kunlik xulosa: omborga — kunlik jami; ombor — ketma-ket merge."""
     groups: dict[str, list[str]] = {}
     for row in rows:
         k = row["bot_key"]
@@ -292,9 +325,12 @@ def _replay_merged_by_bot(rows: list) -> dict[str, str]:
         groups.setdefault(k, []).append(s)
     out: dict[str, str] = {}
     for k, summaries in groups.items():
-        merged = ""
-        for s in summaries:
-            merged = _merge_hub_summary(k, merged, s) if merged else s
+        if k == "omborga":
+            merged = _best_omborga_daily(summaries)
+        else:
+            merged = ""
+            for s in summaries:
+                merged = _merge_hub_summary(k, merged, s) if merged else s
         if merged:
             out[k] = merged
     return out

@@ -8,7 +8,7 @@ from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
 
-from cross_bot_hub import _merge_hub_summary, init_schema
+from cross_bot_hub import _best_omborga_daily, _merge_hub_summary, init_schema
 
 LOST_PATH = Path(__file__).resolve().parent / "tools" / "hub_lost_events.json"
 
@@ -22,6 +22,8 @@ def _load_lost() -> list[dict]:
 
 
 def _replay(bot_key: str, summaries: list[str]) -> str:
+    if bot_key == "omborga":
+        return _best_omborga_daily(summaries)
     merged = ""
     for s in summaries:
         if not merged:
@@ -79,6 +81,10 @@ def repair_hub_db(db_path: str, *, day: str = "", apply: bool = False) -> list[d
             continue
         fixes.append({"day": d, "tg_id": tg, "bot_key": bot, "was": latest, "now": rebuilt})
         if apply:
+            conn.execute(
+                "DELETE FROM cross_bot_events WHERE day = ? AND tg_id = ? AND bot_key = ?",
+                (d, tg, bot),
+            )
             conn.execute(
                 """
                 INSERT INTO cross_bot_events(day, tg_id, bot_key, summary, created_at)
