@@ -23,7 +23,7 @@ from cross_bot_hub import (
     init_schema as init_cross_bot_schema,
     record_event,
 )
-from persist_data import persistence_status_line
+from persist_data import has_railway_volume, persistence_status_line
 from daily_report_card import BOT_ORDER, _fmt_clock, build_card_data, build_demo_card_data, score_bot_summary
 from report_png import render_demo_preview_png, render_ranking_png, render_report_png
 from employee_photos import (
@@ -76,6 +76,7 @@ from db_backup import (
     payload_to_json_bytes,
     payload_to_reports_csv,
     payload_to_summary_csv,
+    restore_all_from_json,
     write_backup_files,
 )
 from metrics_import import (
@@ -1829,7 +1830,13 @@ async def import_metrics_cmd(message: Message):
 @dp.message(lambda m: is_private(m) and m.document and is_admin(m.from_user.id))
 async def import_metrics_file(message: Message):
     doc = message.document
-    if not doc or not (doc.file_name or "").lower().endswith(".csv"):
+    if not doc:
+        return
+    fname = (doc.file_name or "").lower()
+    if fname.endswith(".json"):
+        await _restore_backup_document(message, doc)
+        return
+    if not fname.endswith(".csv"):
         return
     uid = message.from_user.id if message.from_user else 0
     try:
@@ -2160,6 +2167,81 @@ def _tg_to_employee_name(tg_id: int, etg_map: dict[str, int]) -> str:
     return "?"
 
 
+async def _restore_backup_document(message: Message, doc) -> None:
+    uid = message.from_user.id if message.from_user else 0
+    await message.answer("⏳ JSON zaxira tiklanmoqda…")
+    try:
+        f = await bot.get_file(doc.file_id)
+        buf = BytesIO()
+        await bot.download_file(f.file_path, buf)
+        tmp = os.path.join(os.path.dirname(DB_PATH) or ".", "_restore_upload.json")
+        with open(tmp, "wb") as out:
+            out.write(buf.getvalue())
+        res = await asyncio.to_thread(
+            restore_all_from_json, DB_PATH, tmp, replace=True
+        )
+        try:
+            os.remove(tmp)
+        except OSError:
+            pass
+        counts = res.get("counts_source") or {}
+        lines = ["✅ Zaxira tiklandi (replace)."]
+        for key in ("reports", "hub", "links"):
+            block = res.get(key) or {}
+            if block.get("inserted"):
+                lines.append(f"  • {key}: {block['inserted']}")
+        if counts:
+            lines.append(f"Jami: {counts}")
+        await message.answer(
+            "\n".join(lines),
+            reply_markup=await keyboard_for_user(uid),
+        )
+    except Exception as e:
+        logging.exception("restore backup json")
+        await message.answer(
+            f"❌ Tiklash xato: {html.escape(str(e))}",
+            parse_mode="HTML",
+            reply_markup=await keyboard_for_user(uid),
+        )
+
+
+@dp.message(Command("repairhub"))
+async def repairhub_cmd(message: Message):
+    """Admin: hub 0 soniya / noto'g'ri merge tuzatish."""
+    if not is_private(message) or not is_admin(message.from_user.id):
+        return
+    uid = message.from_user.id if message.from_user else 0
+    await message.answer("⏳ Hub qayta birlashtirilmoqda…")
+    try:
+        from tools.repair_hub_db import repair_db
+
+        fixes = await asyncio.to_thread(repair_db, DB_PATH, apply=True)
+        if not fixes:
+            await message.answer(
+                "✅ Hub: tuzatish kerak bo'lgan yozuv topilmadi.",
+                reply_markup=await keyboard_for_user(uid),
+            )
+            return
+        lines = [f"✅ Hub tuzatildi: {len(fixes)} ta guruh"]
+        for fx in fixes[:8]:
+            lines.append(
+                f"• {fx['day']} tg={fx['tg_id']} {fx['bot_key']}"
+            )
+        if len(fixes) > 8:
+            lines.append(f"… +{len(fixes) - 8} ta")
+        await message.answer(
+            "\n".join(lines),
+            reply_markup=await keyboard_for_user(uid),
+        )
+    except Exception as e:
+        logging.exception("repairhub")
+        await message.answer(
+            f"❌ repairhub xato: {html.escape(str(e))}",
+            parse_mode="HTML",
+            reply_markup=await keyboard_for_user(uid),
+        )
+
+
 @dp.message(Command("backup"))
 async def backup_cmd(message: Message):
     """Admin: barcha hisobotlar va hub eventlar zaxirasi (Telegram fayl)."""
@@ -2198,7 +2280,7 @@ async def backup_cmd(message: Message):
             lines.append(f"  • {t}: {c}")
         lines.append("")
         lines.append("Deploydan oldin shu fayllarni saqlang.")
-        lines.append("Tiklash: tools/restore_backup.py yoki menga CSV/JSON yuboring.")
+        lines.append("Tiklash: backup JSON faylini shu chatga yuboring yoki /repairhub")
         uid = message.from_user.id if message.from_user else 0
         await message.answer(
             "\n".join(lines),
@@ -2471,6 +2553,18 @@ async def main():
             "INSERT OR IGNORE INTO employee_links(tg_id, employee) VALUES (?, ?)",
             (int(tg_id), emp_name),
         )
+    if os.getenv("RAILWAY_ENVIRONMENT") and not has_railway_volume():
+        try:
+            await bot.send_message(
+                REPORT_ADMIN_DM_ID,
+                "⚠️ <b>Railway Volume yo'q!</b>\n\n"
+                "Har deploy ma'lumotni o'chiradi.\n"
+                "Volumes → mount <code>/data</code>, "
+                "<code>DB_PATH=/data/data.db</code>",
+                parse_mode="HTML",
+            )
+        except Exception:
+            logging.exception("Volume ogohlantirish yuborilmadi")
     hub_runner = await start_ingest_server()
     scheduler = setup_scheduler()
     try:
