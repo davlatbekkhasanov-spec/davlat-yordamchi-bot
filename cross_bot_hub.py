@@ -84,11 +84,56 @@ def init_schema() -> None:
     _conn.commit()
 
 
+def _parse_duration_seconds(sl: str) -> int:
+    """'50 daqiqa 26 soniya', '1 soat 30 daqiqa', '5907 soniya'."""
+    sm = re.search(r"ish\s+vaqti\s+(\d+)\s*soniya", sl)
+    if sm:
+        return int(sm.group(1))
+    total = 0
+    h = re.search(r"(\d+)\s*soat", sl)
+    daq = re.search(r"(\d+)\s*daqiqa", sl)
+    son = re.search(r"(\d+)\s*soniya", sl)
+    if h:
+        total += int(h.group(1)) * 3600
+    if daq:
+        total += int(daq.group(1)) * 60
+    if son:
+        total += int(son.group(1))
+    return total
+
+
+def _parse_omborga_ish_sec(sl: str) -> int:
+    """Omborga: ish 3:29 = daqiqa:soniya."""
+    ish_m = re.search(r"ish\s+([\d:]+)", sl)
+    if not ish_m:
+        return 0
+    token = ish_m.group(1).strip()
+    m = re.match(r"^(\d+):(\d{2})$", token)
+    if m:
+        return int(m.group(1)) * 60 + int(m.group(2))
+    return _parse_duration_seconds(f"ish vaqti {token}")
+
+
+def _is_ombor_cumulative(summary: str) -> bool:
+    sl = (summary or "").lower()
+    return "jami" in sl and "ish vaqti" in sl and "soniya" in sl
+
+
 def _parse_count_sec(summary: str, bot_key: str) -> tuple[int, int]:
-    """ombor/yuk jami formatidan (soni, soniya) ajratish."""
+    """ombor/yuk — jami yoki bitta ariza (#47 bajarildi, ...) formatidan."""
     sl = (summary or "").lower()
     cnt = 0
     sec = 0
+    if bot_key == "ombor":
+        if _is_ombor_cumulative(summary):
+            cm = re.search(r"(\d+)\s*ta", sl)
+            if cm:
+                cnt = int(cm.group(1))
+            sec = _parse_duration_seconds(sl)
+            return cnt, sec
+        if "#" in summary and "bajarildi" in sl:
+            return 1, _parse_duration_seconds(sl)
+        return 0, 0
     cm = re.search(r"(\d+)\s*ta", sl)
     if cm:
         cnt = int(cm.group(1))
@@ -102,19 +147,46 @@ def _parse_count_sec(summary: str, bot_key: str) -> tuple[int, int]:
     return cnt, sec
 
 
+def _parse_omborga_totals(summary: str) -> tuple[int, int]:
+    sl = (summary or "").lower()
+    reys_m = re.search(r"reys\s*(\d+)", sl)
+    reys = int(reys_m.group(1)) if reys_m else 0
+    return reys, _parse_omborga_ish_sec(sl)
+
+
 def _merge_hub_summary(bot_key: str, old: str, new: str) -> str:
     """Bir xil kun+xodim+bot uchun yangi hisobotni eskisiga qo'shish."""
     key = normalize_bot_key(bot_key)
     if not old:
         return new
-    if key in ("ombor", "yuk"):
+    if key == "ombor":
+        if _is_ombor_cumulative(new):
+            nc, ns = _parse_count_sec(new, key)
+            if ns > 0 or nc > 0:
+                return new
+            oc, os_ = _parse_count_sec(old, key)
+            if os_ > 0 or oc > 0:
+                return old
+            return new
         oc, os_ = _parse_count_sec(old, key)
         nc, ns = _parse_count_sec(new, key)
         total_c = oc + nc
         total_s = os_ + ns
-        if key == "ombor":
-            return f"Ombor (jami): {total_c} ta, ish vaqti {total_s} soniya"
+        if total_s <= 0 and total_c <= 0:
+            return old if (os_ > 0 or oc > 0) else new
+        return f"Ombor (jami): {total_c} ta, ish vaqti {total_s} soniya"
+    if key == "yuk":
+        oc, os_ = _parse_count_sec(old, key)
+        nc, ns = _parse_count_sec(new, key)
+        total_s = os_ + ns
         return f"Yuk (jami): ish vaqti {total_s} soniya"
+    if key == "omborga":
+        or_, oi = _parse_omborga_totals(old)
+        nr, ni = _parse_omborga_totals(new)
+        total_reys = or_ + nr
+        total_ish = oi + ni
+        ish_t = f"{total_ish // 60}:{total_ish % 60:02d}"
+        return f"Reys {total_reys}, ish {ish_t}, dam 0:00"
     return new
 
 
