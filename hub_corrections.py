@@ -6,10 +6,11 @@ import logging
 
 log = logging.getLogger(__name__)
 
-# (day, tg_id, bot_key, summary_ichida qidiruv)
+from hub_sanity import GLOBAL_BLOCK_FRAGMENTS
+
+# (day, tg_id, bot_key, summary_ichida qidiruv) — aniq yozuvlar
 HUB_PURGE_RULES: tuple[tuple[str, int, str, str], ...] = (
     ("2026-06-07", 8440127425, "ombor", "17 soat"),
-    # Tolib: omborga bot 982:00 (982 daq) noto'g'ri format — +527 soxta ochko
     ("2026-06-09", 5465963344, "omborga", "982:00"),
     ("2026-06-09", 5465963344, "omborga", "ish 982"),
 )
@@ -35,6 +36,15 @@ async def apply_hub_purges() -> int:
                 log.warning(
                     "Hub purge: %s tg=%s %s — %s ta o'chirildi", day, tg_id, bot_key, n
                 )
+            total += n
+        for needle in GLOBAL_BLOCK_FRAGMENTS:
+            cur.execute(
+                "DELETE FROM cross_bot_events WHERE summary LIKE ?",
+                (f"%{needle}%",),
+            )
+            n = cur.rowcount
+            if n:
+                log.warning("Hub global purge %r — %s ta", needle, n)
             total += n
         _conn.commit()
     return total

@@ -208,10 +208,21 @@ async def record_event(
     text = " ".join(str(summary or "").split())
     if not text:
         return
-    text = text[:MAX_SUMMARY_LEN]
     key = normalize_bot_key(bot_key)
     if not key:
         return
+    from hub_sanity import hub_summary_blocked
+
+    if hub_summary_blocked(text, bot_key=key):
+        log.warning(
+            "Hub rad etildi (noto'g'ri vaqt): tg=%s %s %s — %s",
+            tg_id,
+            day,
+            key,
+            text[:120],
+        )
+        return
+    text = text[:MAX_SUMMARY_LEN]
     day_s = str(day or "").strip()[:10]
     if len(day_s) != 10:
         day_s = datetime.now(TZ).date().isoformat()

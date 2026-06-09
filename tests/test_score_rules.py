@@ -47,6 +47,22 @@ def test_ishxona():
     assert score_bot_summary("ishxona", "Shikoyat (Tolib): test") == (-40, 0)
 
 
+def test_ombor_17h_capped():
+    from daily_report_card import _MAX_DAILY_WORK_SEC
+
+    pts, sec = score_bot_summary(
+        "ombor", "#55 bajarildi, 17 soat 3 daqiqa 49 soniya"
+    )
+    assert sec <= _MAX_DAILY_WORK_SEC
+    assert pts <= 720
+
+
+def test_omborga_982_ignored():
+    pts, sec = score_bot_summary("omborga", "Reys 18, yuk 522m, ish 982:00, dam 6:12")
+    assert pts == 36
+    assert sec == 0
+
+
 if __name__ == "__main__":
     test_ceil_minutes()
     test_omborga()
@@ -54,4 +70,6 @@ if __name__ == "__main__":
     test_yuk()
     test_sklad()
     test_ishxona()
+    test_ombor_17h_capped()
+    test_omborga_982_ignored()
     print("PASS test_score_rules")

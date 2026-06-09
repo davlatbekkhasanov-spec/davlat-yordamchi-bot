@@ -248,6 +248,7 @@ def score_bot_summary(key: str, summary: str) -> tuple[int, int]:
             sec = _parse_hms(s)
         if not sec and re.search(r"(\d+)\s*son", sl):
             sec = int(re.search(r"(\d+)\s*son", sl).group(1))
+        sec = _cap_daily_work(sec)
         mins = _ceil_minutes(sec)
         if not mins:
             return 0, 0
@@ -258,6 +259,7 @@ def score_bot_summary(key: str, summary: str) -> tuple[int, int]:
             sm = re.search(r"ish\s+vaqti\s+(\d+)", sl)
             if sm:
                 sec = int(sm.group(1))
+        sec = _cap_daily_work(sec)
         mins = _ceil_minutes(sec)
         if not mins:
             return 0, 0
