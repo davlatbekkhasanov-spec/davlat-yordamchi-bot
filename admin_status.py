@@ -101,7 +101,7 @@ async def build_admin_status_report(bot: Bot, admin_uid: int) -> str:
     i_ok, i_info = await _chat_ok(bot, ingest_id) if ingest_id else (True, "HTTP rejim — shart emas")
 
     lines.append("📢 <b>Kanallar</b>")
-    rank_grp = os.getenv("RANKING_TO_GROUP", "true").strip().lower() in ("1", "true", "yes", "on")
+    rank_grp = os.getenv("RANKING_TO_GROUP", "false").strip().lower() in ("1", "true", "yes", "on")
     adj_grp = os.getenv("ADJ_TO_GROUP", "true").strip().lower() in ("1", "true", "yes", "on")
     lines.append(f"  {_flag(g_ok)} Guruh (hisobot / reyting / bonus): <code>{group_id}</code>")
     lines.append(f"     Reyting → guruh: {_flag(rank_grp)} · Bonus/jarima → guruh: {_flag(adj_grp)}")
