@@ -29,6 +29,20 @@ RULES_FOOTER = (
     "• Ishxona: ochiq shikoyat −40"
 )
 
+_COMPACT_LEGEND = (
+    "<i>Manba: Kat=yordamchi · Ombg=omborga · Omb=ombor · Yuk · Skl=sklad · In=ishxona</i>"
+)
+
+_MEDALS = {1: "🥇", 2: "🥈", 3: "🥉"}
+
+_BOT_SHORT = (
+    ("omborga", "Ombg"),
+    ("ombor", "Omb"),
+    ("yuk", "Yuk"),
+    ("sklad", "Skl"),
+    ("ishxona", "In"),
+)
+
 _TG_MAX = 3900
 
 
@@ -75,49 +89,57 @@ def explain_bot_formula(key: str, summary: str) -> tuple[int, str]:
     return pts, "—"
 
 
+def _format_sources_line(cat_pts: int, bot_by_key: dict[str, int]) -> str:
+    """Mobil uchun qisqa manba qatori."""
+    parts: list[str] = []
+    if cat_pts:
+        parts.append(f"Kat <b>+{cat_pts}</b>")
+    for key, short in _BOT_SHORT:
+        val = int(bot_by_key.get(key) or 0)
+        if not val:
+            continue
+        sign = f"+{val}" if val > 0 else str(val)
+        parts.append(f"{short} <b>{sign}</b>")
+    return " · ".join(parts)
+
+
 def format_daily_breakdown_html(card: DailyReportCardData) -> str:
-    """Bitta xodim kunlik ochko jadvali."""
+    """Bitta xodim kunlik ochko — reyting uslubida."""
     lines = [
-        f"📊 <b>Ochko tafsiloti</b>",
+        "📊 <b>OCHKO TAFSILOTI</b>",
         f"👤 {html.escape(card.employee)} · {card.day_iso}",
         "",
-        "<pre>",
-        f"{'Manba':<22} {'Hisob':<28} Ochko",
-        "─" * 58,
     ]
     n = 0
     for row in card.categories:
         if row.added <= 0:
             continue
         n += 1
-        manba = _cell(row.name, 22)
-        hisob = _cell(f"{row.today} birlik (1:1)", 28)
-        lines.append(f"{manba} {hisob} +{row.added}")
+        lines.append(
+            f"• {html.escape(row.name)}: {row.today} birlik → <b>+{row.added}</b>"
+        )
     for bot in card.bots:
         if bot.score == 0 and not (bot.summary or "").strip():
             continue
         n += 1
         _, formula = explain_bot_formula(bot.key, bot.summary)
         label = BOT_LABELS.get(bot.key, bot.key)
-        manba = _cell(label, 22)
-        hisob = _cell(formula, 28)
         sign = f"+{bot.score}" if bot.score >= 0 else str(bot.score)
-        lines.append(f"{manba} {hisob} {sign}")
+        lines.append(
+            f"• {html.escape(label)}: {html.escape(formula)} → <b>{sign}</b>"
+        )
     if not n:
-        lines.append("(bugun ochko yo'q)")
-    lines.append("─" * 58)
-    lines.append(
-        f"{'JAMI':<22} {'Yordamchi+' + str(card.cat_total) + ' Bot+' + str(card.bot_total):<28} +{card.grand_total}"
+        lines.append("<i>Bugun ochko yo'q</i>")
+    lines.extend(
+        [
+            "",
+            f"🏁 <b>JAMI: +{card.grand_total}</b> "
+            f"(yordamchi +{card.cat_total} · botlar +{card.bot_total})",
+            "",
+            RULES_FOOTER,
+        ]
     )
-    lines.append("</pre>")
-    lines.append("")
-    lines.append(RULES_FOOTER)
     return "\n".join(lines)
-
-
-def _cell(text: str, width: int) -> str:
-    t = (text or "")[:width]
-    return t.ljust(width)
 
 
 async def build_period_breakdown_html(
@@ -128,18 +150,9 @@ async def build_period_breakdown_html(
     sum_period_total,
     employee_tg_map: dict[str, int],
 ) -> list[str]:
-    """Period reyting — har xodim bo'yicha manba jadvali (bir nechta xabar bo'lishi mumkin)."""
+    """Period reyting — har xodim bo'yicha manba (mobilga qulay ping)."""
     days = period_days_through(period, ref_date)
-    header = (
-        f"📊 <b>Period ochko tafsiloti</b>\n"
-        f"Период: {period} · holat: {ref_date.isoformat()}\n"
-        f"<i>Kat=kategoriya · Ombg=omborga · Omb=ombor · Skl=sklad · In=ishxona</i>\n\n"
-    )
-    body_lines = [
-        "<pre>",
-        f"{'Xodim':<18} {'Kat':>5} {'Ombg':>5} {'Omb':>5} {'Yuk':>5} {'Skl':>5} {'In':>5} {'Jami':>6}",
-        "─" * 58,
-    ]
+    rows: list[tuple[str, int, dict[str, int], int]] = []
 
     for emp in employees:
         cat_pts = 0
@@ -159,28 +172,47 @@ async def build_period_breakdown_html(
         total = cat_pts + sum(bot_by_key.values())
         if total <= 0:
             continue
-        body_lines.append(
-            f"{_cell(emp, 18)} {cat_pts:>5} {bot_by_key['omborga']:>5} "
-            f"{bot_by_key['ombor']:>5} {bot_by_key['yuk']:>5} "
-            f"{bot_by_key['sklad']:>5} {bot_by_key['ishxona']:>5} {total:>6}"
-        )
+        rows.append((emp, cat_pts, bot_by_key, total))
 
-    body_lines.append("</pre>")
-    text = header + "\n".join(body_lines) + "\n\n" + RULES_FOOTER
-    if len(text) <= _TG_MAX:
-        return [text]
+    rows.sort(key=lambda x: (-x[3], x[0]))
 
-    # Juda uzun bo'lsa — xodimlarni bo'lib yuborish
-    chunks = []
-    part = header + "<pre>\n" + body_lines[1] + "\n" + body_lines[2] + "\n"
-    for line in body_lines[3:-1]:
-        if len(part) + len(line) > _TG_MAX:
-            chunks.append(part + "</pre>\n\n" + RULES_FOOTER)
-            part = "<pre>\n" + body_lines[1] + "\n" + body_lines[2] + "\n"
-        part += line + "\n"
-    if part.strip():
-        chunks.append(part + "</pre>\n\n" + RULES_FOOTER)
-    return chunks or [text]
+    header = (
+        "📊 <b>OCHKO TAFSILOTI</b>\n"
+        f"Период: {period} (2-sana) · holat: {ref_date.isoformat()}\n"
+        "<i>Har bir ochko qayerdan yig'ilgani</i>\n"
+    )
+    footer = f"\n\n{_COMPACT_LEGEND}"
+
+    blocks: list[str] = []
+    for rank, (emp, cat_pts, bot_by_key, total) in enumerate(rows, 1):
+        medal = _MEDALS.get(rank, f"{rank}.")
+        sources = _format_sources_line(cat_pts, bot_by_key)
+        block = f"{medal} <b>{html.escape(emp)}</b> — <b>{total}</b> ochko"
+        if sources:
+            block += f"\n   {sources}"
+        blocks.append(block)
+
+    if not blocks:
+        return [header + "\n<i>Periodda ochko yo'q</i>" + footer]
+
+    return _chunk_blocks(header, blocks, footer)
+
+
+def _chunk_blocks(header: str, blocks: list[str], footer: str) -> list[str]:
+    """Xodimlarni bir nechta xabarga bo'lish."""
+    out: list[str] = []
+    current = header
+    for block in blocks:
+        sep = "\n\n" if current.strip() != header.strip() else ""
+        candidate = f"{current}{sep}{block}"
+        if len(candidate) + len(footer) > _TG_MAX and current != header:
+            out.append(current.rstrip() + footer)
+            current = header + block
+        else:
+            current = candidate
+    if current.strip():
+        out.append(current.rstrip() + footer)
+    return out or [header + footer]
 
 
 def split_messages(text: str) -> list[str]:

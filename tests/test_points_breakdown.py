@@ -39,14 +39,25 @@ def test_format_daily_has_table():
         bot_total=12,
         grand_total=68,
     )
-    html = format_daily_breakdown_html(card)
-    assert "Приход" in html
-    assert "+56" in html
-    assert "JAMI" in html
-    assert "+68" in html
+    text = format_daily_breakdown_html(card)
+    assert "Приход" in text
+    assert "+56" in text
+    assert "JAMI" in text
+    assert "+68" in text
+    assert "OCHKO TAFSILOTI" in text
+
+
+def test_format_sources_line():
+    from points_breakdown import _format_sources_line
+
+    line = _format_sources_line(1795, {"omborga": 0, "ombor": 1, "yuk": 0, "sklad": 0, "ishxona": 0})
+    assert "Kat" in line and "+1795" in line
+    assert "Omb" in line and "+1" in line
+    assert "Ombg" not in line
 
 
 if __name__ == "__main__":
     test_explain_omborga()
     test_format_daily_has_table()
+    test_format_sources_line()
     print("PASS test_points_breakdown")
