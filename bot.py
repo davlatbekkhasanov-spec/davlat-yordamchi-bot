@@ -23,6 +23,7 @@ from cross_bot_hub import (
     init_schema as init_cross_bot_schema,
     record_event,
 )
+from baseline_restore import ensure_baseline_restored
 from persist_data import has_railway_volume, persistence_status_line
 from daily_report_card import BOT_ORDER, _fmt_clock, build_card_data, build_demo_card_data, score_bot_summary
 from report_png import render_demo_preview_png, render_ranking_png, render_report_png
@@ -2535,6 +2536,12 @@ async def main():
     except Exception:
         logging.exception("Startup JSON zaxira xato")
     init_cross_bot_schema()
+    try:
+        br = await asyncio.to_thread(ensure_baseline_restored, DB_PATH)
+        if br.get("restored"):
+            logging.warning("Baseline tiklandi: %s hisobot", br.get("after"))
+    except Exception:
+        logging.exception("Baseline restore xato")
     try:
         n = await ensure_hub_seed()
         if n:

@@ -1,0 +1,1856 @@
+{
+  "exported_at": "2026-06-09T11:53:25+05:00",
+  "source": "backup_20260609_115325 + hub repair",
+  "tables": {
+    "reports": [
+      {
+        "id": 1,
+        "day": "2026-06-02",
+        "period": "2026-06",
+        "tg_id": 0,
+        "employee": "Mustafoev Abdullo",
+        "category": "Места хр",
+        "value": 21,
+        "created_at": "2026-06-02T23:59:00"
+      },
+      {
+        "id": 2,
+        "day": "2026-06-02",
+        "period": "2026-06",
+        "tg_id": 0,
+        "employee": "Mustafoev Abdullo",
+        "category": "Переоценка",
+        "value": 65,
+        "created_at": "2026-06-02T23:59:00"
+      },
+      {
+        "id": 3,
+        "day": "2026-06-02",
+        "period": "2026-06",
+        "tg_id": 0,
+        "employee": "Mustafoev Abdullo",
+        "category": "Счет ТСД",
+        "value": 21,
+        "created_at": "2026-06-02T23:59:00"
+      },
+      {
+        "id": 4,
+        "day": "2026-06-02",
+        "period": "2026-06",
+        "tg_id": 0,
+        "employee": "Ravshanov Oxunjon",
+        "category": "Счет ТСД",
+        "value": 18,
+        "created_at": "2026-06-02T23:59:00"
+      },
+      {
+        "id": 5,
+        "day": "2026-06-02",
+        "period": "2026-06",
+        "tg_id": 0,
+        "employee": "Ravshanov Ziyodullo",
+        "category": "Места хр",
+        "value": 35,
+        "created_at": "2026-06-02T23:59:00"
+      },
+      {
+        "id": 6,
+        "day": "2026-06-02",
+        "period": "2026-06",
+        "tg_id": 0,
+        "employee": "Ravshanov Ziyodullo",
+        "category": "Перемещение",
+        "value": 5,
+        "created_at": "2026-06-02T23:59:00"
+      },
+      {
+        "id": 7,
+        "day": "2026-06-02",
+        "period": "2026-06",
+        "tg_id": 0,
+        "employee": "Ravshanov Ziyodullo",
+        "category": "Счет ТСД",
+        "value": 15,
+        "created_at": "2026-06-02T23:59:00"
+      },
+      {
+        "id": 8,
+        "day": "2026-06-02",
+        "period": "2026-06",
+        "tg_id": 0,
+        "employee": "Ruziboev Sindor",
+        "category": "Пересчет товаров",
+        "value": 100,
+        "created_at": "2026-06-02T23:59:00"
+      },
+      {
+        "id": 9,
+        "day": "2026-06-02",
+        "period": "2026-06",
+        "tg_id": 0,
+        "employee": "Sagdullaev Yunus",
+        "category": "Перемещение",
+        "value": 193,
+        "created_at": "2026-06-02T23:59:00"
+      },
+      {
+        "id": 10,
+        "day": "2026-06-02",
+        "period": "2026-06",
+        "tg_id": 0,
+        "employee": "Sagdullaev Yunus",
+        "category": "Переоценка",
+        "value": 20,
+        "created_at": "2026-06-02T23:59:00"
+      },
+      {
+        "id": 11,
+        "day": "2026-06-02",
+        "period": "2026-06",
+        "tg_id": 0,
+        "employee": "Sagdullaev Yunus",
+        "category": "Приход",
+        "value": 29,
+        "created_at": "2026-06-02T23:59:00"
+      },
+      {
+        "id": 12,
+        "day": "2026-06-02",
+        "period": "2026-06",
+        "tg_id": 0,
+        "employee": "Samadov To'lqin",
+        "category": "Счет ТСД",
+        "value": 94,
+        "created_at": "2026-06-02T23:59:00"
+      },
+      {
+        "id": 13,
+        "day": "2026-06-02",
+        "period": "2026-06",
+        "tg_id": 0,
+        "employee": "Shernazarov Tolib",
+        "category": "Счет ТСД",
+        "value": 65,
+        "created_at": "2026-06-02T23:59:00"
+      },
+      {
+        "id": 14,
+        "day": "2026-06-02",
+        "period": "2026-06",
+        "tg_id": 0,
+        "employee": "Toxirov Muslimbek",
+        "category": "АРМ диспетчер",
+        "value": 44,
+        "created_at": "2026-06-02T23:59:00"
+      },
+      {
+        "id": 15,
+        "day": "2026-06-02",
+        "period": "2026-06",
+        "tg_id": 0,
+        "employee": "Toxirov Muslimbek",
+        "category": "Места хр",
+        "value": 58,
+        "created_at": "2026-06-02T23:59:00"
+      },
+      {
+        "id": 16,
+        "day": "2026-06-02",
+        "period": "2026-06",
+        "tg_id": 0,
+        "employee": "Toxirov Muslimbek",
+        "category": "Перемещение",
+        "value": 12,
+        "created_at": "2026-06-02T23:59:00"
+      },
+      {
+        "id": 17,
+        "day": "2026-06-02",
+        "period": "2026-06",
+        "tg_id": 0,
+        "employee": "Toxirov Muslimbek",
+        "category": "Пересчет товаров",
+        "value": 54,
+        "created_at": "2026-06-02T23:59:00"
+      },
+      {
+        "id": 18,
+        "day": "2026-06-02",
+        "period": "2026-06",
+        "tg_id": 0,
+        "employee": "Toxirov Muslimbek",
+        "category": "Счет ТСД",
+        "value": 32,
+        "created_at": "2026-06-02T23:59:00"
+      },
+      {
+        "id": 19,
+        "day": "2026-06-03",
+        "period": "2026-06",
+        "tg_id": 0,
+        "employee": "Mustafoev Abdullo",
+        "category": "Места хр",
+        "value": 113,
+        "created_at": "2026-06-03T23:59:00"
+      },
+      {
+        "id": 20,
+        "day": "2026-06-03",
+        "period": "2026-06",
+        "tg_id": 0,
+        "employee": "Mustafoev Abdullo",
+        "category": "Пересчет товаров",
+        "value": 44,
+        "created_at": "2026-06-03T23:59:00"
+      },
+      {
+        "id": 21,
+        "day": "2026-06-03",
+        "period": "2026-06",
+        "tg_id": 0,
+        "employee": "Mustafoev Abdullo",
+        "category": "Счет ТСД",
+        "value": 32,
+        "created_at": "2026-06-03T23:59:00"
+      },
+      {
+        "id": 22,
+        "day": "2026-06-03",
+        "period": "2026-06",
+        "tg_id": 0,
+        "employee": "Mustafoev Abdullo",
+        "category": "Фасовка",
+        "value": 108,
+        "created_at": "2026-06-03T23:59:00"
+      },
+      {
+        "id": 23,
+        "day": "2026-06-03",
+        "period": "2026-06",
+        "tg_id": 0,
+        "employee": "Ravshanov Oxunjon",
+        "category": "Счет ТСД",
+        "value": 78,
+        "created_at": "2026-06-03T23:59:00"
+      },
+      {
+        "id": 24,
+        "day": "2026-06-03",
+        "period": "2026-06",
+        "tg_id": 0,
+        "employee": "Ravshanov Ziyodullo",
+        "category": "Места хр",
+        "value": 100,
+        "created_at": "2026-06-03T23:59:00"
+      },
+      {
+        "id": 25,
+        "day": "2026-06-03",
+        "period": "2026-06",
+        "tg_id": 0,
+        "employee": "Ruziboev Sindor",
+        "category": "Перемещение",
+        "value": 10,
+        "created_at": "2026-06-03T23:59:00"
+      },
+      {
+        "id": 26,
+        "day": "2026-06-03",
+        "period": "2026-06",
+        "tg_id": 0,
+        "employee": "Sagdullaev Yunus",
+        "category": "Перемещение",
+        "value": 171,
+        "created_at": "2026-06-03T23:59:00"
+      },
+      {
+        "id": 27,
+        "day": "2026-06-03",
+        "period": "2026-06",
+        "tg_id": 0,
+        "employee": "Sagdullaev Yunus",
+        "category": "Переоценка",
+        "value": 45,
+        "created_at": "2026-06-03T23:59:00"
+      },
+      {
+        "id": 28,
+        "day": "2026-06-03",
+        "period": "2026-06",
+        "tg_id": 0,
+        "employee": "Sagdullaev Yunus",
+        "category": "Приход",
+        "value": 55,
+        "created_at": "2026-06-03T23:59:00"
+      },
+      {
+        "id": 29,
+        "day": "2026-06-03",
+        "period": "2026-06",
+        "tg_id": 0,
+        "employee": "Samadov To'lqin",
+        "category": "Счет ТСД",
+        "value": 90,
+        "created_at": "2026-06-03T23:59:00"
+      },
+      {
+        "id": 30,
+        "day": "2026-06-03",
+        "period": "2026-06",
+        "tg_id": 0,
+        "employee": "Shernazarov Tolib",
+        "category": "Счет ТСД",
+        "value": 40,
+        "created_at": "2026-06-03T23:59:00"
+      },
+      {
+        "id": 31,
+        "day": "2026-06-03",
+        "period": "2026-06",
+        "tg_id": 0,
+        "employee": "Toxirov Muslimbek",
+        "category": "АРМ диспетчер",
+        "value": 34,
+        "created_at": "2026-06-03T23:59:00"
+      },
+      {
+        "id": 32,
+        "day": "2026-06-03",
+        "period": "2026-06",
+        "tg_id": 0,
+        "employee": "Toxirov Muslimbek",
+        "category": "Места хр",
+        "value": 18,
+        "created_at": "2026-06-03T23:59:00"
+      },
+      {
+        "id": 33,
+        "day": "2026-06-03",
+        "period": "2026-06",
+        "tg_id": 0,
+        "employee": "Toxirov Muslimbek",
+        "category": "Перемещение",
+        "value": 52,
+        "created_at": "2026-06-03T23:59:00"
+      },
+      {
+        "id": 34,
+        "day": "2026-06-03",
+        "period": "2026-06",
+        "tg_id": 0,
+        "employee": "Toxirov Muslimbek",
+        "category": "Пересчет товаров",
+        "value": 48,
+        "created_at": "2026-06-03T23:59:00"
+      },
+      {
+        "id": 35,
+        "day": "2026-06-03",
+        "period": "2026-06",
+        "tg_id": 0,
+        "employee": "Toxirov Muslimbek",
+        "category": "Счет ТСД",
+        "value": 16,
+        "created_at": "2026-06-03T23:59:00"
+      },
+      {
+        "id": 36,
+        "day": "2026-06-03",
+        "period": "2026-06",
+        "tg_id": 0,
+        "employee": "Yadullaev Umidjon",
+        "category": "Пересчет товаров",
+        "value": 95,
+        "created_at": "2026-06-03T23:59:00"
+      },
+      {
+        "id": 37,
+        "day": "2026-06-03",
+        "period": "2026-06",
+        "tg_id": 0,
+        "employee": "Yadullaev Umidjon",
+        "category": "Фото ТМЦ",
+        "value": 103,
+        "created_at": "2026-06-03T23:59:00"
+      },
+      {
+        "id": 38,
+        "day": "2026-06-04",
+        "period": "2026-06",
+        "tg_id": 8440127425,
+        "employee": "Ravshanov Ziyodullo",
+        "category": "Пересчет товаров",
+        "value": 16,
+        "created_at": "2026-06-04T23:59:00"
+      },
+      {
+        "id": 39,
+        "day": "2026-06-04",
+        "period": "2026-06",
+        "tg_id": 8547365654,
+        "employee": "Ruziboev Sindor",
+        "category": "Перемещение",
+        "value": 3,
+        "created_at": "2026-06-04T23:59:00"
+      },
+      {
+        "id": 40,
+        "day": "2026-06-04",
+        "period": "2026-06",
+        "tg_id": 0,
+        "employee": "Sagdullaev Yunus",
+        "category": "Перемещение",
+        "value": 214,
+        "created_at": "2026-06-04T23:59:00"
+      },
+      {
+        "id": 41,
+        "day": "2026-06-04",
+        "period": "2026-06",
+        "tg_id": 0,
+        "employee": "Sagdullaev Yunus",
+        "category": "Переоценка",
+        "value": 50,
+        "created_at": "2026-06-04T23:59:00"
+      },
+      {
+        "id": 42,
+        "day": "2026-06-04",
+        "period": "2026-06",
+        "tg_id": 0,
+        "employee": "Sagdullaev Yunus",
+        "category": "Приход",
+        "value": 59,
+        "created_at": "2026-06-04T23:59:00"
+      },
+      {
+        "id": 43,
+        "day": "2026-06-04",
+        "period": "2026-06",
+        "tg_id": 6931958983,
+        "employee": "Samadov To'lqin",
+        "category": "Счет ТСД",
+        "value": 184,
+        "created_at": "2026-06-04T23:59:00"
+      },
+      {
+        "id": 44,
+        "day": "2026-06-04",
+        "period": "2026-06",
+        "tg_id": 6931958983,
+        "employee": "Shernazarov Tolib",
+        "category": "Счет ТСД",
+        "value": 50,
+        "created_at": "2026-06-04T23:59:00"
+      },
+      {
+        "id": 45,
+        "day": "2026-06-04",
+        "period": "2026-06",
+        "tg_id": 5732350707,
+        "employee": "Toxirov Muslimbek",
+        "category": "АРМ диспетчер",
+        "value": 42,
+        "created_at": "2026-06-04T23:59:00"
+      },
+      {
+        "id": 46,
+        "day": "2026-06-04",
+        "period": "2026-06",
+        "tg_id": 5732350707,
+        "employee": "Toxirov Muslimbek",
+        "category": "Перемещение",
+        "value": 15,
+        "created_at": "2026-06-04T23:59:00"
+      },
+      {
+        "id": 47,
+        "day": "2026-06-04",
+        "period": "2026-06",
+        "tg_id": 5732350707,
+        "employee": "Toxirov Muslimbek",
+        "category": "Счет ТСД",
+        "value": 27,
+        "created_at": "2026-06-04T23:59:00"
+      },
+      {
+        "id": 48,
+        "day": "2026-06-05",
+        "period": "2026-06",
+        "tg_id": 6931958983,
+        "employee": "Mustafoev Abdullo",
+        "category": "АРМ диспетчер",
+        "value": 2,
+        "created_at": "2026-06-05T23:59:00"
+      },
+      {
+        "id": 49,
+        "day": "2026-06-05",
+        "period": "2026-06",
+        "tg_id": 6931958983,
+        "employee": "Mustafoev Abdullo",
+        "category": "Места хр",
+        "value": 53,
+        "created_at": "2026-06-05T23:59:00"
+      },
+      {
+        "id": 50,
+        "day": "2026-06-05",
+        "period": "2026-06",
+        "tg_id": 6931958983,
+        "employee": "Mustafoev Abdullo",
+        "category": "Перемещение",
+        "value": 10,
+        "created_at": "2026-06-05T23:59:00"
+      },
+      {
+        "id": 51,
+        "day": "2026-06-05",
+        "period": "2026-06",
+        "tg_id": 6931958983,
+        "employee": "Mustafoev Abdullo",
+        "category": "Пересчет товаров",
+        "value": 20,
+        "created_at": "2026-06-05T23:59:00"
+      },
+      {
+        "id": 52,
+        "day": "2026-06-05",
+        "period": "2026-06",
+        "tg_id": 6931958983,
+        "employee": "Mustafoev Abdullo",
+        "category": "Счет ТСД",
+        "value": 11,
+        "created_at": "2026-06-05T23:59:00"
+      },
+      {
+        "id": 53,
+        "day": "2026-06-05",
+        "period": "2026-06",
+        "tg_id": 8547365654,
+        "employee": "Ruziboev Sindor",
+        "category": "Места хр",
+        "value": 87,
+        "created_at": "2026-06-05T23:59:00"
+      },
+      {
+        "id": 54,
+        "day": "2026-06-05",
+        "period": "2026-06",
+        "tg_id": 8547365654,
+        "employee": "Ruziboev Sindor",
+        "category": "Перемещение",
+        "value": 40,
+        "created_at": "2026-06-05T23:59:00"
+      },
+      {
+        "id": 55,
+        "day": "2026-06-05",
+        "period": "2026-06",
+        "tg_id": 8547365654,
+        "employee": "Ruziboev Sindor",
+        "category": "Фасовка",
+        "value": 70,
+        "created_at": "2026-06-05T23:59:00"
+      },
+      {
+        "id": 56,
+        "day": "2026-06-05",
+        "period": "2026-06",
+        "tg_id": 6991673998,
+        "employee": "Sagdullaev Yunus",
+        "category": "Перемещение",
+        "value": 161,
+        "created_at": "2026-06-05T23:59:00"
+      },
+      {
+        "id": 57,
+        "day": "2026-06-05",
+        "period": "2026-06",
+        "tg_id": 6991673998,
+        "employee": "Sagdullaev Yunus",
+        "category": "Переоценка",
+        "value": 50,
+        "created_at": "2026-06-05T23:59:00"
+      },
+      {
+        "id": 58,
+        "day": "2026-06-05",
+        "period": "2026-06",
+        "tg_id": 6991673998,
+        "employee": "Sagdullaev Yunus",
+        "category": "Приход",
+        "value": 54,
+        "created_at": "2026-06-05T23:59:00"
+      },
+      {
+        "id": 59,
+        "day": "2026-06-05",
+        "period": "2026-06",
+        "tg_id": 6931958983,
+        "employee": "Samadov To'lqin",
+        "category": "Счет ТСД",
+        "value": 95,
+        "created_at": "2026-06-05T23:59:00"
+      },
+      {
+        "id": 60,
+        "day": "2026-06-05",
+        "period": "2026-06",
+        "tg_id": 6931958983,
+        "employee": "Shernazarov Tolib",
+        "category": "Счет ТСД",
+        "value": 12,
+        "created_at": "2026-06-05T23:59:00"
+      },
+      {
+        "id": 61,
+        "day": "2026-06-05",
+        "period": "2026-06",
+        "tg_id": 5732350707,
+        "employee": "Toxirov Muslimbek",
+        "category": "АРМ диспетчер",
+        "value": 51,
+        "created_at": "2026-06-05T23:59:00"
+      },
+      {
+        "id": 62,
+        "day": "2026-06-05",
+        "period": "2026-06",
+        "tg_id": 5732350707,
+        "employee": "Toxirov Muslimbek",
+        "category": "Перемещение",
+        "value": 30,
+        "created_at": "2026-06-05T23:59:00"
+      },
+      {
+        "id": 63,
+        "day": "2026-06-05",
+        "period": "2026-06",
+        "tg_id": 5732350707,
+        "employee": "Toxirov Muslimbek",
+        "category": "Пересчет товаров",
+        "value": 54,
+        "created_at": "2026-06-05T23:59:00"
+      },
+      {
+        "id": 64,
+        "day": "2026-06-05",
+        "period": "2026-06",
+        "tg_id": 5732350707,
+        "employee": "Toxirov Muslimbek",
+        "category": "Приход",
+        "value": 18,
+        "created_at": "2026-06-05T23:59:00"
+      },
+      {
+        "id": 65,
+        "day": "2026-06-05",
+        "period": "2026-06",
+        "tg_id": 7703650930,
+        "employee": "Tuvalov Farrux",
+        "category": "Счет ТСД",
+        "value": 111,
+        "created_at": "2026-06-05T23:59:00"
+      },
+      {
+        "id": 66,
+        "day": "2026-06-05",
+        "period": "2026-06",
+        "tg_id": 924612402,
+        "employee": "Yadullaev Umid",
+        "category": "Фасовка",
+        "value": 105,
+        "created_at": "2026-06-05T23:59:00"
+      },
+      {
+        "id": 67,
+        "day": "2026-06-06",
+        "period": "2026-06",
+        "tg_id": 6931958983,
+        "employee": "Mustafoev Abdullo",
+        "category": "Перемещение",
+        "value": 178,
+        "created_at": "2026-06-06T23:59:00"
+      },
+      {
+        "id": 68,
+        "day": "2026-06-06",
+        "period": "2026-06",
+        "tg_id": 6931958983,
+        "employee": "Mustafoev Abdullo",
+        "category": "Переоценка",
+        "value": 8,
+        "created_at": "2026-06-06T23:59:00"
+      },
+      {
+        "id": 69,
+        "day": "2026-06-06",
+        "period": "2026-06",
+        "tg_id": 6931958983,
+        "employee": "Mustafoev Abdullo",
+        "category": "Приход",
+        "value": 10,
+        "created_at": "2026-06-06T23:59:00"
+      },
+      {
+        "id": 70,
+        "day": "2026-06-06",
+        "period": "2026-06",
+        "tg_id": 6931958983,
+        "employee": "Ravshanov Oxunjon",
+        "category": "Счет ТСД",
+        "value": 29,
+        "created_at": "2026-06-06T23:59:00"
+      },
+      {
+        "id": 71,
+        "day": "2026-06-06",
+        "period": "2026-06",
+        "tg_id": 8440127425,
+        "employee": "Ravshanov Ziyodullo",
+        "category": "Места хр",
+        "value": 65,
+        "created_at": "2026-06-06T23:59:00"
+      },
+      {
+        "id": 72,
+        "day": "2026-06-06",
+        "period": "2026-06",
+        "tg_id": 8440127425,
+        "employee": "Ravshanov Ziyodullo",
+        "category": "Перемещение",
+        "value": 3,
+        "created_at": "2026-06-06T23:59:00"
+      },
+      {
+        "id": 73,
+        "day": "2026-06-06",
+        "period": "2026-06",
+        "tg_id": 8547365654,
+        "employee": "Ruziboev Sindor",
+        "category": "Места хр",
+        "value": 40,
+        "created_at": "2026-06-06T23:59:00"
+      },
+      {
+        "id": 74,
+        "day": "2026-06-06",
+        "period": "2026-06",
+        "tg_id": 8547365654,
+        "employee": "Ruziboev Sindor",
+        "category": "Перемещение",
+        "value": 2,
+        "created_at": "2026-06-06T23:59:00"
+      },
+      {
+        "id": 75,
+        "day": "2026-06-06",
+        "period": "2026-06",
+        "tg_id": 6931958983,
+        "employee": "Shernazarov Tolib",
+        "category": "Счет ТСД",
+        "value": 0,
+        "created_at": "2026-06-06T23:59:00"
+      },
+      {
+        "id": 76,
+        "day": "2026-06-06",
+        "period": "2026-06",
+        "tg_id": 5732350707,
+        "employee": "Toxirov Muslimbek",
+        "category": "АРМ диспетчер",
+        "value": 20,
+        "created_at": "2026-06-06T23:59:00"
+      },
+      {
+        "id": 77,
+        "day": "2026-06-06",
+        "period": "2026-06",
+        "tg_id": 5732350707,
+        "employee": "Toxirov Muslimbek",
+        "category": "Места хр",
+        "value": 2,
+        "created_at": "2026-06-06T23:59:00"
+      },
+      {
+        "id": 78,
+        "day": "2026-06-06",
+        "period": "2026-06",
+        "tg_id": 5732350707,
+        "employee": "Toxirov Muslimbek",
+        "category": "Перемещение",
+        "value": 10,
+        "created_at": "2026-06-06T23:59:00"
+      },
+      {
+        "id": 79,
+        "day": "2026-06-06",
+        "period": "2026-06",
+        "tg_id": 5732350707,
+        "employee": "Toxirov Muslimbek",
+        "category": "Пересчет товаров",
+        "value": 137,
+        "created_at": "2026-06-06T23:59:00"
+      },
+      {
+        "id": 80,
+        "day": "2026-06-06",
+        "period": "2026-06",
+        "tg_id": 5732350707,
+        "employee": "Toxirov Muslimbek",
+        "category": "Приход",
+        "value": 2,
+        "created_at": "2026-06-06T23:59:00"
+      },
+      {
+        "id": 81,
+        "day": "2026-06-06",
+        "period": "2026-06",
+        "tg_id": 7703650930,
+        "employee": "Tuvalov Farrux",
+        "category": "Места хр",
+        "value": 11,
+        "created_at": "2026-06-06T23:59:00"
+      },
+      {
+        "id": 82,
+        "day": "2026-06-06",
+        "period": "2026-06",
+        "tg_id": 7703650930,
+        "employee": "Tuvalov Farrux",
+        "category": "Перемещение",
+        "value": 1,
+        "created_at": "2026-06-06T23:59:00"
+      },
+      {
+        "id": 83,
+        "day": "2026-06-06",
+        "period": "2026-06",
+        "tg_id": 7703650930,
+        "employee": "Tuvalov Farrux",
+        "category": "Переоценка",
+        "value": 15,
+        "created_at": "2026-06-06T23:59:00"
+      },
+      {
+        "id": 84,
+        "day": "2026-06-06",
+        "period": "2026-06",
+        "tg_id": 7703650930,
+        "employee": "Tuvalov Farrux",
+        "category": "Пересчет товаров",
+        "value": 50,
+        "created_at": "2026-06-06T23:59:00"
+      },
+      {
+        "id": 85,
+        "day": "2026-06-06",
+        "period": "2026-06",
+        "tg_id": 7703650930,
+        "employee": "Tuvalov Farrux",
+        "category": "Приход",
+        "value": 15,
+        "created_at": "2026-06-06T23:59:00"
+      },
+      {
+        "id": 86,
+        "day": "2026-06-06",
+        "period": "2026-06",
+        "tg_id": 7703650930,
+        "employee": "Tuvalov Farrux",
+        "category": "Счет ТСД",
+        "value": 61,
+        "created_at": "2026-06-06T23:59:00"
+      },
+      {
+        "id": 87,
+        "day": "2026-06-07",
+        "period": "2026-06",
+        "tg_id": 6931958983,
+        "employee": "Mustafoev Abdullo",
+        "category": "Места хр",
+        "value": 31,
+        "created_at": "2026-06-07T23:59:00"
+      },
+      {
+        "id": 88,
+        "day": "2026-06-07",
+        "period": "2026-06",
+        "tg_id": 6931958983,
+        "employee": "Mustafoev Abdullo",
+        "category": "Пересчет товаров",
+        "value": 110,
+        "created_at": "2026-06-07T23:59:00"
+      },
+      {
+        "id": 89,
+        "day": "2026-06-07",
+        "period": "2026-06",
+        "tg_id": 6931958983,
+        "employee": "Ravshanov Oxunjon",
+        "category": "Счет ТСД",
+        "value": 52,
+        "created_at": "2026-06-07T23:59:00"
+      },
+      {
+        "id": 90,
+        "day": "2026-06-07",
+        "period": "2026-06",
+        "tg_id": 6931958983,
+        "employee": "Ravshanov Oxunjon",
+        "category": "Фасовка",
+        "value": 61,
+        "created_at": "2026-06-07T23:59:00"
+      },
+      {
+        "id": 91,
+        "day": "2026-06-07",
+        "period": "2026-06",
+        "tg_id": 8440127425,
+        "employee": "Ravshanov Ziyodullo",
+        "category": "Места хр",
+        "value": 13,
+        "created_at": "2026-06-07T23:59:00"
+      },
+      {
+        "id": 92,
+        "day": "2026-06-07",
+        "period": "2026-06",
+        "tg_id": 8440127425,
+        "employee": "Ravshanov Ziyodullo",
+        "category": "Пересчет товаров",
+        "value": 20,
+        "created_at": "2026-06-07T23:59:00"
+      },
+      {
+        "id": 93,
+        "day": "2026-06-07",
+        "period": "2026-06",
+        "tg_id": 6991673998,
+        "employee": "Sagdullaev Yunus",
+        "category": "Перемещение",
+        "value": 380,
+        "created_at": "2026-06-07T23:59:00"
+      },
+      {
+        "id": 94,
+        "day": "2026-06-07",
+        "period": "2026-06",
+        "tg_id": 6991673998,
+        "employee": "Sagdullaev Yunus",
+        "category": "Переоценка",
+        "value": 40,
+        "created_at": "2026-06-07T23:59:00"
+      },
+      {
+        "id": 95,
+        "day": "2026-06-07",
+        "period": "2026-06",
+        "tg_id": 6991673998,
+        "employee": "Sagdullaev Yunus",
+        "category": "Приход",
+        "value": 48,
+        "created_at": "2026-06-07T23:59:00"
+      },
+      {
+        "id": 96,
+        "day": "2026-06-07",
+        "period": "2026-06",
+        "tg_id": 6931958983,
+        "employee": "Shernazarov Tolib",
+        "category": "Счет ТСД",
+        "value": 0,
+        "created_at": "2026-06-07T23:59:00"
+      },
+      {
+        "id": 97,
+        "day": "2026-06-07",
+        "period": "2026-06",
+        "tg_id": 7703650930,
+        "employee": "Tuvalov Farrux",
+        "category": "АРМ диспетчер",
+        "value": 13,
+        "created_at": "2026-06-07T23:59:00"
+      },
+      {
+        "id": 98,
+        "day": "2026-06-07",
+        "period": "2026-06",
+        "tg_id": 7703650930,
+        "employee": "Tuvalov Farrux",
+        "category": "Места хр",
+        "value": 21,
+        "created_at": "2026-06-07T23:59:00"
+      },
+      {
+        "id": 99,
+        "day": "2026-06-07",
+        "period": "2026-06",
+        "tg_id": 7703650930,
+        "employee": "Tuvalov Farrux",
+        "category": "Перемещение",
+        "value": 9,
+        "created_at": "2026-06-07T23:59:00"
+      },
+      {
+        "id": 100,
+        "day": "2026-06-07",
+        "period": "2026-06",
+        "tg_id": 7703650930,
+        "employee": "Tuvalov Farrux",
+        "category": "Приход",
+        "value": 1,
+        "created_at": "2026-06-07T23:59:00"
+      },
+      {
+        "id": 101,
+        "day": "2026-06-07",
+        "period": "2026-06",
+        "tg_id": 7703650930,
+        "employee": "Tuvalov Farrux",
+        "category": "Счет ТСД",
+        "value": 16,
+        "created_at": "2026-06-07T23:59:00"
+      },
+      {
+        "id": 102,
+        "day": "2026-06-07",
+        "period": "2026-06",
+        "tg_id": 924612402,
+        "employee": "Yadullaev Umid",
+        "category": "Перемещение",
+        "value": 15,
+        "created_at": "2026-06-07T23:59:00"
+      },
+      {
+        "id": 103,
+        "day": "2026-06-08",
+        "period": "2026-06",
+        "tg_id": 6931958983,
+        "employee": "Mustafoev Abdullo",
+        "category": "Места хр",
+        "value": 10,
+        "created_at": "2026-06-08T23:59:00"
+      },
+      {
+        "id": 104,
+        "day": "2026-06-08",
+        "period": "2026-06",
+        "tg_id": 6931958983,
+        "employee": "Mustafoev Abdullo",
+        "category": "Пересчет товаров",
+        "value": 60,
+        "created_at": "2026-06-08T23:59:00"
+      },
+      {
+        "id": 105,
+        "day": "2026-06-08",
+        "period": "2026-06",
+        "tg_id": 6931958983,
+        "employee": "Mustafoev Abdullo",
+        "category": "Счет ТСД",
+        "value": 21,
+        "created_at": "2026-06-08T23:59:00"
+      },
+      {
+        "id": 106,
+        "day": "2026-06-08",
+        "period": "2026-06",
+        "tg_id": 6931958983,
+        "employee": "Ravshanov Oxunjon",
+        "category": "Счет ТСД",
+        "value": 73,
+        "created_at": "2026-06-08T23:59:00"
+      },
+      {
+        "id": 107,
+        "day": "2026-06-08",
+        "period": "2026-06",
+        "tg_id": 8440127425,
+        "employee": "Ravshanov Ziyodullo",
+        "category": "Перемещение",
+        "value": 3,
+        "created_at": "2026-06-08T23:59:00"
+      },
+      {
+        "id": 108,
+        "day": "2026-06-08",
+        "period": "2026-06",
+        "tg_id": 8440127425,
+        "employee": "Ravshanov Ziyodullo",
+        "category": "Пересчет товаров",
+        "value": 102,
+        "created_at": "2026-06-08T23:59:00"
+      },
+      {
+        "id": 109,
+        "day": "2026-06-08",
+        "period": "2026-06",
+        "tg_id": 8547365654,
+        "employee": "Ruziboev Sindor",
+        "category": "Места хр",
+        "value": 100,
+        "created_at": "2026-06-08T23:59:00"
+      },
+      {
+        "id": 110,
+        "day": "2026-06-08",
+        "period": "2026-06",
+        "tg_id": 8547365654,
+        "employee": "Ruziboev Sindor",
+        "category": "Перемещение",
+        "value": 10,
+        "created_at": "2026-06-08T23:59:00"
+      },
+      {
+        "id": 111,
+        "day": "2026-06-08",
+        "period": "2026-06",
+        "tg_id": 8547365654,
+        "employee": "Ruziboev Sindor",
+        "category": "Пересчет товаров",
+        "value": 273,
+        "created_at": "2026-06-08T23:59:00"
+      },
+      {
+        "id": 112,
+        "day": "2026-06-08",
+        "period": "2026-06",
+        "tg_id": 6991673998,
+        "employee": "Sagdullaev Yunus",
+        "category": "Перемещение",
+        "value": 120,
+        "created_at": "2026-06-08T23:59:00"
+      },
+      {
+        "id": 113,
+        "day": "2026-06-08",
+        "period": "2026-06",
+        "tg_id": 6991673998,
+        "employee": "Sagdullaev Yunus",
+        "category": "Переоценка",
+        "value": 50,
+        "created_at": "2026-06-08T23:59:00"
+      },
+      {
+        "id": 114,
+        "day": "2026-06-08",
+        "period": "2026-06",
+        "tg_id": 6991673998,
+        "employee": "Sagdullaev Yunus",
+        "category": "Приход",
+        "value": 56,
+        "created_at": "2026-06-08T23:59:00"
+      },
+      {
+        "id": 115,
+        "day": "2026-06-08",
+        "period": "2026-06",
+        "tg_id": 6931958983,
+        "employee": "Shernazarov Tolib",
+        "category": "Счет ТСД",
+        "value": 9,
+        "created_at": "2026-06-08T23:59:00"
+      },
+      {
+        "id": 116,
+        "day": "2026-06-08",
+        "period": "2026-06",
+        "tg_id": 5732350707,
+        "employee": "Toxirov Muslimbek",
+        "category": "АРМ диспетчер",
+        "value": 43,
+        "created_at": "2026-06-08T23:59:00"
+      },
+      {
+        "id": 117,
+        "day": "2026-06-08",
+        "period": "2026-06",
+        "tg_id": 5732350707,
+        "employee": "Toxirov Muslimbek",
+        "category": "Перемещение",
+        "value": 5,
+        "created_at": "2026-06-08T23:59:00"
+      },
+      {
+        "id": 118,
+        "day": "2026-06-08",
+        "period": "2026-06",
+        "tg_id": 5732350707,
+        "employee": "Toxirov Muslimbek",
+        "category": "Пересчет товаров",
+        "value": 164,
+        "created_at": "2026-06-08T23:59:00"
+      },
+      {
+        "id": 119,
+        "day": "2026-06-08",
+        "period": "2026-06",
+        "tg_id": 5732350707,
+        "employee": "Toxirov Muslimbek",
+        "category": "Приход",
+        "value": 1,
+        "created_at": "2026-06-08T23:59:00"
+      },
+      {
+        "id": 120,
+        "day": "2026-06-08",
+        "period": "2026-06",
+        "tg_id": 7703650930,
+        "employee": "Tuvalov Farrux",
+        "category": "Перемещение",
+        "value": 2,
+        "created_at": "2026-06-08T23:59:00"
+      },
+      {
+        "id": 121,
+        "day": "2026-06-08",
+        "period": "2026-06",
+        "tg_id": 7703650930,
+        "employee": "Tuvalov Farrux",
+        "category": "Приход",
+        "value": 1,
+        "created_at": "2026-06-08T23:59:00"
+      },
+      {
+        "id": 122,
+        "day": "2026-06-08",
+        "period": "2026-06",
+        "tg_id": 7703650930,
+        "employee": "Tuvalov Farrux",
+        "category": "Счет ТСД",
+        "value": 121,
+        "created_at": "2026-06-08T23:59:00"
+      },
+      {
+        "id": 123,
+        "day": "2026-06-08",
+        "period": "2026-06",
+        "tg_id": 924612402,
+        "employee": "Yadullaev Umid",
+        "category": "Места хр",
+        "value": 50,
+        "created_at": "2026-06-08T23:59:00"
+      }
+    ],
+    "cross_bot_events": [
+      {
+        "day": "2026-06-02",
+        "tg_id": 5412958249,
+        "bot_key": "yuk",
+        "summary": "Yuk (forward jami): ish vaqti 2957 soniya",
+        "created_at": "2026-06-02 23:59:00"
+      },
+      {
+        "day": "2026-06-02",
+        "tg_id": 5465963344,
+        "bot_key": "yuk",
+        "summary": "Yuk (forward jami): ish vaqti 3457 soniya",
+        "created_at": "2026-06-02 23:59:00"
+      },
+      {
+        "day": "2026-06-02",
+        "tg_id": 5732350707,
+        "bot_key": "ombor",
+        "summary": "Ombor (forward jami): 2 ta, ish vaqti 1878 soniya",
+        "created_at": "2026-06-02 23:59:00"
+      },
+      {
+        "day": "2026-06-02",
+        "tg_id": 6931958983,
+        "bot_key": "ombor",
+        "summary": "Ombor (forward jami): 2 ta, ish vaqti 2647 soniya",
+        "created_at": "2026-06-02 23:59:00"
+      },
+      {
+        "day": "2026-06-02",
+        "tg_id": 6991673998,
+        "bot_key": "ombor",
+        "summary": "Ombor (forward jami): 1 ta, ish vaqti 9 soniya",
+        "created_at": "2026-06-02 23:59:00"
+      },
+      {
+        "day": "2026-06-02",
+        "tg_id": 8440127425,
+        "bot_key": "ombor",
+        "summary": "Ombor (forward jami): 1 ta, ish vaqti 534 soniya",
+        "created_at": "2026-06-02 23:59:00"
+      },
+      {
+        "day": "2026-06-02",
+        "tg_id": 8547365654,
+        "bot_key": "ombor",
+        "summary": "Ombor (forward jami): 2 ta, ish vaqti 3429 soniya",
+        "created_at": "2026-06-02 23:59:00"
+      },
+      {
+        "day": "2026-06-02",
+        "tg_id": 8547365654,
+        "bot_key": "omborga",
+        "summary": "Reys 9, ish 24:42, dam 14:22",
+        "created_at": "2026-06-02 23:59:00"
+      },
+      {
+        "day": "2026-06-03",
+        "tg_id": 5412958249,
+        "bot_key": "ombor",
+        "summary": "Ombor (forward jami): 3 ta, ish vaqti 3534 soniya",
+        "created_at": "2026-06-03 23:59:00"
+      },
+      {
+        "day": "2026-06-03",
+        "tg_id": 6931958983,
+        "bot_key": "ombor",
+        "summary": "Ombor (forward jami): 4 ta, ish vaqti 3632 soniya",
+        "created_at": "2026-06-03 23:59:00"
+      },
+      {
+        "day": "2026-06-03",
+        "tg_id": 6931958983,
+        "bot_key": "omborga",
+        "summary": "Reys 5, ish 8:33, dam 5:37",
+        "created_at": "2026-06-03 23:59:00"
+      },
+      {
+        "day": "2026-06-03",
+        "tg_id": 8440127425,
+        "bot_key": "ombor",
+        "summary": "Ombor (forward jami): 2 ta, ish vaqti 683 soniya",
+        "created_at": "2026-06-03 23:59:00"
+      },
+      {
+        "day": "2026-06-03",
+        "tg_id": 8440127425,
+        "bot_key": "omborga",
+        "summary": "Reys 3, ish 19:46, dam 0:00",
+        "created_at": "2026-06-03 23:59:00"
+      },
+      {
+        "day": "2026-06-03",
+        "tg_id": 8547365654,
+        "bot_key": "ombor",
+        "summary": "Ombor (forward jami): 1 ta, ish vaqti 5907 soniya",
+        "created_at": "2026-06-03 23:59:00"
+      },
+      {
+        "day": "2026-06-04",
+        "tg_id": 5412958249,
+        "bot_key": "ombor",
+        "summary": "Ombor (forward jami): 2 ta, ish vaqti 1255 soniya",
+        "created_at": "2026-06-04 23:59:00"
+      },
+      {
+        "day": "2026-06-04",
+        "tg_id": 5412958249,
+        "bot_key": "omborga",
+        "summary": "Reys 18, ish 16:34, dam 0:00",
+        "created_at": "2026-06-04 23:59:00"
+      },
+      {
+        "day": "2026-06-04",
+        "tg_id": 5465963344,
+        "bot_key": "omborga",
+        "summary": "Reys 9, ish 3:49:33, dam 0:00",
+        "created_at": "2026-06-04 23:59:00"
+      },
+      {
+        "day": "2026-06-04",
+        "tg_id": 5732350707,
+        "bot_key": "ombor",
+        "summary": "Ombor (forward jami): 2 ta, ish vaqti 2852 soniya",
+        "created_at": "2026-06-04 23:59:00"
+      },
+      {
+        "day": "2026-06-04",
+        "tg_id": 5732350707,
+        "bot_key": "omborga",
+        "summary": "Reys 10, ish 2:46:00, dam 1:30:00",
+        "created_at": "2026-06-04 23:59:00"
+      },
+      {
+        "day": "2026-06-04",
+        "tg_id": 6001619806,
+        "bot_key": "omborga",
+        "summary": "Reys 1, ish 1:26:55, dam 0:00",
+        "created_at": "2026-06-04 23:59:00"
+      },
+      {
+        "day": "2026-06-04",
+        "tg_id": 6931958983,
+        "bot_key": "ombor",
+        "summary": "Ombor (forward jami): 1 ta, ish vaqti 1622 soniya",
+        "created_at": "2026-06-04 23:59:00"
+      },
+      {
+        "day": "2026-06-04",
+        "tg_id": 8440127425,
+        "bot_key": "ombor",
+        "summary": "Ombor (forward jami): 6 ta, ish vaqti 7342 soniya",
+        "created_at": "2026-06-04 23:59:00"
+      },
+      {
+        "day": "2026-06-04",
+        "tg_id": 8440127425,
+        "bot_key": "omborga",
+        "summary": "Reys 3, ish 0:08:32, dam 0:00:48",
+        "created_at": "2026-06-04 23:59:00"
+      },
+      {
+        "day": "2026-06-04",
+        "tg_id": 8547365654,
+        "bot_key": "ombor",
+        "summary": "Ombor (forward jami): 5 ta, ish vaqti 3861 soniya",
+        "created_at": "2026-06-04 23:59:00"
+      },
+      {
+        "day": "2026-06-04",
+        "tg_id": 8547365654,
+        "bot_key": "omborga",
+        "summary": "Reys 36, ish 4:03:03, dam 2:33:52",
+        "created_at": "2026-06-04 23:59:00"
+      },
+      {
+        "day": "2026-06-05",
+        "tg_id": 924612402,
+        "bot_key": "omborga",
+        "summary": "Reys 33, ish 61:10, dam 0:00",
+        "created_at": "2026-06-05 23:59:00"
+      },
+      {
+        "day": "2026-06-05",
+        "tg_id": 1432810519,
+        "bot_key": "ombor",
+        "summary": "#4 🙋 Xizmat so'rovi: bajarildi, 1 soat 30 daqiqa 7 soniya",
+        "created_at": "2026-06-05 23:59:00"
+      },
+      {
+        "day": "2026-06-05",
+        "tg_id": 5465963344,
+        "bot_key": "omborga",
+        "summary": "Reys 8, ish 35:05, dam 0:00",
+        "created_at": "2026-06-05 23:59:00"
+      },
+      {
+        "day": "2026-06-05",
+        "tg_id": 5732350707,
+        "bot_key": "omborga",
+        "summary": "Reys 13, ish 63:15, dam 0:00",
+        "created_at": "2026-06-05 23:59:00"
+      },
+      {
+        "day": "2026-06-05",
+        "tg_id": 6931958983,
+        "bot_key": "ombor",
+        "summary": "#2 🙋 Xizmat so'rovi: bajarildi, 7 daqiqa 3 soniya",
+        "created_at": "2026-06-05 23:59:00"
+      },
+      {
+        "day": "2026-06-05",
+        "tg_id": 6931958983,
+        "bot_key": "omborga",
+        "summary": "Reys 15, ish 51:54, dam 0:00",
+        "created_at": "2026-06-05 23:59:00"
+      },
+      {
+        "day": "2026-06-05",
+        "tg_id": 7703650930,
+        "bot_key": "ombor",
+        "summary": "#11 📦 Tovar buyurtma: bajarildi, 3 daqiqa 12 soniya",
+        "created_at": "2026-06-05 23:59:00"
+      },
+      {
+        "day": "2026-06-05",
+        "tg_id": 7703650930,
+        "bot_key": "omborga",
+        "summary": "Reys 19, ish 55:47, dam 0:00",
+        "created_at": "2026-06-05 23:59:00"
+      },
+      {
+        "day": "2026-06-05",
+        "tg_id": 8547365654,
+        "bot_key": "ombor",
+        "summary": "#9 📦 Tovar buyurtma: bajarildi, 9 daqiqa 43 soniya",
+        "created_at": "2026-06-05 23:59:00"
+      },
+      {
+        "day": "2026-06-05",
+        "tg_id": 8547365654,
+        "bot_key": "omborga",
+        "summary": "Reys 21, ish 32:49, dam 0:00",
+        "created_at": "2026-06-05 23:59:00"
+      },
+      {
+        "day": "2026-06-06",
+        "tg_id": 5412958249,
+        "bot_key": "ombor",
+        "summary": "#25 🙋 Xizmat so'rovi: bajarildi, 1 daqiqa 3 soniya",
+        "created_at": "2026-06-06 23:59:00"
+      },
+      {
+        "day": "2026-06-06",
+        "tg_id": 5412958249,
+        "bot_key": "omborga",
+        "summary": "Reys 77, ish 83:51, dam 0:00",
+        "created_at": "2026-06-06 23:59:00"
+      },
+      {
+        "day": "2026-06-06",
+        "tg_id": 5412958249,
+        "bot_key": "yuk",
+        "summary": "Yuk (bugun jami): ish vaqti 0:00",
+        "created_at": "2026-06-06 23:59:00"
+      },
+      {
+        "day": "2026-06-06",
+        "tg_id": 5465963344,
+        "bot_key": "ombor",
+        "summary": "#43 🙋 Xizmat so'rovi: bajarildi, 19 soniya",
+        "created_at": "2026-06-06 23:59:00"
+      },
+      {
+        "day": "2026-06-06",
+        "tg_id": 5465963344,
+        "bot_key": "omborga",
+        "summary": "Reys 21, ish 55:36, dam 0:00",
+        "created_at": "2026-06-06 23:59:00"
+      },
+      {
+        "day": "2026-06-06",
+        "tg_id": 5465963344,
+        "bot_key": "yuk",
+        "summary": "Yuk (bugun jami): ish vaqti 0:00",
+        "created_at": "2026-06-06 23:59:00"
+      },
+      {
+        "day": "2026-06-06",
+        "tg_id": 5732350707,
+        "bot_key": "omborga",
+        "summary": "Reys 8, yuk 441m, ish 38:06, dam 25:21",
+        "created_at": "2026-06-06 23:59:00"
+      },
+      {
+        "day": "2026-06-06",
+        "tg_id": 5732350707,
+        "bot_key": "sklad",
+        "summary": "Papka Наборы для творчества: sanaldi 1, joy 1, xato 0, kun 1/30",
+        "created_at": "2026-06-06 23:59:00"
+      },
+      {
+        "day": "2026-06-06",
+        "tg_id": 6931958983,
+        "bot_key": "ombor",
+        "summary": "#29 🙋 Xizmat so'rovi: bajarildi, 10 daqiqa 42 soniya",
+        "created_at": "2026-06-06 23:59:00"
+      },
+      {
+        "day": "2026-06-06",
+        "tg_id": 7703650930,
+        "bot_key": "ombor",
+        "summary": "#36 🙋 Xizmat so'rovi: bajarildi, 49 soniya",
+        "created_at": "2026-06-06 23:59:00"
+      },
+      {
+        "day": "2026-06-06",
+        "tg_id": 7703650930,
+        "bot_key": "omborga",
+        "summary": "Reys 24, ish 25:21, dam 0:00",
+        "created_at": "2026-06-06 23:59:00"
+      },
+      {
+        "day": "2026-06-06",
+        "tg_id": 7703650930,
+        "bot_key": "sklad",
+        "summary": "Papka Глобусы: sanaldi 1, joy 1, xato 0, kun 1/29",
+        "created_at": "2026-06-06 23:59:00"
+      },
+      {
+        "day": "2026-06-06",
+        "tg_id": 8440127425,
+        "bot_key": "omborga",
+        "summary": "Reys 9, ish 24:03, dam 0:00",
+        "created_at": "2026-06-06 23:59:00"
+      },
+      {
+        "day": "2026-06-06",
+        "tg_id": 8440127425,
+        "bot_key": "yuk",
+        "summary": "Yuk (bugun jami): ish vaqti 0:00",
+        "created_at": "2026-06-06 23:59:00"
+      },
+      {
+        "day": "2026-06-06",
+        "tg_id": 8547365654,
+        "bot_key": "omborga",
+        "summary": "Reys 5, yuk 271m, ish 14:37, dam 7:04",
+        "created_at": "2026-06-06 23:59:00"
+      },
+      {
+        "day": "2026-06-07",
+        "tg_id": 924612402,
+        "bot_key": "omborga",
+        "summary": "Reys 20, ish 89:52, dam 0:00",
+        "created_at": "2026-06-07 23:59:00"
+      },
+      {
+        "day": "2026-06-07",
+        "tg_id": 5412958249,
+        "bot_key": "ombor",
+        "summary": "#72 🙋 Xizmat so'rovi: bajarildi, 56 soniya",
+        "created_at": "2026-06-07 23:59:00"
+      },
+      {
+        "day": "2026-06-07",
+        "tg_id": 5412958249,
+        "bot_key": "omborga",
+        "summary": "Reys 80, ish 74:37, dam 0:00",
+        "created_at": "2026-06-07 23:59:00"
+      },
+      {
+        "day": "2026-06-07",
+        "tg_id": 5465963344,
+        "bot_key": "ombor",
+        "summary": "#58 📦 Tovar buyurtma: bajarildi, 2 daqiqa 57 soniya",
+        "created_at": "2026-06-07 23:59:00"
+      },
+      {
+        "day": "2026-06-07",
+        "tg_id": 5465963344,
+        "bot_key": "omborga",
+        "summary": "Reys 41, ish 55:10, dam 0:00",
+        "created_at": "2026-06-07 23:59:00"
+      },
+      {
+        "day": "2026-06-07",
+        "tg_id": 6931958983,
+        "bot_key": "ombor",
+        "summary": "#62 🙋 Xizmat so'rovi: bajarildi, 42 daqiqa 54 soniya",
+        "created_at": "2026-06-07 23:59:00"
+      },
+      {
+        "day": "2026-06-07",
+        "tg_id": 6931958983,
+        "bot_key": "omborga",
+        "summary": "Reys 1, yuk 58m, ish 2:27, dam 0:31",
+        "created_at": "2026-06-07 23:59:00"
+      },
+      {
+        "day": "2026-06-07",
+        "tg_id": 6931958983,
+        "bot_key": "sklad",
+        "summary": "Papka Точилки: sanaldi 1, joy 1, xato 0, kun 12/28",
+        "created_at": "2026-06-07 23:59:00"
+      },
+      {
+        "day": "2026-06-07",
+        "tg_id": 7703650930,
+        "bot_key": "ombor",
+        "summary": "#59 📦 Tovar buyurtma: bajarildi, 22 daqiqa 14 soniya",
+        "created_at": "2026-06-07 23:59:00"
+      },
+      {
+        "day": "2026-06-07",
+        "tg_id": 7703650930,
+        "bot_key": "omborga",
+        "summary": "Reys 5, ish 20:31, dam 0:00",
+        "created_at": "2026-06-07 23:59:00"
+      },
+      {
+        "day": "2026-06-07",
+        "tg_id": 8440127425,
+        "bot_key": "ombor",
+        "summary": "#55 🙋 Xizmat so'rovi: bajarildi, 17 soat 3 daqiqa 49 soniya",
+        "created_at": "2026-06-07 23:59:00"
+      },
+      {
+        "day": "2026-06-07",
+        "tg_id": 8440127425,
+        "bot_key": "omborga",
+        "summary": "Reys 8, ish 64:06, dam 0:00",
+        "created_at": "2026-06-07 23:59:00"
+      },
+      {
+        "day": "2026-06-07",
+        "tg_id": 8547365654,
+        "bot_key": "ombor",
+        "summary": "#63 🙋 Xizmat so'rovi: bajarildi, 7 daqiqa 10 soniya",
+        "created_at": "2026-06-07 23:59:00"
+      },
+      {
+        "day": "2026-06-07",
+        "tg_id": 8547365654,
+        "bot_key": "omborga",
+        "summary": "Reys 1, yuk 69m, ish 11:52, dam 0:03",
+        "created_at": "2026-06-07 23:59:00"
+      },
+      {
+        "day": "2026-06-08",
+        "tg_id": 924612402,
+        "bot_key": "omborga",
+        "summary": "Reys 8, yuk 216m, ish 9:22, dam 4:51",
+        "created_at": "2026-06-08 23:59:00"
+      },
+      {
+        "day": "2026-06-08",
+        "tg_id": 5412958249,
+        "bot_key": "omborga",
+        "summary": "Reys 7, yuk 105m, ish 2:45, dam 0:14",
+        "created_at": "2026-06-08 23:59:00"
+      },
+      {
+        "day": "2026-06-08",
+        "tg_id": 5412958249,
+        "bot_key": "yuk",
+        "summary": "Yuk (jami): ish vaqti 0 soniya",
+        "created_at": "2026-06-08 23:59:00"
+      },
+      {
+        "day": "2026-06-08",
+        "tg_id": 5465963344,
+        "bot_key": "ombor",
+        "summary": "#48 📦 Tovar buyurtma: bajarildi, 7 daqiqa 14 soniya",
+        "created_at": "2026-06-08 23:59:00"
+      },
+      {
+        "day": "2026-06-08",
+        "tg_id": 5465963344,
+        "bot_key": "omborga",
+        "summary": "Reys 7, yuk 105m, ish 2:45, dam 0:14",
+        "created_at": "2026-06-08 23:59:00"
+      },
+      {
+        "day": "2026-06-08",
+        "tg_id": 5465963344,
+        "bot_key": "yuk",
+        "summary": "Yuk (jami): ish vaqti 0 soniya",
+        "created_at": "2026-06-08 23:59:00"
+      },
+      {
+        "day": "2026-06-08",
+        "tg_id": 5732350707,
+        "bot_key": "omborga",
+        "summary": "Reys 39, yuk 1111m, ish 33:43, dam 17:22",
+        "created_at": "2026-06-08 23:59:00"
+      },
+      {
+        "day": "2026-06-08",
+        "tg_id": 5732350707,
+        "bot_key": "yuk",
+        "summary": "Yuk (bugun jami): ish vaqti 0:00",
+        "created_at": "2026-06-08 23:59:00"
+      },
+      {
+        "day": "2026-06-08",
+        "tg_id": 6931958983,
+        "bot_key": "ombor",
+        "summary": "#41 🙋 Xizmat so'rovi: bajarildi, 6 daqiqa 18 soniya",
+        "created_at": "2026-06-08 23:59:00"
+      },
+      {
+        "day": "2026-06-08",
+        "tg_id": 6931958983,
+        "bot_key": "omborga",
+        "summary": "Reys 7, yuk 105m, ish 2:45, dam 0:14",
+        "created_at": "2026-06-08 23:59:00"
+      },
+      {
+        "day": "2026-06-08",
+        "tg_id": 6931958983,
+        "bot_key": "sklad",
+        "summary": "Papka Увлажнители воздуха: sanaldi 1, joy 1, xato 0, kun 17/28",
+        "created_at": "2026-06-08 23:59:00"
+      },
+      {
+        "day": "2026-06-08",
+        "tg_id": 6931958983,
+        "bot_key": "yuk",
+        "summary": "Yuk (jami): ish vaqti 0 soniya",
+        "created_at": "2026-06-08 23:59:00"
+      },
+      {
+        "day": "2026-06-08",
+        "tg_id": 7703650930,
+        "bot_key": "omborga",
+        "summary": "Reys 5, yuk 87m, ish 1:52, dam 0:18",
+        "created_at": "2026-06-08 23:59:00"
+      },
+      {
+        "day": "2026-06-08",
+        "tg_id": 8440127425,
+        "bot_key": "ombor",
+        "summary": "#39 📦 Tovar buyurtma: bajarildi, 1 daqiqa 43 soniya",
+        "created_at": "2026-06-08 23:59:00"
+      },
+      {
+        "day": "2026-06-08",
+        "tg_id": 8440127425,
+        "bot_key": "omborga",
+        "summary": "Reys 5, yuk 151m, ish 7:56, dam 4:03",
+        "created_at": "2026-06-08 23:59:00"
+      },
+      {
+        "day": "2026-06-08",
+        "tg_id": 8440127425,
+        "bot_key": "yuk",
+        "summary": "Yuk (bugun jami): ish vaqti 0:00",
+        "created_at": "2026-06-08 23:59:00"
+      },
+      {
+        "day": "2026-06-08",
+        "tg_id": 8547365654,
+        "bot_key": "ombor",
+        "summary": "Ombor (bugun jami): 3 ta, ish vaqti 6892 soniya",
+        "created_at": "2026-06-08 23:59:00"
+      },
+      {
+        "day": "2026-06-08",
+        "tg_id": 8547365654,
+        "bot_key": "omborga",
+        "summary": "Reys 5, yuk 190m, ish 3:29, dam 1:10",
+        "created_at": "2026-06-08 23:59:00"
+      },
+      {
+        "day": "2026-06-09",
+        "tg_id": 5412958249,
+        "bot_key": "omborga",
+        "summary": "Reys 25, ish 29:07, dam 0:00",
+        "created_at": "2026-06-09 23:59:00"
+      },
+      {
+        "day": "2026-06-09",
+        "tg_id": 5465963344,
+        "bot_key": "omborga",
+        "summary": "Reys 18, yuk 522m, ish 982:00, dam 6:12",
+        "created_at": "2026-06-09 23:59:00"
+      },
+      {
+        "day": "2026-06-09",
+        "tg_id": 8440127425,
+        "bot_key": "yuk",
+        "summary": "Yuk (bugun jami): ish vaqti 0:00",
+        "created_at": "2026-06-09 23:59:00"
+      },
+      {
+        "day": "2026-06-09",
+        "tg_id": 8547365654,
+        "bot_key": "omborga",
+        "summary": "Reys 1, yuk 69m, ish 2:06, dam 0:07",
+        "created_at": "2026-06-09 23:59:00"
+      },
+      {
+        "day": "2026-06-08",
+        "tg_id": 5412958249,
+        "bot_key": "sklad",
+        "summary": "Papka Увлажнители воздуха: sanaldi 1, joy 1, xato 0, kun 17/28",
+        "created_at": "2026-06-08 23:59:00"
+      },
+      {
+        "day": "2026-06-08",
+        "tg_id": 5465963344,
+        "bot_key": "sklad",
+        "summary": "Papka Увлажнители воздуха: sanaldi 1, joy 1, xato 0, kun 17/28",
+        "created_at": "2026-06-08 23:59:00"
+      }
+    ]
+  }
+}
