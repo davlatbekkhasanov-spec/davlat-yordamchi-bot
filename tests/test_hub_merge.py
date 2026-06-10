@@ -117,6 +117,17 @@ def test_yuk_daily_total_max_not_sum():
     assert "3600" not in merged, merged
 
 
+def test_yuk_per_session_max_not_sum():
+    """Eski format (jami yo'q) — qo'shilmasin, eng kattasi."""
+    from cross_bot_hub import _best_yuk_daily, _replay_merged_by_bot
+
+    rows = [{"bot_key": "yuk", "summary": f"Yuk #{i}: ish vaqti 4500 soniya"} for i in range(1, 4)]
+    merged = _replay_merged_by_bot(rows)["yuk"]
+    assert "4500" in merged, merged
+    assert "13500" not in merged, merged
+    assert _best_yuk_daily([r["summary"] for r in rows]) == merged
+
+
 def test_yuk_mm_ss_parsed():
     from cross_bot_hub import _parse_yuk_ish_sec
 

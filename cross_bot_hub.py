@@ -192,15 +192,10 @@ def _merge_hub_summary(bot_key: str, old: str, new: str) -> str:
     if key == "yuk":
         oc, os_ = _parse_count_sec(old, key)
         nc, ns = _parse_count_sec(new, key)
-        if ns <= 0 and os_ > 0:
-            return old if _yuk_looks_daily_total(old) else f"Yuk (jami): ish vaqti {os_} soniya"
-        if os_ <= 0 and ns > 0:
-            return new if _yuk_looks_daily_total(new) else f"Yuk (jami): ish vaqti {ns} soniya"
-        if _yuk_looks_daily_total(old) or _yuk_looks_daily_total(new):
-            best = max(os_, ns)
-            return f"Yuk (jami): ish vaqti {best} soniya"
-        total_s = os_ + ns
-        return f"Yuk (jami): ish vaqti {total_s} soniya"
+        best = max(os_, ns)
+        if best <= 0:
+            return old if os_ > 0 else new
+        return f"Yuk (jami): ish vaqti {best} soniya"
     if key == "omborga":
         or_, oi = _parse_omborga_totals(old)
         nr, ni = _parse_omborga_totals(new)
@@ -227,6 +222,24 @@ def _omborga_looks_daily_total(summary: str) -> bool:
     if reys >= 8 and ish >= 3 * 3600:
         return True
     return False
+
+
+def _best_yuk_daily(summaries: list[str]) -> str:
+    """Yuk — har push kunlik jami; qo'shish emas, eng katta qiymat."""
+    from hub_sanity import hub_summary_blocked
+
+    clean = [s for s in summaries if s and not hub_summary_blocked(s, bot_key="yuk")]
+    if not clean:
+        return ""
+    best = 0
+    for s in clean:
+        best = max(best, _parse_yuk_ish_sec(s.lower()))
+    if best <= 0:
+        for s in reversed(clean):
+            if _parse_yuk_ish_sec(s.lower()) <= 0:
+                return s
+        return ""
+    return f"Yuk (jami): ish vaqti {best} soniya"
 
 
 def _best_omborga_daily(summaries: list[str]) -> str:
@@ -290,9 +303,6 @@ async def record_event(
         day_s = datetime.now(TZ).date().isoformat()
 
     async with _lock:
-        existing = _latest_by_bot_sync(int(tg_id), day_s)
-        if key in existing:
-            text = _merge_hub_summary(key, existing[key], text)
         cur = _conn.cursor()
         cur.execute(
             """
@@ -358,6 +368,8 @@ def _replay_merged_by_bot(rows: list) -> dict[str, str]:
     for k, summaries in groups.items():
         if k == "omborga":
             merged = _best_omborga_daily(summaries)
+        elif k == "yuk":
+            merged = _best_yuk_daily(summaries)
         else:
             merged = ""
             for s in summaries:

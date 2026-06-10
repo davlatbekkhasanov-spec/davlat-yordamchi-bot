@@ -8,7 +8,7 @@ from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
 
-from cross_bot_hub import _best_omborga_daily, _merge_hub_summary, init_schema
+from cross_bot_hub import _best_omborga_daily, _best_yuk_daily, _merge_hub_summary, init_schema
 
 LOST_PATH = Path(__file__).resolve().parent / "tools" / "hub_lost_events.json"
 
@@ -24,6 +24,8 @@ def _load_lost() -> list[dict]:
 def _replay(bot_key: str, summaries: list[str]) -> str:
     if bot_key == "omborga":
         return _best_omborga_daily(summaries)
+    if bot_key == "yuk":
+        return _best_yuk_daily(summaries)
     merged = ""
     for s in summaries:
         if not merged:
