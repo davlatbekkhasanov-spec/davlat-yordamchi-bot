@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import re
 import sqlite3
 from collections import defaultdict
 from datetime import date, timedelta
@@ -50,6 +51,26 @@ ROLE_META = [
     {"key": "sklad", "label": "Склад назорат", "short": "Скл", "icon": "📋", "color": "#9b6ef0"},
     {"key": "ishxona", "label": "Ишхона назорат", "short": "Ишх", "icon": "🔧", "color": "#f0556e"},
 ]
+
+METRIC_LABELS_CYRL = {
+    "holat": "Ҳолат",
+    "reys": "Рейс",
+    "ish vaqti": "Иш вақти",
+    "jami vaqt": "Жами вақт",
+    "dam": "Дам",
+    "son": "Сония",
+    "ma'lumot": "Маълумот",
+    "shikoyat": "Шикоят",
+    "info": "Маълумот",
+}
+
+ROLE_LABELS_CYRL = {
+    "omborga": "Омборга киритиш",
+    "ombor": "Омбор хизмат",
+    "yuk": "Юк жараёни",
+    "sklad": "Склад назорат",
+    "ishxona": "Ишхона назорат",
+}
 
 ROLE_REPORTS = {
     "yordamchi": [
@@ -192,6 +213,34 @@ def _hub_merged(conn: sqlite3.Connection, tg_ids: set[int], day: str) -> dict[st
     return _replay_merged_by_bot(rows)
 
 
+def _is_empty_hub_summary(key: str, summary: str) -> bool:
+    """0 очко + шаблон бўш хабар — панелда кўрсатилмайди (хар ходимда бир хил 0:00 юк)."""
+    sl = (summary or "").lower()
+    if not sl:
+        return True
+    if key == "yuk":
+        if re.search(r"ish\s+vaqti\s+0(?::00)?(?:\s|$|,)", sl):
+            return True
+        if re.search(r"ish\s+vaqti\s+0\s*soniya", sl):
+            return True
+    if key == "ombor":
+        if "0 ta" in sl and ("0 soniya" in sl or "ish vaqti 0" in sl):
+            return True
+    if key == "omborga":
+        if not re.search(r"reys\s*[1-9]", sl):
+            if re.search(r"ish\s+0", sl) or "reys 0" in sl:
+                return True
+    return False
+
+
+def _role_meaningful(key: str, summary: str, score: int, work_sec: int) -> bool:
+    if score != 0 or work_sec > 0:
+        return True
+    if _is_empty_hub_summary(key, summary):
+        return False
+    return bool((summary or "").strip())
+
+
 def _fmt_hms(seconds: int) -> str:
     sec = max(0, int(seconds))
     h, rem = divmod(sec, 3600)
@@ -200,18 +249,21 @@ def _fmt_hms(seconds: int) -> str:
 
 
 def _role_block(key: str, summary: str, score: int, work_sec: int) -> dict:
-    metrics = _bot_metrics(key, summary, work_sec)
+    meaningful = _role_meaningful(key, summary, score, work_sec)
+    metrics = _bot_metrics(key, summary, work_sec) if meaningful else []
     formula = ""
-    if summary.strip():
+    if meaningful and summary.strip():
         _, formula = explain_bot_formula(key, summary)
     return {
         "key": key,
-        "label": BOT_LABELS.get(key, key),
+        "label": ROLE_LABELS_CYRL.get(key, BOT_LABELS.get(key, key)),
         "points": score,
         "summary": (summary or "").strip(),
         "formula": formula,
-        "metrics": [{"k": k, "v": v} for k, v in metrics],
-        "active": bool(score or (summary or "").strip()),
+        "metrics": [
+            {"k": METRIC_LABELS_CYRL.get(k.lower(), k), "v": v} for k, v in metrics
+        ],
+        "active": meaningful,
     }
 
 
@@ -290,14 +342,18 @@ def build_employee_details(matrix: list[dict]) -> list[dict]:
                 if not lines:
                     lines.append({"label": "Фаолият", "value": "йўқ", "points": "—"})
             else:
-                for m in block.get("metrics", []):
-                    lines.append({"label": m["k"], "value": m["v"], "points": ""})
-                if block.get("formula"):
-                    lines.append({"label": "Ҳисоб", "value": block["formula"], "points": ""})
-                if block.get("summary"):
-                    lines.append({"label": "Хулоса", "value": block["summary"][:100], "points": ""})
+                if block.get("active"):
+                    for m in block.get("metrics", []):
+                        lines.append({"label": m["k"], "value": m["v"], "points": ""})
+                    if block.get("formula"):
+                        lines.append({"label": "Ҳисоб", "value": block["formula"], "points": ""})
+                    if block.get("summary"):
+                        lines.append({"label": "Хулоса", "value": block["summary"][:100], "points": ""})
                 if not lines:
-                    lines.append({"label": "Фаолият", "value": "йўқ", "points": "—"})
+                    note = "йўқ"
+                    if meta["key"] == "yuk":
+                        note = "йўқ — бу кун юк ботида иш вақти 0"
+                    lines.append({"label": "Фаолият", "value": note, "points": "—"})
             pts = int(block.get("points") or 0)
             sections.append(
                 {
