@@ -133,6 +133,10 @@
 
     <div id="tab-detail" class="panel">
       <div class="panel-head">👤 Ҳар бир ходим — рол кесимида батафсил ({{ d.day }})</div>
+      <div class="panel-charts">
+        <div class="chart-card"><h3>📊 Ходимлар — рол бўйича очко (stacked)</h3><div class="chart-wrap tall"><canvas id="chartDetailStack"></canvas></div></div>
+        <div class="chart-card"><h3>🥧 Жами тақсимот (кун)</h3><div class="chart-wrap tall"><canvas id="chartDetailPie"></canvas></div></div>
+      </div>
       <div class="emp-grid">
         {% for emp in d.employee_details %}
         <article class="emp-card" id="emp-{{ loop.index }}">
@@ -168,6 +172,9 @@
 
     <div id="tab-shift" class="panel" style="display:none">
       <div class="panel-head">🌙 Кунлик матрица — ходим × рол (очко)</div>
+      <div class="panel-charts full">
+        <div class="chart-card"><h3>🌙 Матрица — барча ходим × рол</h3><div class="chart-wrap tall"><canvas id="chartShiftMatrix"></canvas></div></div>
+      </div>
       <div class="table-wrap">
         <table class="data">
           <thead>
@@ -197,6 +204,10 @@
 
     <div id="tab-period" class="panel" style="display:none">
       <div class="panel-head">🗓 Период {{ d.period }} — жами рейтинг</div>
+      <div class="panel-charts">
+        <div class="chart-card"><h3>🗓 Период рейтинг (жами)</h3><div class="chart-wrap"><canvas id="chartPeriodRank"></canvas></div></div>
+        <div class="chart-card"><h3>📊 Период — рол бўйича stacked</h3><div class="chart-wrap"><canvas id="chartPeriodStack"></canvas></div></div>
+      </div>
       <div class="table-wrap">
         <table class="data">
           <thead>
@@ -225,6 +236,10 @@
 
     <div id="tab-roles" class="panel" style="display:none">
       <div class="panel-head">📋 Ҳар бир ролдан чиқадиган ҳисоботлар</div>
+      <div class="panel-charts">
+        <div class="chart-card"><h3>📋 Роллар — кунлик очко</h3><div class="chart-wrap"><canvas id="chartRolePulse"></canvas></div></div>
+        <div class="chart-card"><h3>👥 Рол қамрови (%)</h3><div class="chart-wrap"><canvas id="chartRoleCoverage"></canvas></div></div>
+      </div>
       <div class="role-grid">
         {% for meta in d.roles %}
         <div class="role-card">
@@ -247,6 +262,13 @@
         <div class="pdca-card"><span class="pdca-tag">D</span><b>Bajarish</b><p>{{ d.kaizen_report.pdca.do }}</p></div>
         <div class="pdca-card"><span class="pdca-tag">C</span><b>Tekshirish</b><p>{{ d.kaizen_report.pdca.check }}</p></div>
         <div class="pdca-card act"><span class="pdca-tag">A</span><b>Harakat</b><p>{{ d.kaizen_report.pdca.act }}</p></div>
+      </div>
+
+      <div class="panel-charts">
+        <div class="chart-card"><h3>💡 Kaizen — рол қамрови</h3><div class="chart-wrap"><canvas id="chartKaizenCov"></canvas></div></div>
+        <div class="chart-card"><h3>⚖️ Рол баланси (фаол роллар)</h3><div class="chart-wrap"><canvas id="chartKaizenBalance"></canvas></div></div>
+        <div class="chart-card"><h3>📉 Тренд (кеча / 7к)</h3><div class="chart-wrap"><canvas id="chartKaizenDelta"></canvas></div></div>
+        <div class="chart-card"><h3>⚠️ Muda сигналлар</h3><div class="chart-wrap"><canvas id="chartKaizenMuda"></canvas></div></div>
       </div>
 
       <div class="kaizen-stats">
@@ -325,6 +347,10 @@
 
     <div id="tab-timeline" class="panel" style="display:none">
       <div class="panel-head">🕐 Смена таймлайн — {{ d.day }}</div>
+      <div class="panel-charts">
+        <div class="chart-card"><h3>🕐 Eventlar — соат бўйича</h3><div class="chart-wrap"><canvas id="chartTimelineHour"></canvas></div></div>
+        <div class="chart-card"><h3>🤖 Eventlar — бот бўйича</h3><div class="chart-wrap"><canvas id="chartTimelineBot"></canvas></div></div>
+      </div>
       <div class="section-pad">
         {% if d.timeline %}
           {% for tl in d.timeline %}
@@ -348,6 +374,13 @@
 
     <div id="tab-advanced" class="panel" style="display:none">
       <div class="panel-head">📊 Heatmap · категория×бот · дам · sessiya · sklad · benchmark</div>
+
+      <div class="panel-charts">
+        <div class="chart-card"><h3>📂 Ёрдамчи vs бот очко</h3><div class="chart-wrap"><canvas id="chartCatBot"></canvas></div></div>
+        <div class="chart-card"><h3>⏳ Дам vs иш (омборга)</h3><div class="chart-wrap"><canvas id="chartDam"></canvas></div></div>
+        <div class="chart-card"><h3>📋 Склад прогресс</h3><div class="chart-wrap"><canvas id="chartSklad"></canvas></div></div>
+        <div class="chart-card"><h3>⚖️ Benchmark (vs ўрта %)</h3><div class="chart-wrap"><canvas id="chartBenchmark"></canvas></div></div>
+      </div>
 
       <div class="panel-head" style="border-top:1px solid var(--border)">🔥 Рол heatmap (очко)</div>
       <div class="heatmap-wrap">
@@ -455,6 +488,10 @@
 
     <div id="tab-goals" class="panel" style="display:none">
       <div class="panel-head">🎯 Норма vs факт &amp; жамоа мақсади</div>
+      <div class="panel-charts">
+        <div class="chart-card"><h3>🎯 Жамоа OKR прогресс</h3><div class="chart-wrap"><canvas id="chartTeamGoal"></canvas></div></div>
+        <div class="chart-card"><h3>📏 Норма бажариш (ўрта %)</h3><div class="chart-wrap"><canvas id="chartNormsAvg"></canvas></div></div>
+      </div>
       <div class="goal-card">
         <div style="font-size:.85rem;color:var(--muted)">Период {{ d.team_goal.period }} — жамоа OKR</div>
         <div class="big">+{{ d.team_goal.current }} / {{ d.team_goal.goal }}</div>
@@ -480,6 +517,10 @@
 
     <div id="tab-integrity" class="panel" style="display:none">
       <div class="panel-head">🛡 Ишончлик &amp; сигналлар — {{ d.day }}</div>
+      <div class="panel-charts">
+        <div class="chart-card"><h3>🛡 Hub event — бот бўйича</h3><div class="chart-wrap"><canvas id="chartIntegrityBots"></canvas></div></div>
+        <div class="chart-card"><h3>🚨 Алертлар (жиддият)</h3><div class="chart-wrap"><canvas id="chartAlerts"></canvas></div></div>
+      </div>
       <div class="split-grid">
         <section class="kaizen-box">
           <h4>Hub статус: <span class="{% if d.integrity.status == 'ok' %}status-ok{% else %}status-warn{% endif %}">{{ d.integrity.status }}</span></h4>
@@ -511,6 +552,10 @@
 
     <div id="tab-summary" class="panel" style="display:none">
       <div class="panel-head">📑 Период хулосаси — {{ d.period_summary.period }}</div>
+      <div class="panel-charts">
+        <div class="chart-card"><h3>📑 Период — рол очколари</h3><div class="chart-wrap"><canvas id="chartSummaryRoles"></canvas></div></div>
+        <div class="chart-card"><h3>🏆 Энг кучли vs заиф рол</h3><div class="chart-wrap"><canvas id="chartSummaryCompare"></canvas></div></div>
+      </div>
       <div class="summary-box">
         <b>Жами очко (период): +{{ d.period_summary.team_total_period }}</b>
         <ul>
@@ -652,39 +697,280 @@
     }
 
     const TAB_IDS = ["detail","shift","period","roles","kaizen","timeline","advanced","goals","integrity","summary"];
+    const ROLE_KEYS = ["yordamchi","omborga","ombor","yuk","sklad","ishxona"];
+    const ROLE_SHORT = ["Ёрд","Омбг","Омб","Юк","Скл","Ишх"];
+    const ROLE_COLORS = ["#00c4d4","#00afca","#ff822d","#5fc355","#9b6ef0","#ff5c7a"];
 
-    function renderExtraCharts() {
+    const CHART_OPTS = {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { labels: { color: "#aab", boxWidth: 10, font: { size: 10 } } } },
+    };
+    const SCALE_XY = {
+      x: { ticks: { color: "#7d8eac" }, grid: { color: "#1a2840" } },
+      y: { ticks: { color: "#7d8eac" }, grid: { color: "#1a2840" } },
+    };
+
+    function mkChart(id, cfg) {
+      const el = document.getElementById(id);
+      if (!el || typeof Chart === "undefined") return;
+      destroyChart(id);
+      charts[id] = new Chart(el, cfg);
+    }
+
+    function rolePts(row, k) {
+      if (k === "yordamchi") return row.cat_total || 0;
+      return ((row.roles || {})[k] || {}).points || 0;
+    }
+
+    function activeTabId() {
+      const t = document.querySelector(".tab.active");
+      return t ? t.dataset.tab : "detail";
+    }
+
+    function renderPanelCharts(tab) {
       if (typeof Chart === "undefined") return;
-      const bn = DATA.bottleneck || [];
-      const el = document.getElementById("chartBottleneck");
-      if (el && bn.length) {
-        destroyChart("bottleneck");
-        charts.bottleneck = new Chart(el, {
-          type: "bar",
-          data: {
-            labels: bn.map(x => x.label),
-            datasets: [{ data: bn.map(x => x.points), backgroundColor: "#00c4d488", borderRadius: 6 }],
-          },
-          options: {
-            responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } },
-            scales: { x: { ticks: { color: "#aab" }, grid: { display: false } }, y: { ticks: { color: "#7d8eac" }, grid: { color: "#1a2840" } } },
-          },
+      const matrix = (DATA.matrix || []).filter(r => r.total > 0);
+      const labels = matrix.map(r => r.short_name || r.employee.split(" ").pop());
+
+      if (tab === "detail") {
+        const ds = ROLE_KEYS.map((k, i) => ({
+          label: ROLE_SHORT[i], data: matrix.map(r => rolePts(r, k)),
+          backgroundColor: ROLE_COLORS[i], stack: "s", borderRadius: 3,
+        }));
+        mkChart("chartDetailStack", {
+          type: "bar", data: { labels, datasets: ds },
+          options: { ...CHART_OPTS, scales: { ...SCALE_XY, x: { ...SCALE_XY.x, stacked: true }, y: { ...SCALE_XY.y, stacked: true } } },
+        });
+        const totals = ROLE_KEYS.map(k => matrix.reduce((s, r) => s + rolePts(r, k), 0));
+        mkChart("chartDetailPie", {
+          type: "doughnut",
+          data: { labels: ROLE_SHORT, datasets: [{ data: totals, backgroundColor: ROLE_COLORS, borderWidth: 0 }] },
+          options: { ...CHART_OPTS, plugins: { legend: { position: "right", labels: { color: "#aab", font: { size: 10 } } } } },
         });
       }
-      const c = DATA.complaints || {};
-      const cel = document.getElementById("chartComplaints");
-      if (cel) {
-        destroyChart("complaints");
-        charts.complaints = new Chart(cel, {
-          type: "line",
+
+      if (tab === "shift") {
+        const ds = ROLE_KEYS.map((k, i) => ({
+          label: ROLE_SHORT[i], data: matrix.map(r => rolePts(r, k)),
+          backgroundColor: ROLE_COLORS[i], borderRadius: 2,
+        }));
+        mkChart("chartShiftMatrix", {
+          type: "bar", data: { labels, datasets: ds },
+          options: { ...CHART_OPTS, scales: SCALE_XY },
+        });
+      }
+
+      if (tab === "period") {
+        const pr = (DATA.period_ranking || []).filter(r => r.total > 0).slice(0, 12);
+        const pl = pr.map(r => r.employee.split(" ").pop());
+        mkChart("chartPeriodRank", {
+          type: "bar",
+          data: { labels: pl, datasets: [{ data: pr.map(r => r.total), backgroundColor: "#00c4d488", borderRadius: 6 }] },
+          options: { indexAxis: "y", ...CHART_OPTS, plugins: { legend: { display: false } }, scales: SCALE_XY },
+        });
+        const botKeys = ["omborga","ombor","yuk","sklad","ishxona"];
+        const pds = [{ label: "Ёрд", data: pr.map(r => r.yordamchi || 0), backgroundColor: ROLE_COLORS[0], stack: "p" }]
+          .concat(botKeys.map((k, i) => ({
+            label: ROLE_SHORT[i + 1], data: pr.map(r => (r.bots || {})[k] || 0),
+            backgroundColor: ROLE_COLORS[i + 1], stack: "p",
+          })));
+        mkChart("chartPeriodStack", {
+          type: "bar", data: { labels: pl, datasets: pds },
+          options: { ...CHART_OPTS, scales: { x: { stacked: true, ticks: { color: "#7d8eac" } }, y: { stacked: true, ticks: { color: "#dde" }, grid: { display: false } } } },
+        });
+      }
+
+      if (tab === "roles") {
+        const pulse = DATA.hub_pulse || [];
+        mkChart("chartRolePulse", {
+          type: "bar",
           data: {
-            labels: c.labels || [],
-            datasets: [{ label: "Шикоят очко", data: c.points || [], borderColor: "#ff5c7a", tension: 0.3 }],
+            labels: pulse.map(p => p.short || p.label),
+            datasets: [{ data: pulse.map(p => p.points || 0), backgroundColor: pulse.map(p => p.color || "#00c4d4"), borderRadius: 8 }],
           },
-          options: {
-            responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } },
-            scales: { x: { ticks: { color: "#7d8eac" } }, y: { ticks: { color: "#7d8eac" }, grid: { color: "#1a2840" } } },
+          options: { ...CHART_OPTS, plugins: { legend: { display: false } }, scales: SCALE_XY },
+        });
+        const cov = DATA.kaizen_report?.role_coverage || {};
+        const rolesMeta = DATA.roles || [];
+        mkChart("chartRoleCoverage", {
+          type: "bar",
+          data: {
+            labels: rolesMeta.map(r => r.short),
+            datasets: [{ label: "%", data: rolesMeta.map(r => (cov[r.key] || {}).coverage_pct || 0), backgroundColor: "#3dffa088", borderRadius: 8 }],
           },
+          options: { ...CHART_OPTS, plugins: { legend: { display: false } }, scales: { ...SCALE_XY, y: { ...SCALE_XY.y, max: 100 } } },
+        });
+      }
+
+      if (tab === "kaizen") {
+        const cov = DATA.kaizen_report?.role_coverage || {};
+        const rolesK = DATA.roles || [];
+        mkChart("chartKaizenCov", {
+          type: "radar",
+          data: {
+            labels: rolesK.map(r => r.short),
+            datasets: [{
+              label: "Қамров %", data: rolesK.map(r => (cov[r.key] || {}).coverage_pct || 0),
+              borderColor: "#00c4d4", backgroundColor: "#00c4d433", pointBackgroundColor: "#3dffa0",
+            }],
+          },
+          options: { ...CHART_OPTS, scales: { r: { ticks: { color: "#7d8eac", backdropColor: "transparent" }, grid: { color: "#1a2840" }, pointLabels: { color: "#ccd" } } } },
+        });
+        const bal = DATA.kaizen_report?.balance || [];
+        mkChart("chartKaizenBalance", {
+          type: "bar",
+          data: {
+            labels: bal.map(b => b.employee.split(" ").pop()),
+            datasets: [{ data: bal.map(b => b.roles_active || 0), backgroundColor: "#9b6ef088", borderRadius: 6 }],
+          },
+          options: { ...CHART_OPTS, plugins: { legend: { display: false } }, scales: SCALE_XY },
+        });
+        const st = DATA.kaizen_report?.stats || {};
+        mkChart("chartKaizenDelta", {
+          type: "bar",
+          data: {
+            labels: ["Кечага", "7к ўрта", "Жами дам (мин)"],
+            datasets: [{ data: [st.delta_yesterday || 0, st.delta_7d_avg || 0, st.total_dam_min || 0], backgroundColor: ["#ffcc4d","#00c4d4","#ff822d"], borderRadius: 8 }],
+          },
+          options: { ...CHART_OPTS, plugins: { legend: { display: false } }, scales: SCALE_XY },
+        });
+        const muda = DATA.kaizen_report?.muda || [];
+        const sev = { high: 0, med: 0, low: 0 };
+        muda.forEach(m => { sev[m.severity] = (sev[m.severity] || 0) + 1; });
+        mkChart("chartKaizenMuda", {
+          type: "doughnut",
+          data: { labels: ["High", "Med", "Low"], datasets: [{ data: [sev.high, sev.med, sev.low], backgroundColor: ["#ff5c7a","#ffcc4d","#7d8eac"], borderWidth: 0 }] },
+          options: { ...CHART_OPTS },
+        });
+      }
+
+      if (tab === "timeline") {
+        const hours = Array(24).fill(0);
+        (DATA.timeline || []).forEach(tl => tl.events.forEach(ev => {
+          const h = parseInt((ev.time || "0").split(":")[0], 10);
+          if (!isNaN(h) && h >= 0 && h < 24) hours[h]++;
+        }));
+        mkChart("chartTimelineHour", {
+          type: "line",
+          data: { labels: hours.map((_, i) => i + ":00"), datasets: [{ data: hours, borderColor: "#00c4d4", backgroundColor: "#00c4d422", fill: true, tension: 0.3 }] },
+          options: { ...CHART_OPTS, plugins: { legend: { display: false } }, scales: SCALE_XY },
+        });
+        const byBot = {};
+        (DATA.timeline || []).forEach(tl => tl.events.forEach(ev => { byBot[ev.bot] = (byBot[ev.bot] || 0) + 1; }));
+        mkChart("chartTimelineBot", {
+          type: "pie",
+          data: { labels: Object.keys(byBot), datasets: [{ data: Object.values(byBot), backgroundColor: ROLE_COLORS, borderWidth: 0 }] },
+          options: { ...CHART_OPTS },
+        });
+      }
+
+      if (tab === "advanced") {
+        const cb = DATA.cat_bot_matrix || [];
+        mkChart("chartCatBot", {
+          type: "bar",
+          data: {
+            labels: cb.map(r => r.short_name),
+            datasets: [
+              { label: "Ёрд", data: cb.map(r => r.cat_total), backgroundColor: ROLE_COLORS[0] },
+              { label: "Бот", data: cb.map(r => r.bot_total), backgroundColor: ROLE_COLORS[2] },
+            ],
+          },
+          options: { ...CHART_OPTS, scales: SCALE_XY },
+        });
+        const dam = DATA.dam_analysis || [];
+        mkChart("chartDam", {
+          type: "bar",
+          data: {
+            labels: dam.map(r => r.short_name),
+            datasets: [
+              { label: "Иш (с)", data: dam.map(r => r.ish_sec || 0), backgroundColor: "#3dffa088" },
+              { label: "Дам (с)", data: dam.map(r => r.dam_sec || 0), backgroundColor: "#ffcc4d88" },
+            ],
+          },
+          options: { ...CHART_OPTS, scales: { ...SCALE_XY, x: { stacked: true, ticks: { color: "#7d8eac" } }, y: { stacked: true, ticks: { color: "#7d8eac" }, grid: { color: "#1a2840" } } } },
+        });
+        const sk = DATA.sklad_progress || [];
+        mkChart("chartSklad", {
+          type: "bar",
+          data: { labels: sk.map(s => s.short_name), datasets: [{ data: sk.map(s => s.pct), backgroundColor: "#9b6ef088", borderRadius: 8 }] },
+          options: { ...CHART_OPTS, plugins: { legend: { display: false } }, scales: { ...SCALE_XY, y: { ...SCALE_XY.y, max: 100 } } },
+        });
+        const bm = (DATA.benchmark || []).slice(0, 10);
+        mkChart("chartBenchmark", {
+          type: "bar",
+          data: { labels: bm.map(b => b.short_name), datasets: [{ data: bm.map(b => b.vs_team_pct), backgroundColor: "#00c4d488", borderRadius: 6 }] },
+          options: { indexAxis: "y", ...CHART_OPTS, plugins: { legend: { display: false } }, scales: SCALE_XY },
+        });
+        const bn = DATA.bottleneck || [];
+        mkChart("chartBottleneck", {
+          type: "bar",
+          data: { labels: bn.map(x => x.label), datasets: [{ data: bn.map(x => x.points), backgroundColor: "#00c4d488", borderRadius: 6 }] },
+          options: { ...CHART_OPTS, plugins: { legend: { display: false } }, scales: SCALE_XY },
+        });
+        const c = DATA.complaints || {};
+        mkChart("chartComplaints", {
+          type: "line",
+          data: { labels: c.labels || [], datasets: [{ data: c.points || [], borderColor: "#ff5c7a", tension: 0.3 }] },
+          options: { ...CHART_OPTS, plugins: { legend: { display: false } }, scales: SCALE_XY },
+        });
+      }
+
+      if (tab === "goals") {
+        const g = DATA.team_goal || {};
+        mkChart("chartTeamGoal", {
+          type: "doughnut",
+          data: {
+            labels: ["Бажарилди", "Қолди"],
+            datasets: [{ data: [g.current || 0, g.remaining || 0], backgroundColor: ["#3dffa0","#1a2840"], borderWidth: 0 }],
+          },
+          options: { ...CHART_OPTS },
+        });
+        const norms = DATA.norms || [];
+        const nKeys = ROLE_KEYS.filter(k => k !== "ishxona");
+        const avgPct = nKeys.map(k => {
+          const pcts = norms.map(n => ((n.roles || []).find(r => r.key === k) || {}).pct || 0);
+          return pcts.length ? Math.round(pcts.reduce((a, b) => a + b, 0) / pcts.length) : 0;
+        });
+        mkChart("chartNormsAvg", {
+          type: "bar",
+          data: { labels: nKeys.map((k, i) => ROLE_SHORT[i]), datasets: [{ data: avgPct, backgroundColor: ROLE_COLORS.slice(0, nKeys.length), borderRadius: 8 }] },
+          options: { ...CHART_OPTS, plugins: { legend: { display: false } }, scales: { ...SCALE_XY, y: { ...SCALE_XY.y, max: 120 } } },
+        });
+      }
+
+      if (tab === "integrity") {
+        const ib = DATA.integrity?.by_bot || {};
+        mkChart("chartIntegrityBots", {
+          type: "pie",
+          data: { labels: Object.keys(ib), datasets: [{ data: Object.values(ib), backgroundColor: ROLE_COLORS, borderWidth: 0 }] },
+          options: { ...CHART_OPTS },
+        });
+        const al = DATA.alerts || [];
+        const ac = { high: 0, med: 0, low: 0 };
+        al.forEach(a => { ac[a.severity] = (ac[a.severity] || 0) + 1; });
+        mkChart("chartAlerts", {
+          type: "bar",
+          data: { labels: ["High", "Med", "Low"], datasets: [{ data: [ac.high, ac.med, ac.low], backgroundColor: ["#ff5c7a","#ffcc4d","#7d8eac"], borderRadius: 8 }] },
+          options: { ...CHART_OPTS, plugins: { legend: { display: false } }, scales: SCALE_XY },
+        });
+      }
+
+      if (tab === "summary") {
+        const rt = DATA.period_summary?.role_totals || {};
+        const rLabels = Object.keys(rt);
+        mkChart("chartSummaryRoles", {
+          type: "bar",
+          data: { labels: rLabels, datasets: [{ data: rLabels.map(k => rt[k]), backgroundColor: "#00c4d488", borderRadius: 8 }] },
+          options: { ...CHART_OPTS, plugins: { legend: { display: false } }, scales: SCALE_XY },
+        });
+        const ps = DATA.period_summary || {};
+        mkChart("chartSummaryCompare", {
+          type: "bar",
+          data: {
+            labels: ["Энг кучли", "Заиф"],
+            datasets: [{ data: [ps.best_role?.points || 0, ps.weak_role?.points || 0], backgroundColor: ["#3dffa0","#ff822d"], borderRadius: 8 }],
+          },
+          options: { ...CHART_OPTS, plugins: { legend: { display: false } }, scales: SCALE_XY },
         });
       }
     }
@@ -697,7 +983,7 @@
           const panel = document.getElementById("tab-" + id);
           if (panel) panel.style.display = btn.dataset.tab === id ? "block" : "none";
         });
-        if (btn.dataset.tab === "advanced") setTimeout(renderExtraCharts, 80);
+        setTimeout(() => renderPanelCharts(btn.dataset.tab), 60);
       });
     });
 
@@ -742,7 +1028,7 @@
       const exp = document.getElementById("btnExport");
       if (exp) exp.href = "/analytics/export?token=" + encodeURIComponent(TOKEN) + "&day=" + encodeURIComponent(data.day);
       document.getElementById("dayInput").value = data.day;
-      try { renderCharts(); renderExtraCharts(); } catch (e) { console.error(e); }
+      try { renderCharts(); renderPanelCharts(activeTabId())(); } catch (e) { console.error(e); }
       const u = "/analytics?token=" + encodeURIComponent(TOKEN) + "&day=" + encodeURIComponent(data.day);
       history.replaceState(null, "", u);
     }
@@ -791,7 +1077,7 @@
     });
 
     window.addEventListener("load", () => {
-      try { renderCharts(); renderExtraCharts(); } catch (e) { console.error(e); }
+      try { renderCharts(); renderPanelCharts(activeTabId())(); } catch (e) { console.error(e); }
       scheduleAutoRefresh();
     });
   </script>

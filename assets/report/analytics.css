@@ -140,6 +140,19 @@ body {
   font-weight: 700; font-size: .92rem; display: flex; align-items: center; gap: 8px;
 }
 
+.panel-charts {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
+  padding: 14px 16px; border-bottom: 1px solid var(--border);
+}
+@media (max-width: 900px) { .panel-charts { grid-template-columns: 1fr; } }
+.panel-charts .chart-card {
+  background: #0c162e; border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px;
+}
+.panel-charts .chart-card h3 { margin: 0 0 8px; font-size: .8rem; color: var(--muted); font-weight: 600; }
+.panel-charts .chart-wrap { height: 200px; position: relative; }
+.panel-charts .chart-wrap.tall { height: 240px; }
+.panel-charts.full { grid-template-columns: 1fr; }
+
 .table-wrap { overflow-x: auto; }
 table.data { width: 100%; border-collapse: collapse; font-size: .82rem; }
 table.data th, table.data td {
