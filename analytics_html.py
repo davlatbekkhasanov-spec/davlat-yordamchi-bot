@@ -26,15 +26,13 @@ def _logo_b64() -> str:
 
 
 def build_analytics_html(*, day: str | None = None, token: str = "") -> str:
-    data = build_dashboard(day)
+    d = build_dashboard(day)
     css = (ASSETS / "analytics.css").read_text(encoding="utf-8")
     tpl = _env().get_template("analytics.html")
     return tpl.render(
         css=css,
         logo_b64=_logo_b64(),
         token=token,
-        data_json=json.dumps(data, ensure_ascii=False),
-        day=data["day"],
-        period=data["period"],
-        team_size=data["team_size"],
+        d=d,
+        data_json=json.dumps(d, ensure_ascii=False),
     )

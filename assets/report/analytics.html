@@ -3,27 +3,68 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>Kaizen тahlil — Kanstik Samarqand</title>
+  <title>Kaizen тahlil — {{ d.day }}</title>
   <style>{{ css }}</style>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" defer></script>
 </head>
 <body>
   <div class="page">
     <header class="header">
       <img src="data:image/svg+xml;base64,{{ logo_b64 }}" alt="Kanstik"/>
-      <div>
-        <h1>📈 Kaizen тahlил панели</h1>
-        <p class="sub">Ҳар бир ходим · ҳар бир рол · кунлик/период · диаграммалар</p>
+      <div style="flex:1">
+        <h1>📈 Kaizen тahlil панели</h1>
+        <p class="sub">Ҳар бир ходим · 6 рол · кунлик смена · период · диаграммалар · батафсил ҳисобот</p>
+      </div>
+      <div class="badge-db">
+        DB: {{ d.db.reports }} hisobot · {{ d.db.hub_events }} hub · {{ d.db.active_days }} kun
       </div>
     </header>
 
+  {% if d.day_fallback %}
+    <div class="notice">
+      ⚠️ {{ d.requested_day }} учун маълумот йўқ — охирги фаол кун кўрсатилмоқда: <b>{{ d.day }}</b>
+    </div>
+  {% endif %}
+
     <div class="toolbar">
-      <label>📅 Сана: <input type="date" id="dayInput" value="{{ day }}"/></label>
+      <label>📅 Сана:
+        <input type="date" id="dayInput" value="{{ d.day }}"/>
+      </label>
       <button type="button" id="btnRefresh">Янгилаш</button>
-      <span id="periodLabel" style="color:var(--muted)"></span>
+      <span style="color:var(--muted);font-size:.88rem">Период {{ d.period }} (2-санадан)</span>
     </div>
 
-    <div class="kpi-row" id="kpiRow"></div>
+    <div class="kpi-row">
+      <div class="kpi">
+        <div class="label">Жами очко (кун)</div>
+        <div class="value green">+{{ d.team_total }}</div>
+        <div class="subv">{{ d.day }}</div>
+      </div>
+      <div class="kpi">
+        <div class="label">Фаол ходимлар</div>
+        <div class="value teal">{{ d.active_count }}<span style="font-size:.9rem;color:var(--muted)"> / {{ d.team_size }}</span></div>
+      </div>
+      <div class="kpi">
+        <div class="label">Лидер</div>
+        <div class="value" style="font-size:1.1rem">{% if d.leader %}{{ d.leader.short_name }}{% else %}—{% endif %}</div>
+        <div class="subv">{% if d.leader %}+{{ d.leader.total }} очко{% else %}фаолият йўқ{% endif %}</div>
+      </div>
+      <div class="kpi">
+        <div class="label">Иш вақти (лидер)</div>
+        <div class="value" style="font-size:1rem">{% if d.leader %}{{ d.leader.work_time }}{% else %}00:00:00{% endif %}</div>
+      </div>
+    </div>
+
+    <div class="pulse-row">
+      {% for p in d.hub_pulse %}
+      <div class="pulse" style="--accent: {{ p.color }}">
+        <div class="ico">{{ p.icon }}</div>
+        <div class="name">{{ p.label }}</div>
+        <div class="pts">{% if p.points > 0 %}+{% endif %}{{ p.points }}</div>
+        <div class="meta">{{ p.active_employees }} ходим · {{ p.events }} event</div>
+      </div>
+      {% endfor %}
+    </div>
 
     <div class="charts-grid">
       <div class="chart-card">
@@ -31,63 +72,152 @@
         <div class="chart-wrap"><canvas id="chartTrend"></canvas></div>
       </div>
       <div class="chart-card">
-        <h3>🏆 Кунлик рейтинг (жами очко)</h3>
+        <h3>🏆 Кунлик рейтинг</h3>
         <div class="chart-wrap"><canvas id="chartRank"></canvas></div>
       </div>
       <div class="chart-card">
-        <h3>📊 Период — категория Pareto (ёрдамчи)</h3>
-        <div class="chart-wrap"><canvas id="chartPareto"></canvas></div>
+        <h3>📊 Период Pareto (ёрдамчи категория)</h3>
+        <div class="chart-wrap" id="paretoWrap"><canvas id="chartPareto"></canvas></div>
       </div>
       <div class="chart-card">
-        <h3>🔧 Роллар бўйича очко (танланган кун)</h3>
+        <h3>🔧 Роллар бўйича очко (кун)</h3>
         <div class="chart-wrap"><canvas id="chartRoles"></canvas></div>
       </div>
     </div>
 
     <div class="tabs">
-      <button class="tab active" data-tab="shift">🌙 Смена матрицаси</button>
+      <button class="tab active" data-tab="detail">👤 Батафсил ҳисобот</button>
+      <button class="tab" data-tab="shift">🌙 Смена матрицаси</button>
       <button class="tab" data-tab="period">🗓 Период рейтинг</button>
-      <button class="tab" data-tab="roles">📋 Рол ҳисоботлари</button>
-      <button class="tab" data-tab="kaizen">💡 Kaizen эслатмалар</button>
+      <button class="tab" data-tab="roles">📋 Рол каталоги</button>
+      <button class="tab" data-tab="kaizen">💡 Kaizen</button>
     </div>
 
-    <div id="tab-shift" class="panel">
-      <div class="panel-head">Кунлик матрица — ходим × рол (очко)</div>
+    <div id="tab-detail" class="panel">
+      <div class="panel-head">👤 Ҳар бир ходим — рол кесимида батафсил ({{ d.day }})</div>
+      <div class="emp-grid">
+        {% for emp in d.employee_details %}
+        <article class="emp-card" id="emp-{{ loop.index }}">
+          <div class="emp-head">
+            <div>
+              <div class="name">{{ emp.employee }}</div>
+              <span class="rank">#{{ emp.rank }} · {{ emp.work_time }}</span>
+            </div>
+            <div class="total">{% if emp.total > 0 %}+{{ emp.total }}{% else %}—{% endif %}</div>
+          </div>
+          <div class="emp-body">
+            {% for sec in emp.sections %}
+            <div class="role-sec {% if not sec.active %}inactive{% endif %}" style="--rcol: {{ sec.color }}">
+              <div class="rh">
+                <b>{{ sec.icon }} {{ sec.title }}</b>
+                <span>{{ sec.points_fmt }}</span>
+              </div>
+              <table>
+                {% for ln in sec.lines %}
+                <tr>
+                  <td>{{ ln.label }}</td>
+                  <td>{{ ln.value }}{% if ln.points %} <b>{{ ln.points }}</b>{% endif %}</td>
+                </tr>
+                {% endfor %}
+              </table>
+            </div>
+            {% endfor %}
+          </div>
+        </article>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div id="tab-shift" class="panel" style="display:none">
+      <div class="panel-head">🌙 Кунлик матрица — ходим × рол (очко)</div>
       <div class="table-wrap">
-        <table class="data" id="matrixTable">
-          <thead><tr id="matrixHead"></tr></thead>
-          <tbody id="matrixBody"></tbody>
+        <table class="data">
+          <thead>
+            <tr>
+              <th>№</th><th>Ходим</th>
+              {% for r in d.roles %}<th class="num">{{ r.short }}</th>{% endfor %}
+              <th class="num">Жами</th><th class="num">Иш вақти</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in d.matrix %}
+            <tr>
+              <td>{{ row.rank }}</td>
+              <td class="name">{{ row.employee }}</td>
+              {% for meta in d.roles %}
+              {% set pts = row.roles[meta.key].points %}
+              <td class="num">{% if pts > 0 %}<span class="pos">+{{ pts }}</span>{% elif pts < 0 %}<span class="neg">{{ pts }}</span>{% else %}<span class="zero">—</span>{% endif %}</td>
+              {% endfor %}
+              <td class="num"><b>{% if row.total > 0 %}<span class="pos">+{{ row.total }}</span>{% else %}<span class="zero">—</span>{% endif %}</b></td>
+              <td class="num">{{ row.work_time }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
         </table>
       </div>
     </div>
 
     <div id="tab-period" class="panel" style="display:none">
-      <div class="panel-head">Период рейтинг (2-санадан)</div>
+      <div class="panel-head">🗓 Период {{ d.period }} — жами рейтинг</div>
       <div class="table-wrap">
-        <table class="data" id="periodTable">
+        <table class="data">
           <thead>
             <tr>
-              <th>№</th><th>Ходим</th><th class="num">Ёрд</th>
-              <th class="num">Омбг</th><th class="num">Омб</th><th class="num">Юк</th>
-              <th class="num">Скл</th><th class="num">Ишх</th><th class="num">Жами</th>
+              <th>№</th><th>Ходим</th><th class="num">Ёрд</th><th class="num">Омбг</th>
+              <th class="num">Омб</th><th class="num">Юк</th><th class="num">Скл</th><th class="num">Ишх</th><th class="num">Жами</th>
             </tr>
           </thead>
-          <tbody id="periodBody"></tbody>
+          <tbody>
+            {% for r in d.period_ranking %}
+            <tr>
+              <td>{{ r.rank }}</td>
+              <td class="name">{{ r.employee }}</td>
+              <td class="num">{% if r.yordamchi %}<span class="pos">+{{ r.yordamchi }}</span>{% else %}<span class="zero">—</span>{% endif %}</td>
+              {% for k in ['omborga','ombor','yuk','sklad','ishxona'] %}
+              {% set v = r.bots[k] %}
+              <td class="num">{% if v > 0 %}<span class="pos">+{{ v }}</span>{% elif v < 0 %}<span class="neg">{{ v }}</span>{% else %}<span class="zero">—</span>{% endif %}</td>
+              {% endfor %}
+              <td class="num"><b>{% if r.total %}<span class="pos">+{{ r.total }}</span>{% else %}<span class="zero">—</span>{% endif %}</b></td>
+            </tr>
+            {% endfor %}
+          </tbody>
         </table>
       </div>
     </div>
 
     <div id="tab-roles" class="panel" style="display:none">
-      <div class="panel-head">Ҳар бир рол кесимида чиқадиган ҳисоботлар</div>
-      <div class="role-grid" id="roleReports"></div>
+      <div class="panel-head">📋 Ҳар бир ролдан чиқадиган ҳисоботлар</div>
+      <div class="role-grid">
+        {% for meta in d.roles %}
+        <div class="role-card">
+          <h4>{{ meta.icon }} {{ meta.label }}</h4>
+          <ul>
+            {% for item in d.role_reports[meta.key] %}
+            <li>{{ item }}</li>
+            {% endfor %}
+          </ul>
+        </div>
+        {% endfor %}
+      </div>
     </div>
 
     <div id="tab-kaizen" class="panel" style="display:none">
-      <div class="panel-head">Автоматик Kaizen эслатмалар</div>
-      <div class="hint-list" id="hintList"></div>
+      <div class="panel-head">💡 Kaizen эслатмалар</div>
+      <div class="hint-list">
+        {% if d.kaizen_hints %}
+          {% for h in d.kaizen_hints %}
+          <div class="hint-item">
+            <strong>{{ h.employee }}</strong>
+            {% for n in h.notes %}• {{ n }}<br>{% endfor %}
+          </div>
+          {% endfor %}
+        {% else %}
+          <p style="color:var(--muted)">Махсус эслатма йўқ</p>
+        {% endif %}
+      </div>
     </div>
 
-    <footer class="footer">Kanstik Samarqand · Yordamchi bot analytics MVP · {{ day }}</footer>
+    <footer class="footer">Kanstik Samarqand · Yordamchi bot analytics · {{ d.employee_details|length }} ходим · {{ d.day }}</footer>
   </div>
 
   <script id="boot-data" type="application/json">{{ data_json }}</script>
@@ -96,188 +226,108 @@
     let DATA = JSON.parse(document.getElementById("boot-data").textContent);
     let charts = {};
 
-    function fmtPts(v) {
-      if (!v) return '<span class="zero">—</span>';
-      const cls = v > 0 ? "pos" : "neg";
-      return `<span class="${cls}">${v > 0 ? "+" : ""}${v}</span>`;
-    }
-
-    function renderKpi() {
-      const m = DATA.matrix || [];
-      const total = m.reduce((s, r) => s + r.total, 0);
-      const active = m.length;
-      const top = m[0];
-      document.getElementById("periodLabel").textContent =
-        `Период: ${DATA.period} · Жамоа: ${DATA.team_size} нафар`;
-      document.getElementById("kpiRow").innerHTML = `
-        <div class="kpi"><div class="label">Жами очко (кун)</div><div class="value green">+${total}</div></div>
-        <div class="kpi"><div class="label">Фаол ходимлар</div><div class="value">${active}</div></div>
-        <div class="kpi"><div class="label">Лидер</div><div class="value" style="font-size:1rem">${top ? top.employee.split(" ").slice(-1)[0] : "—"}</div></div>
-        <div class="kpi"><div class="label">Лидер очко</div><div class="value green">${top ? "+" + top.total : "—"}</div></div>`;
-    }
-
     function destroyChart(id) {
       if (charts[id]) { charts[id].destroy(); delete charts[id]; }
     }
 
     function renderCharts() {
-      const t = DATA.trend;
+      if (typeof Chart === "undefined") return;
+
+      const t = DATA.trend || {};
       destroyChart("trend");
       charts.trend = new Chart(document.getElementById("chartTrend"), {
         type: "line",
         data: {
-          labels: t.labels,
+          labels: t.labels || [],
           datasets: [
-            { label: "Жами", data: t.totals, borderColor: "#00a8bc", tension: 0.3, fill: false },
-            { label: "Ёрдамчи", data: t.yordamchi, borderColor: "#37eb91", tension: 0.3, borderDash: [4,4] },
-            { label: "Ботлар", data: t.bots, borderColor: "#ffc846", tension: 0.3, borderDash: [2,2] },
+            { label: "Жами", data: t.totals || [], borderColor: "#00c4d4", backgroundColor: "#00c4d422", fill: true, tension: 0.35 },
+            { label: "Ёрдамчи", data: t.yordamchi || [], borderColor: "#3dffa0", tension: 0.35, borderDash: [5,4] },
+            { label: "Ботлар", data: t.bots || [], borderColor: "#ffcc4d", tension: 0.35, borderDash: [3,3] },
           ],
         },
-        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: "#aab" } } }, scales: { x: { ticks: { color: "#7d8eac" } }, y: { ticks: { color: "#7d8eac" } } } },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { labels: { color: "#aab", usePointStyle: true } } },
+          scales: { x: { ticks: { color: "#7d8eac" }, grid: { color: "#1a2840" } }, y: { ticks: { color: "#7d8eac" }, grid: { color: "#1a2840" } } },
+        },
       });
 
-      const labels = DATA.matrix.map(r => r.employee.split(" ").pop());
-      const vals = DATA.matrix.map(r => r.total);
+      const matrix = DATA.matrix || [];
+      const labels = matrix.map(r => (r.short_name || r.employee.split(" ").pop()));
+      const vals = matrix.map(r => r.total);
       destroyChart("rank");
       charts.rank = new Chart(document.getElementById("chartRank"), {
         type: "bar",
-        data: { labels, datasets: [{ label: "Очко", data: vals, backgroundColor: "#00a8bc88" }] },
-        options: { indexAxis: "y", responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { color: "#7d8eac" } }, y: { ticks: { color: "#aab" } } } },
+        data: {
+          labels,
+          datasets: [{ label: "Очко", data: vals, backgroundColor: vals.map((v,i) => i===0 && v>0 ? "#3dffa0cc" : "#00c4d488"), borderRadius: 6 }],
+        },
+        options: {
+          indexAxis: "y", responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: { x: { ticks: { color: "#7d8eac" }, grid: { color: "#1a2840" } }, y: { ticks: { color: "#dde" }, grid: { display: false } } },
+        },
       });
 
       const p = DATA.pareto || [];
+      const pWrap = document.getElementById("paretoWrap");
       destroyChart("pareto");
-      charts.pareto = new Chart(document.getElementById("chartPareto"), {
-        type: "doughnut",
-        data: {
-          labels: p.map(x => x.name.slice(0, 14)),
-          datasets: [{ data: p.map(x => x.value), backgroundColor: ["#00a8bc","#37eb91","#ffc846","#9b6ef0","#ff822d","#5fc355","#f0556e","#4ecdc4","#95a5a6","#e67e22"] }],
-        },
-        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: "right", labels: { color: "#aab", boxWidth: 12 } } } },
-      });
+      if (!p.length) {
+        pWrap.innerHTML = '<div class="chart-empty">Периодда ёрдамчи категория очкоси йўқ</div>';
+      } else {
+        if (!document.getElementById("chartPareto")) {
+          pWrap.innerHTML = '<canvas id="chartPareto"></canvas>';
+        }
+        charts.pareto = new Chart(document.getElementById("chartPareto"), {
+          type: "doughnut",
+          data: {
+            labels: p.map(x => x.name.slice(0, 16)),
+            datasets: [{ data: p.map(x => x.value), backgroundColor: ["#00c4d4","#3dffa0","#ffcc4d","#9b6ef0","#ff822d","#5fc355","#ff5c7a","#4ecdc4","#95a5a6","#e67e22"], borderWidth: 0 }],
+          },
+          options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: "right", labels: { color: "#aab", boxWidth: 10, font: { size: 10 } } } } },
+        });
+      }
 
       const roleKeys = ["yordamchi","omborga","ombor","yuk","sklad","ishxona"];
-      const roleSums = roleKeys.map(k => DATA.matrix.reduce((s, r) => s + (r.roles[k]?.points || 0), 0));
+      const roleSums = roleKeys.map(k => matrix.reduce((s, r) => s + ((r.roles[k] && r.roles[k].points) || 0), 0));
       destroyChart("roles");
       charts.roles = new Chart(document.getElementById("chartRoles"), {
         type: "bar",
         data: {
           labels: ["Ёрд","Омбг","Омб","Юк","Скл","Ишх"],
-          datasets: [{ label: "Очко", data: roleSums, backgroundColor: ["#00a8bc","#00afca","#ff822d","#5fc355","#9b6ef0","#f0556e"] }],
+          datasets: [{ data: roleSums, backgroundColor: ["#00c4d4","#00afca","#ff822d","#5fc355","#9b6ef0","#ff5c7a"], borderRadius: 8 }],
         },
-        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { color: "#aab" } }, y: { ticks: { color: "#7d8eac" } } } },
+        options: {
+          responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } },
+          scales: { x: { ticks: { color: "#ccd" }, grid: { display: false } }, y: { ticks: { color: "#7d8eac" }, grid: { color: "#1a2840" } } },
+        },
       });
-    }
-
-    function renderMatrix() {
-      const roles = DATA.roles;
-      let head = "<th>№</th><th>Ходим</th>";
-      roles.forEach(r => { head += `<th class="num">${r.short}</th>`; });
-      head += "<th class="num">Жами</th><th class="num">Иш вақти</th>";
-      document.getElementById("matrixHead").innerHTML = head;
-
-      const body = document.getElementById("matrixBody");
-      body.innerHTML = "";
-      (DATA.matrix || []).forEach(row => {
-        const tr = document.createElement("tr");
-        tr.style.cursor = "pointer";
-        let cells = `<td>${row.rank}</td><td class="name">${row.employee}</td>`;
-        roles.forEach(meta => {
-          const rk = meta.key;
-          const pts = row.roles[rk]?.points || 0;
-          cells += `<td class="num">${fmtPts(pts)}</td>`;
-        });
-        cells += `<td class="num"><b>${fmtPts(row.total)}</b></td><td class="num">${row.work_time}</td>`;
-        tr.innerHTML = cells;
-        const detail = document.createElement("tr");
-        detail.className = "detail-row";
-        let inner = '<td colspan="' + (roles.length + 4) + '"><div class="detail-metrics">';
-        roles.forEach(meta => {
-          const block = row.roles[meta.key];
-          if (!block || !block.active) return;
-          inner += `<div class="metric-chip"><b>${meta.icon} ${meta.label}</b> ${fmtPts(block.points)}`;
-          (block.metrics || []).forEach(m => { inner += ` · ${m.k}: ${m.v}`; });
-          if (block.summary) inner += `<br><small style="color:#7d8eac">${block.summary}</small>`;
-          inner += "</div>";
-        });
-        inner += "</div></td>";
-        detail.innerHTML = inner;
-        tr.addEventListener("click", () => detail.classList.toggle("open"));
-        body.appendChild(tr);
-        body.appendChild(detail);
-      });
-    }
-
-    function renderPeriod() {
-      const body = document.getElementById("periodBody");
-      body.innerHTML = "";
-      (DATA.period_ranking || []).forEach(r => {
-        const b = r.bots || {};
-        body.innerHTML += `<tr>
-          <td>${r.rank}</td><td class="name">${r.employee}</td>
-          <td class="num">${fmtPts(r.yordamchi)}</td>
-          <td class="num">${fmtPts(b.omborga||0)}</td>
-          <td class="num">${fmtPts(b.ombor||0)}</td>
-          <td class="num">${fmtPts(b.yuk||0)}</td>
-          <td class="num">${fmtPts(b.sklad||0)}</td>
-          <td class="num">${fmtPts(b.ishxona||0)}</td>
-          <td class="num"><b>${fmtPts(r.total)}</b></td>
-        </tr>`;
-      });
-    }
-
-    function renderRoleReports() {
-      const rr = DATA.role_reports || {};
-      const el = document.getElementById("roleReports");
-      el.innerHTML = "";
-      (DATA.roles || []).forEach(meta => {
-        const items = (rr[meta.key] || []).map(i => `<li>${i}</li>`).join("");
-        el.innerHTML += `<div class="role-card"><h4>${meta.icon} ${meta.label}</h4><ul>${items}</ul></div>`;
-      });
-    }
-
-    function renderHints() {
-      const el = document.getElementById("hintList");
-      const hints = DATA.kaizen_hints || [];
-      if (!hints.length) {
-        el.innerHTML = "<p style='color:var(--muted);padding:8px'>Бу кун учун maxsus eslatma йўқ</p>";
-        return;
-      }
-      el.innerHTML = hints.map(h =>
-        `<div class="hint-item"><strong>${h.employee}</strong>${h.notes.map(n => "• " + n).join("<br>")}</div>`
-      ).join("");
-    }
-
-    function renderAll() {
-      renderKpi();
-      renderCharts();
-      renderMatrix();
-      renderPeriod();
-      renderRoleReports();
-      renderHints();
     }
 
     document.querySelectorAll(".tab").forEach(btn => {
       btn.addEventListener("click", () => {
         document.querySelectorAll(".tab").forEach(b => b.classList.remove("active"));
         btn.classList.add("active");
-        ["shift","period","roles","kaizen"].forEach(id => {
-          document.getElementById("tab-" + id).style.display = btn.dataset.tab === id ? "block" : "none";
+        ["detail","shift","period","roles","kaizen"].forEach(id => {
+          const el = document.getElementById("tab-" + id);
+          if (el) el.style.display = btn.dataset.tab === id ? "block" : "none";
         });
       });
     });
 
     async function refresh() {
       const day = document.getElementById("dayInput").value;
-      const url = `/analytics/api?token=${encodeURIComponent(TOKEN)}&day=${encodeURIComponent(day)}`;
+      const url = "/analytics/api?token=" + encodeURIComponent(TOKEN) + "&day=" + encodeURIComponent(day);
       const res = await fetch(url);
       if (!res.ok) { alert("Хато: " + res.status); return; }
-      DATA = await res.json();
-      renderAll();
+      location.href = "/analytics?token=" + encodeURIComponent(TOKEN) + "&day=" + encodeURIComponent(day);
     }
 
     document.getElementById("btnRefresh").addEventListener("click", refresh);
-    renderAll();
+
+    window.addEventListener("load", () => {
+      try { renderCharts(); } catch (e) { console.error(e); }
+    });
   </script>
 </body>
 </html>
