@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import base64
-import json
 from pathlib import Path
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
@@ -34,5 +33,4 @@ def build_analytics_html(*, day: str | None = None, token: str = "") -> str:
         logo_b64=_logo_b64(),
         token=token,
         d=d,
-        data_json=json.dumps(d, ensure_ascii=False),
     )

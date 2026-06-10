@@ -288,7 +288,7 @@
     <footer class="footer">Kanstik Samarqand · Yordamchi bot analytics · {{ d.employee_details|length }} ходим · {{ d.day }}</footer>
   </div>
 
-  <script id="boot-data" type="application/json">{{ data_json }}</script>
+  <script id="boot-data" type="application/json">{{ d | tojson }}</script>
   <script>
     const TOKEN = {{ token|tojson }};
     let DATA = JSON.parse(document.getElementById("boot-data").textContent);
