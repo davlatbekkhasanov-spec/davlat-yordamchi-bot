@@ -13,7 +13,7 @@
       <img src="data:image/svg+xml;base64,{{ logo_b64 }}" alt="Kanstik"/>
       <div style="flex:1">
         <h1>📈 Kaizen тahlil панели</h1>
-        <p class="sub">Ҳар бир ходим · 6 рол · кунлик смена · период · диаграммалар · батафсил ҳисобот</p>
+        <p class="sub">Ҳар бир ходим · 6 рол · таймлайн · heatmap · норма · ишончлик · экспорт</p>
       </div>
       <div class="badge-db">
         DB: {{ d.db.reports }} hisobot · {{ d.db.hub_events }} hub · {{ d.db.active_days }} kun
@@ -31,7 +31,16 @@
         <input type="date" id="dayInput" value="{{ d.day }}"/>
       </label>
       <button type="button" id="btnRefresh">Янгилаш</button>
+      <a class="btn" id="btnExport" href="/analytics/export?token={{ token|urlencode }}&day={{ d.day }}">📤 CSV</a>
+      <button type="button" id="btnMobile">📱 Мобил</button>
       <span style="color:var(--muted);font-size:.88rem">Период {{ d.period }} (2-санадан)</span>
+    </div>
+
+    <div class="mobile-bar" id="mobileBar">
+      <div class="m-kpi"><b>+{{ d.team_total }}</b><span>Кун</span></div>
+      <div class="m-kpi"><b>{{ d.active_count }}/{{ d.team_size }}</b><span>Фаол</span></div>
+      <div class="m-kpi"><b>{% if d.leader %}{{ d.leader.short_name }}{% else %}—{% endif %}</b><span>Лидер</span></div>
+      <div class="m-kpi"><b>{{ d.team_goal.pct }}%</b><span>Мақсад</span></div>
     </div>
 
     <div class="kpi-row">
@@ -91,6 +100,13 @@
       <button class="tab" data-tab="period">🗓 Период рейтинг</button>
       <button class="tab" data-tab="roles">📋 Рол каталоги</button>
       <button class="tab" data-tab="kaizen">💡 Kaizen</button>
+    </div>
+    <div class="tabs tabs-row2">
+      <button class="tab" data-tab="timeline">🕐 Таймлайн</button>
+      <button class="tab" data-tab="advanced">📊 Кенгайтирилган</button>
+      <button class="tab" data-tab="goals">🎯 Норма &amp; мақсад</button>
+      <button class="tab" data-tab="integrity">🛡 Ишончлик</button>
+      <button class="tab" data-tab="summary">📑 Хулоса</button>
     </div>
 
     <div id="tab-detail" class="panel">
@@ -285,6 +301,202 @@
       </div>
     </div>
 
+    <div id="tab-timeline" class="panel" style="display:none">
+      <div class="panel-head">🕐 Смена таймлайн — {{ d.day }}</div>
+      <div class="section-pad">
+        {% if d.timeline %}
+          {% for tl in d.timeline %}
+          <div class="timeline-emp">
+            <h4>{{ tl.short_name }} — {{ tl.events|length }} event</h4>
+            <div class="timeline-track">
+              {% for ev in tl.events %}
+              <div class="tl-item">
+                <span class="tl-time">{{ ev.time }}</span>{{ ev.icon }} {{ ev.label }}
+                <span class="tl-sum">{{ ev.summary }}</span>
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+          {% endfor %}
+        {% else %}
+          <p class="muted">Бу кун учун hub event йўқ</p>
+        {% endif %}
+      </div>
+    </div>
+
+    <div id="tab-advanced" class="panel" style="display:none">
+      <div class="panel-head">📊 Heatmap · категория×бот · дам · sessiya · sklad · benchmark</div>
+
+      <div class="panel-head" style="border-top:1px solid var(--border)">🔥 Рол heatmap (очко)</div>
+      <div class="heatmap-wrap">
+        <table class="heatmap">
+          <thead>
+            <tr><th class="emp-name">Ходим</th>
+            {% for r in d.heatmap.roles %}<th>{{ r.icon }} {{ r.short }}</th>{% endfor %}
+            </tr>
+          </thead>
+          <tbody>
+            {% for i in range(d.heatmap.short_names|length) %}
+            <tr>
+              <td class="emp-name">{{ d.heatmap.short_names[i] }}</td>
+              {% for cell in d.heatmap.cells[i] %}
+              {% set op = (cell.points|abs * 100 / d.heatmap.max_pts)|int if d.heatmap.max_pts else 0 %}
+              <td class="hm-cell" style="background:rgba(0,196,212,{{ 0.08 + op/120 }});color:{% if cell.points > 0 %}var(--green){% elif cell.points < 0 %}var(--red){% else %}#4a5568{% endif %}">
+                {% if cell.points > 0 %}+{{ cell.points }}{% elif cell.points < 0 %}{{ cell.points }}{% else %}—{% endif %}
+              </td>
+              {% endfor %}
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <div class="split-grid">
+        <section class="kaizen-box">
+          <h4>📂 Категория × бот</h4>
+          <table class="cov-table">
+            <tr><th>Ходим</th><th>Ёрд</th><th>Ботлар</th><th>Топ кат.</th></tr>
+            {% for row in d.cat_bot_matrix %}
+            <tr>
+              <td>{{ row.short_name }}</td>
+              <td>+{{ row.cat_total }}</td>
+              <td>+{{ row.bot_total }}</td>
+              <td>{{ row.top_category[:14] }}</td>
+            </tr>
+            {% endfor %}
+          </table>
+        </section>
+        <section class="kaizen-box">
+          <h4>⏳ Дам / кутиш (омборга)</h4>
+          {% if d.dam_analysis %}
+          <table class="cov-table">
+            <tr><th>Ходим</th><th>Дам</th><th>Иш</th><th>%</th></tr>
+            {% for r in d.dam_analysis %}
+            <tr><td>{{ r.short_name }}</td><td>{{ r.dam_min }} д</td><td>{{ r.ish_min }} д</td><td>{{ r.ratio_pct }}%</td></tr>
+            {% endfor %}
+          </table>
+          {% else %}<p class="muted">Дам маълумоти йўқ</p>{% endif %}
+        </section>
+        <section class="kaizen-box">
+          <h4>⚙️ SMED / sessiya</h4>
+          {% for s in d.sessions %}
+          <p style="font-size:.8rem;margin:6px 0"><b>{{ s.short_name }}</b>
+            {% if s.yuk %} · юк {{ s.yuk.events }}ev / {{ s.yuk.work_fmt }}{% endif %}
+            {% if s.omborga %} · омбг {{ s.omborga.reys }} рейс{% endif %}
+          </p>
+          {% else %}<p class="muted">Sessiya йўқ</p>{% endfor %}
+        </section>
+        <section class="kaizen-box">
+          <h4>📋 Склад прогресс</h4>
+          {% for p in d.sklad_progress %}
+          <div class="bar-row">
+            <div class="bar-label"><span>{{ p.short_name }}</span><span>{{ p.day_n }}/{{ p.day_total }} · sanaldi {{ p.sanaldi }}</span></div>
+            <div class="bar-track"><div class="bar-fill" style="width:{{ p.pct }}%"></div></div>
+          </div>
+          {% else %}<p class="muted">Склад йўқ</p>{% endfor %}
+        </section>
+      </div>
+
+      <div class="split-grid">
+        <section class="kaizen-box">
+          <h4>⚖️ Benchmark (vs ўрта)</h4>
+          {% for b in d.benchmark[:6] %}
+          <div class="bar-row">
+            <div class="bar-label"><span>{{ b.short_name }}</span><span>{{ b.vs_team_pct }}% жами</span></div>
+            <div class="bar-track"><div class="bar-fill" style="width:{{ [b.vs_team_pct, 100]|min }}%"></div></div>
+          </div>
+          {% endfor %}
+        </section>
+        <section class="kaizen-box">
+          <h4>🔀 Bottleneck (рол Pareto)</h4>
+          <div class="chart-wrap" style="height:220px"><canvas id="chartBottleneck"></canvas></div>
+        </section>
+        <section class="kaizen-box">
+          <h4>🔧 Шикоятлар (7 кун)</h4>
+          <div class="chart-wrap" style="height:200px"><canvas id="chartComplaints"></canvas></div>
+        </section>
+      </div>
+    </div>
+
+    <div id="tab-goals" class="panel" style="display:none">
+      <div class="panel-head">🎯 Норма vs факт &amp; жамоа мақсади</div>
+      <div class="goal-card">
+        <div style="font-size:.85rem;color:var(--muted)">Период {{ d.team_goal.period }} — жамоа OKR</div>
+        <div class="big">+{{ d.team_goal.current }} / {{ d.team_goal.goal }}</div>
+        <div class="goal-bar"><div style="width:{{ d.team_goal.pct }}%"></div></div>
+        <div style="font-size:.78rem;color:var(--muted);margin-top:8px">Қолди: {{ d.team_goal.remaining }} очко · {{ d.team_goal.pct }}%</div>
+      </div>
+      <div class="section-pad">
+        {% for row in d.norms %}
+        <div style="margin-bottom:14px">
+          <b style="font-size:.88rem">{{ row.short_name }}</b>
+          {% for r in row.roles %}
+          {% if r.norm > 0 %}
+          <div class="bar-row">
+            <div class="bar-label"><span>{{ r.key }}</span><span>+{{ r.actual }}/{{ r.norm }} ({{ r.pct }}%)</span></div>
+            <div class="bar-track"><div class="bar-fill {% if not r.ok %}warn{% endif %}" style="width:{{ [r.pct, 100]|min }}%"></div></div>
+          </div>
+          {% endif %}
+          {% endfor %}
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div id="tab-integrity" class="panel" style="display:none">
+      <div class="panel-head">🛡 Ишончлик &amp; сигналлар — {{ d.day }}</div>
+      <div class="split-grid">
+        <section class="kaizen-box">
+          <h4>Hub статус: <span class="{% if d.integrity.status == 'ok' %}status-ok{% else %}status-warn{% endif %}">{{ d.integrity.status }}</span></h4>
+          <p class="muted">Жами {{ d.integrity.events_total }} event</p>
+          <ul class="balance-list">
+            {% for bot, cnt in d.integrity.by_bot.items() %}
+            <li>{{ bot }}: {{ cnt }}</li>
+            {% endfor %}
+          </ul>
+          {% if d.integrity.flags %}
+          <h4 style="margin-top:12px">⚠️ Шубҳали ({{ d.integrity.flags_count }})</h4>
+          <ul class="muda-list">
+            {% for f in d.integrity.flags[:10] %}
+            <li class="sev-med">tg{{ f.tg_id }} {{ f.bot }}: {{ f.reason }}</li>
+            {% endfor %}
+          </ul>
+          {% endif %}
+        </section>
+        <section class="kaizen-box">
+          <h4>🚨 Алертлар</h4>
+          {% for a in d.alerts %}
+          <div class="alert-item sev-{{ a.severity }}"><b>{{ a.employee }}</b> — {{ a.text }}</div>
+          {% else %}
+          <p class="muted">Сигнал йўқ ✅</p>
+          {% endfor %}
+        </section>
+      </div>
+    </div>
+
+    <div id="tab-summary" class="panel" style="display:none">
+      <div class="panel-head">📑 Период хулосаси — {{ d.period_summary.period }}</div>
+      <div class="summary-box">
+        <b>Жами очко (период): +{{ d.period_summary.team_total_period }}</b>
+        <ul>
+          {% for tip in d.period_summary.tips %}<li>{{ tip }}</li>{% endfor %}
+          <li>Энг кучли рол: {{ d.period_summary.best_role.key }} (+{{ d.period_summary.best_role.points }})</li>
+          <li>Заиф рол: {{ d.period_summary.weak_role.key }} (+{{ d.period_summary.weak_role.points }})</li>
+          <li>Кунлик жами: +{{ d.period_summary.team_total_day }} · фаол кун: {{ d.period_summary.days_count }}</li>
+        </ul>
+      </div>
+      <div class="table-wrap">
+        <table class="data">
+          <thead><tr><th>Рол</th><th class="num">Период очко</th></tr></thead>
+          <tbody>
+            {% for k, v in d.period_summary.role_totals.items() %}
+            <tr><td>{{ k }}</td><td class="num">{% if v > 0 %}+{{ v }}{% else %}{{ v }}{% endif %}</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
     <footer class="footer">Kanstik Samarqand · Yordamchi bot analytics · {{ d.employee_details|length }} ходим · {{ d.day }}</footer>
   </div>
 
@@ -372,14 +584,53 @@
       });
     }
 
+    const TAB_IDS = ["detail","shift","period","roles","kaizen","timeline","advanced","goals","integrity","summary"];
+
+    function renderExtraCharts() {
+      if (typeof Chart === "undefined") return;
+      const bn = DATA.bottleneck || [];
+      const el = document.getElementById("chartBottleneck");
+      if (el && bn.length) {
+        destroyChart("bottleneck");
+        charts.bottleneck = new Chart(el, {
+          type: "bar",
+          data: {
+            labels: bn.map(x => x.label),
+            datasets: [{ data: bn.map(x => x.points), backgroundColor: "#00c4d488", borderRadius: 6 }],
+          },
+          options: {
+            responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } },
+            scales: { x: { ticks: { color: "#aab" }, grid: { display: false } }, y: { ticks: { color: "#7d8eac" }, grid: { color: "#1a2840" } } },
+          },
+        });
+      }
+      const c = DATA.complaints || {};
+      const cel = document.getElementById("chartComplaints");
+      if (cel) {
+        destroyChart("complaints");
+        charts.complaints = new Chart(cel, {
+          type: "line",
+          data: {
+            labels: c.labels || [],
+            datasets: [{ label: "Шикоят очко", data: c.points || [], borderColor: "#ff5c7a", tension: 0.3 }],
+          },
+          options: {
+            responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } },
+            scales: { x: { ticks: { color: "#7d8eac" } }, y: { ticks: { color: "#7d8eac" }, grid: { color: "#1a2840" } } },
+          },
+        });
+      }
+    }
+
     document.querySelectorAll(".tab").forEach(btn => {
       btn.addEventListener("click", () => {
         document.querySelectorAll(".tab").forEach(b => b.classList.remove("active"));
         btn.classList.add("active");
-        ["detail","shift","period","roles","kaizen"].forEach(id => {
-          const el = document.getElementById("tab-" + id);
-          if (el) el.style.display = btn.dataset.tab === id ? "block" : "none";
+        TAB_IDS.forEach(id => {
+          const panel = document.getElementById("tab-" + id);
+          if (panel) panel.style.display = btn.dataset.tab === id ? "block" : "none";
         });
+        if (btn.dataset.tab === "advanced") setTimeout(renderExtraCharts, 80);
       });
     });
 
@@ -401,8 +652,12 @@
       }
     }
 
+    document.getElementById("btnMobile").addEventListener("click", () => {
+      document.querySelector(".page").classList.toggle("mobile-compact");
+    });
+
     window.addEventListener("load", () => {
-      try { renderCharts(); } catch (e) { console.error(e); }
+      try { renderCharts(); renderExtraCharts(); } catch (e) { console.error(e); }
       scheduleAutoRefresh();
     });
   </script>

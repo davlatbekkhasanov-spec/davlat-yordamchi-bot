@@ -526,6 +526,23 @@ def db_snapshot() -> dict:
 
 
 def build_dashboard(day: str | None = None) -> dict:
+    from analytics_extensions import (
+        build_alerts,
+        build_benchmark,
+        build_bottleneck,
+        build_cat_bot_matrix,
+        build_complaints_trend,
+        build_dam_analysis,
+        build_integrity_panel,
+        build_norms_vs_fact,
+        build_period_summary,
+        build_role_heatmap,
+        build_session_analysis,
+        build_shift_timeline,
+        build_sklad_progress,
+        build_team_goal,
+    )
+
     resolved, day_fallback = resolve_analytics_day(day)
     ref = date.fromisoformat(resolved)
     period = get_period_key(ref)
@@ -533,9 +550,11 @@ def build_dashboard(day: str | None = None) -> dict:
     team_total = sum(r["total"] for r in matrix)
     active_count = sum(1 for r in matrix if r["total"] > 0)
     leader = matrix[0] if matrix and matrix[0]["total"] > 0 else None
+    period_rows = period_ranking(period, ref)
 
     conn = _connect()
     try:
+        etg = _employee_tg_map(conn)
         kaizen_report = build_kaizen_report(
             conn=conn,
             day=resolved,
@@ -553,6 +572,28 @@ def build_dashboard(day: str | None = None) -> dict:
             sum_day_total=_sum_day_total,
             hub_merged=_hub_merged,
             employee_tg_map=_employee_tg_map,
+        )
+        timeline = build_shift_timeline(conn, resolved, employees=EMPLOYEES, employee_tg_map=etg)
+        dam_rows = build_dam_analysis(matrix)
+        heatmap = build_role_heatmap(matrix, ROLE_META)
+        cat_bot = build_cat_bot_matrix(matrix)
+        integrity = build_integrity_panel(conn, resolved)
+        summary = build_period_summary(
+            period=period,
+            ref=ref,
+            matrix=matrix,
+            period_ranking=period_rows,
+            team_total=team_total,
+        )
+        sessions = build_session_analysis(conn, resolved, employees=EMPLOYEES, employee_tg_map=etg)
+        norms = build_norms_vs_fact(matrix)
+        team_goal = build_team_goal(period, period_rows)
+        complaints = build_complaints_trend(conn, resolved, employees=EMPLOYEES, employee_tg_map=etg)
+        sklad_prog = build_sklad_progress(conn, resolved, employees=EMPLOYEES, employee_tg_map=etg)
+        benchmark = build_benchmark(matrix)
+        bottleneck = build_bottleneck(matrix)
+        alerts = build_alerts(
+            conn, resolved, matrix, employees=EMPLOYEES, employee_tg_map=etg
         )
     finally:
         conn.close()
@@ -572,11 +613,25 @@ def build_dashboard(day: str | None = None) -> dict:
         "trend": daily_team_trend(resolved, 14),
         "pareto": category_pareto_period(period, ref),
         "hub_pulse": hub_pulse(resolved),
-        "period_ranking": period_ranking(period, ref),
+        "period_ranking": period_rows,
         "kaizen_report": kaizen_report,
         "kaizen_hints": kaizen_hints,
         "roles": ROLE_META,
         "role_reports": ROLE_REPORTS,
         "categories": CATEGORIES,
         "db": db_snapshot(),
+        "timeline": timeline,
+        "dam_analysis": dam_rows,
+        "heatmap": heatmap,
+        "cat_bot_matrix": cat_bot,
+        "integrity": integrity,
+        "period_summary": summary,
+        "sessions": sessions,
+        "norms": norms,
+        "team_goal": team_goal,
+        "complaints": complaints,
+        "sklad_progress": sklad_prog,
+        "benchmark": benchmark,
+        "bottleneck": bottleneck,
+        "alerts": alerts,
     }
