@@ -31,6 +31,7 @@
         <input type="date" id="dayInput" value="{{ d.day }}"/>
       </label>
       <button type="button" id="btnRefresh">Янгилаш</button>
+      <span id="refreshStatus" style="color:var(--muted);font-size:.8rem"></span>
       <a class="btn" id="btnExport" href="/analytics/export?token={{ token|urlencode }}&day={{ d.day }}">📤 CSV</a>
       <button type="button" id="btnMobile">📱 Мобил</button>
       <span style="color:var(--muted);font-size:.88rem">Период {{ d.period }} (2-санадан)</span>
@@ -43,28 +44,28 @@
       <div class="m-kpi"><b>{{ d.team_goal.pct }}%</b><span>Мақсад</span></div>
     </div>
 
-    <div class="kpi-row">
+    <div class="kpi-row" id="kpiRow">
       <div class="kpi">
         <div class="label">Жами очко (кун)</div>
-        <div class="value green">+{{ d.team_total }}</div>
-        <div class="subv">{{ d.day }}</div>
+        <div class="value green" id="kpiTotal">+{{ d.team_total }}</div>
+        <div class="subv" id="kpiDay">{{ d.day }}</div>
       </div>
       <div class="kpi">
         <div class="label">Фаол ходимлар</div>
-        <div class="value teal">{{ d.active_count }}<span style="font-size:.9rem;color:var(--muted)"> / {{ d.team_size }}</span></div>
+        <div class="value teal" id="kpiActive">{{ d.active_count }}<span style="font-size:.9rem;color:var(--muted)"> / {{ d.team_size }}</span></div>
       </div>
       <div class="kpi">
         <div class="label">Лидер</div>
-        <div class="value" style="font-size:1.1rem">{% if d.leader %}{{ d.leader.short_name }}{% else %}—{% endif %}</div>
-        <div class="subv">{% if d.leader %}+{{ d.leader.total }} очко{% else %}фаолият йўқ{% endif %}</div>
+        <div class="value" style="font-size:1.1rem" id="kpiLeader">{% if d.leader %}{{ d.leader.short_name }}{% else %}—{% endif %}</div>
+        <div class="subv" id="kpiLeaderPts">{% if d.leader %}+{{ d.leader.total }} очко{% else %}фаолият йўқ{% endif %}</div>
       </div>
       <div class="kpi">
         <div class="label">Иш вақти (лидер)</div>
-        <div class="value" style="font-size:1rem">{% if d.leader %}{{ d.leader.work_time }}{% else %}00:00:00{% endif %}</div>
+        <div class="value" style="font-size:1rem" id="kpiLeaderTime">{% if d.leader %}{{ d.leader.work_time }}{% else %}00:00:00{% endif %}</div>
       </div>
     </div>
 
-    <div class="pulse-row">
+    <div class="pulse-row" id="pulseRow">
       {% for p in d.hub_pulse %}
       <div class="pulse" style="--accent: {{ p.color }}">
         <div class="ico">{{ p.icon }}</div>
@@ -634,21 +635,88 @@
       });
     });
 
-    async function refresh() {
-      const day = document.getElementById("dayInput").value;
-      const url = "/analytics/api?token=" + encodeURIComponent(TOKEN) + "&day=" + encodeURIComponent(day);
-      const res = await fetch(url);
-      if (!res.ok) { alert("Хато: " + res.status); return; }
-      location.href = "/analytics?token=" + encodeURIComponent(TOKEN) + "&day=" + encodeURIComponent(day);
+    function setRefreshStatus(msg, ok) {
+      const el = document.getElementById("refreshStatus");
+      if (!el) return;
+      el.textContent = msg;
+      el.style.color = ok ? "var(--green)" : "var(--red)";
     }
 
-    document.getElementById("btnRefresh").addEventListener("click", refresh);
+    function applyLiveData(data) {
+      DATA = data;
+      document.getElementById("boot-data").textContent = JSON.stringify(data);
+      document.title = "Kaizen тahlil — " + data.day;
+      document.getElementById("kpiTotal").textContent = "+" + data.team_total;
+      document.getElementById("kpiDay").textContent = data.day;
+      document.getElementById("kpiActive").innerHTML =
+        data.active_count + '<span style="font-size:.9rem;color:var(--muted)"> / ' + data.team_size + "</span>";
+      const L = data.leader;
+      document.getElementById("kpiLeader").textContent = L ? L.short_name : "—";
+      document.getElementById("kpiLeaderPts").textContent = L ? "+" + L.total + " очко" : "фаолият йўқ";
+      document.getElementById("kpiLeaderTime").textContent = L ? L.work_time : "00:00:00";
+      const pulse = document.getElementById("pulseRow");
+      pulse.innerHTML = (data.hub_pulse || []).map(p =>
+        '<div class="pulse" style="--accent:' + p.color + '">' +
+        '<div class="ico">' + p.icon + '</div><div class="name">' + p.label + '</div>' +
+        '<div class="pts">' + (p.points > 0 ? "+" : "") + p.points + '</div>' +
+        '<div class="meta">' + p.active_employees + ' ходим · ' + p.events + ' event</div></div>'
+      ).join("");
+      const mb = document.getElementById("mobileBar");
+      if (mb) {
+        const b = mb.querySelectorAll(".m-kpi b");
+        if (b[0]) b[0].textContent = "+" + data.team_total;
+        if (b[1]) b[1].textContent = data.active_count + "/" + data.team_size;
+        if (b[2]) b[2].textContent = L ? L.short_name : "—";
+        if (b[3] && data.team_goal) b[3].textContent = data.team_goal.pct + "%";
+      }
+      const badge = document.querySelector(".badge-db");
+      if (badge && data.db) {
+        badge.textContent = "DB: " + data.db.reports + " hisobot · " + data.db.hub_events + " hub · " + data.db.active_days + " kun";
+      }
+      const exp = document.getElementById("btnExport");
+      if (exp) exp.href = "/analytics/export?token=" + encodeURIComponent(TOKEN) + "&day=" + encodeURIComponent(data.day);
+      document.getElementById("dayInput").value = data.day;
+      try { renderCharts(); renderExtraCharts(); } catch (e) { console.error(e); }
+      const u = "/analytics?token=" + encodeURIComponent(TOKEN) + "&day=" + encodeURIComponent(data.day);
+      history.replaceState(null, "", u);
+    }
 
+    async function refresh(opts) {
+      const silent = opts && opts.silent;
+      const day = silent
+        ? (DATA.day || document.getElementById("dayInput").value)
+        : document.getElementById("dayInput").value;
+      if (day !== (DATA.day || "") && !silent) {
+        location.href = "/analytics?token=" + encodeURIComponent(TOKEN) + "&day=" + encodeURIComponent(day);
+        return;
+      }
+      const btn = document.getElementById("btnRefresh");
+      if (!silent && btn) { btn.disabled = true; btn.textContent = "…"; }
+      try {
+        const url = "/analytics/api?token=" + encodeURIComponent(TOKEN) + "&day=" + encodeURIComponent(day);
+        const res = await fetch(url);
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        const data = await res.json();
+        applyLiveData(data);
+        const t = new Date().toLocaleTimeString("uz-UZ", { hour: "2-digit", minute: "2-digit" });
+        setRefreshStatus("✓ " + t, true);
+      } catch (e) {
+        setRefreshStatus("Хато: " + e.message, false);
+        if (!silent) alert("Янгилаш хатоси: " + e.message);
+      } finally {
+        if (!silent && btn) { btn.disabled = false; btn.textContent = "Янгилаш"; }
+      }
+    }
+
+    document.getElementById("btnRefresh").addEventListener("click", () => refresh({ silent: false }));
+
+    let autoTimer = null;
     function scheduleAutoRefresh() {
+      if (autoTimer) clearInterval(autoTimer);
       const day = document.getElementById("dayInput").value;
       const today = new Date().toISOString().slice(0, 10);
       if (day === today || day === (DATA.day || "")) {
-        setInterval(refresh, 45000);
+        autoTimer = setInterval(() => refresh({ silent: true }), 45000);
       }
     }
 
