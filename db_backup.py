@@ -152,6 +152,17 @@ def restore_reports_from_json(db_path: str, backup_json_path: str, *, replace: b
             conn.execute("DELETE FROM reports")
         inserted = 0
         for r in reports:
+            if not replace:
+                ex = conn.execute(
+                    """
+                    SELECT 1 FROM reports
+                    WHERE day=? AND employee=? AND category=? AND value=?
+                    LIMIT 1
+                    """,
+                    (r["day"], r["employee"], r["category"], int(r["value"])),
+                ).fetchone()
+                if ex:
+                    continue
             conn.execute(
                 """
                 INSERT INTO reports(day, period, tg_id, employee, category, value, created_at)
@@ -229,6 +240,17 @@ def restore_hub_from_json(db_path: str, backup_json_path: str, *, replace: bool 
             conn.execute("DELETE FROM cross_bot_events")
         inserted = 0
         for r in events:
+            if not replace:
+                ex = conn.execute(
+                    """
+                    SELECT 1 FROM cross_bot_events
+                    WHERE day=? AND tg_id=? AND bot_key=? AND summary=?
+                    LIMIT 1
+                    """,
+                    (r["day"], int(r["tg_id"]), r["bot_key"], r["summary"]),
+                ).fetchone()
+                if ex:
+                    continue
             conn.execute(
                 """
                 INSERT INTO cross_bot_events(day, tg_id, bot_key, summary, created_at)

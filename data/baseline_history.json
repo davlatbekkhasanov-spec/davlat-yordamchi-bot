@@ -1414,7 +1414,7 @@
         "day": "2026-06-05",
         "tg_id": 924612402,
         "bot_key": "omborga",
-        "summary": "Reys 33, ish 61:10, dam 0:00",
+        "summary": "Reys 21, yuk 712m, ish 32:55, dam 15:34",
         "created_at": "2026-06-05 23:59:00"
       },
       {
@@ -1449,7 +1449,7 @@
         "day": "2026-06-05",
         "tg_id": 6931958983,
         "bot_key": "omborga",
-        "summary": "Reys 15, ish 51:54, dam 0:00",
+        "summary": "Reys 13, ish 42:17, dam 0:00",
         "created_at": "2026-06-05 23:59:00"
       },
       {
@@ -1491,7 +1491,7 @@
         "day": "2026-06-06",
         "tg_id": 5412958249,
         "bot_key": "omborga",
-        "summary": "Reys 77, ish 83:51, dam 0:00",
+        "summary": "Reys 21, ish 20:11, dam 0:00",
         "created_at": "2026-06-06 23:59:00"
       },
       {
@@ -1512,7 +1512,7 @@
         "day": "2026-06-06",
         "tg_id": 5465963344,
         "bot_key": "omborga",
-        "summary": "Reys 21, ish 55:36, dam 0:00",
+        "summary": "Reys 14, ish 33:29, dam 0:00",
         "created_at": "2026-06-06 23:59:00"
       },
       {
@@ -1554,7 +1554,7 @@
         "day": "2026-06-06",
         "tg_id": 7703650930,
         "bot_key": "omborga",
-        "summary": "Reys 24, ish 25:21, dam 0:00",
+        "summary": "Reys 20, yuk 751m, ish 20:03, dam 10:23",
         "created_at": "2026-06-06 23:59:00"
       },
       {
@@ -1589,7 +1589,7 @@
         "day": "2026-06-07",
         "tg_id": 924612402,
         "bot_key": "omborga",
-        "summary": "Reys 20, ish 89:52, dam 0:00",
+        "summary": "Reys 13, ish 50:36, dam 0:00",
         "created_at": "2026-06-07 23:59:00"
       },
       {
@@ -1603,7 +1603,7 @@
         "day": "2026-06-07",
         "tg_id": 5412958249,
         "bot_key": "omborga",
-        "summary": "Reys 80, ish 74:37, dam 0:00",
+        "summary": "Reys 28, yuk 781m, ish 21:24, dam 2:50",
         "created_at": "2026-06-07 23:59:00"
       },
       {
@@ -1617,7 +1617,7 @@
         "day": "2026-06-07",
         "tg_id": 5465963344,
         "bot_key": "omborga",
-        "summary": "Reys 41, ish 55:10, dam 0:00",
+        "summary": "Reys 27, ish 31:51, dam 0:00",
         "created_at": "2026-06-07 23:59:00"
       },
       {
@@ -1653,6 +1653,13 @@
         "tg_id": 7703650930,
         "bot_key": "omborga",
         "summary": "Reys 5, ish 20:31, dam 0:00",
+        "created_at": "2026-06-07 23:59:00"
+      },
+      {
+        "day": "2026-06-07",
+        "tg_id": 8440127425,
+        "bot_key": "ombor",
+        "summary": "Ombor (jami): 0 ta, ish vaqti 0 soniya",
         "created_at": "2026-06-07 23:59:00"
       },
       {
@@ -1806,14 +1813,14 @@
         "day": "2026-06-09",
         "tg_id": 5412958249,
         "bot_key": "omborga",
-        "summary": "Reys 25, ish 29:07, dam 0:00",
+        "summary": "Reys 18, ish 21:13, dam 0:00",
         "created_at": "2026-06-09 23:59:00"
       },
       {
         "day": "2026-06-09",
         "tg_id": 5465963344,
         "bot_key": "omborga",
-        "summary": "Reys 18, yuk 522m, dam 6:12",
+        "summary": "Reys 18, yuk 522m, ish 982:00, dam 6:12",
         "created_at": "2026-06-09 23:59:00"
       },
       {

@@ -2296,6 +2296,43 @@ async def _restore_backup_document(message: Message, doc) -> None:
         )
 
 
+@dp.message(Command("syncdata"))
+async def syncdata_cmd(message: Message):
+    """Admin: baseline ma'lumotlarni DB ga merge (mavjud yozuvlar saqlanadi)."""
+    if not is_private(message) or not is_admin(message.from_user.id):
+        return
+    uid = message.from_user.id if message.from_user else 0
+    await message.answer("⏳ Ma'lumotlar sinxronlanmoqda…")
+    try:
+        from baseline_restore import ensure_baseline_restored
+        from analytics_queries import db_snapshot
+
+        before = db_snapshot()
+        res = await asyncio.to_thread(ensure_baseline_restored, DB_PATH)
+        after = db_snapshot()
+        lines = [
+            "✅ <b>Ma'lumot sinxronlandi</b>",
+            f"Hisobotlar: {before['reports']} → {after['reports']}",
+            f"Hub: {before['hub_events']} → {after['hub_events']}",
+            f"Faol kunlar: {after['active_days']}",
+        ]
+        if res.get("skipped"):
+            lines.append("ℹ️ DB yetarli — merge o'tkazib yuborildi")
+        elif res.get("merged"):
+            lines.append("♻️ Mavjud yozuvlar saqlanib, yetishmayotganlari qo'shildi")
+        url = analytics_dashboard_url()
+        if url:
+            lines.append(f'\n📈 <a href="{html.escape(url)}">Analytics panel</a>')
+        await message.answer(
+            "\n".join(lines),
+            parse_mode="HTML",
+            reply_markup=await keyboard_for_user(uid),
+        )
+    except Exception as e:
+        logging.exception("syncdata")
+        await message.answer(f"❌ Xato: {html.escape(str(e))}", parse_mode="HTML")
+
+
 @dp.message(Command("repairhub"))
 async def repairhub_cmd(message: Message):
     """Admin: hub 0 soniya / noto'g'ri merge tuzatish."""
