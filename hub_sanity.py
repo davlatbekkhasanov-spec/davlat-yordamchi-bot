@@ -13,7 +13,9 @@ GLOBAL_BLOCK_FRAGMENTS: tuple[str, ...] = (
 )
 
 _MAX_SINGLE_OMBOR_SEC = 4 * 3600
+_MAX_OMBOR_DAILY_SEC = 12 * 3600
 _MAX_YUK_DAILY_SEC = 6 * 3600
+_MAX_OMBORGA_ISH_SEC = 12 * 3600
 
 
 def _parse_work_seconds(sl: str) -> int:
@@ -52,6 +54,15 @@ def hub_summary_blocked(summary: str, *, bot_key: str = "") -> bool:
                 return True
     if key == "ombor" and "#" in s and "bajarildi" in sl:
         if _parse_work_seconds(sl) > _MAX_SINGLE_OMBOR_SEC:
+            return True
+    if key == "ombor" and "jami" in sl and "ish vaqti" in sl:
+        if _parse_work_seconds(sl) > _MAX_OMBOR_DAILY_SEC:
+            return True
+    if key == "omborga":
+        from cross_bot_hub import _parse_omborga_totals
+
+        _, ish = _parse_omborga_totals(s)
+        if ish > _MAX_OMBORGA_ISH_SEC:
             return True
     if key == "yuk":
         if "jonli" in sl:

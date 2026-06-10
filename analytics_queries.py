@@ -272,6 +272,9 @@ def _role_block(key: str, summary: str, score: int, work_sec: int) -> dict:
 
 def build_shift_matrix(day: str) -> list[dict]:
     """Barcha 10 xodim — har bir rol kesimida."""
+    from hub_integrity import ensure_hub_repaired_for_day
+
+    ensure_hub_repaired_for_day(DB_PATH, day=day)
     conn = _connect()
     try:
         etg = _employee_tg_map(conn)

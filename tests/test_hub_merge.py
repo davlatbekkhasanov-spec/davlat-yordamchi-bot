@@ -166,6 +166,34 @@ def test_yuk_mm_ss_parsed():
     assert _parse_yuk_ish_sec("yuk (bugun jami): ish vaqti 0:45") == 45
 
 
+def test_ombor_replay_ignores_zero_spam():
+    from cross_bot_hub import _replay_merged_by_bot
+
+    rows = [
+        {"bot_key": "ombor", "summary": "#2 bajarildi, 7 daqiqa 3 soniya"},
+        {"bot_key": "ombor", "summary": "Ombor (jami): 0 ta, ish vaqti 0 soniya"},
+        {"bot_key": "ombor", "summary": "Ombor (jami): 0 ta, ish vaqti 0 soniya"},
+    ]
+    out = _replay_merged_by_bot(rows)["ombor"]
+    pts, sec = score_bot_summary("ombor", out)
+    assert sec > 400, (sec, out)
+    assert "0 soniya" not in out or sec > 0
+
+
+def test_sklad_sanaldi_summed():
+    from cross_bot_hub import _replay_merged_by_bot
+
+    rows = [
+        {"bot_key": "sklad", "summary": "Papka A: sanaldi 1, joy 1, xato 0, kun 1/28"},
+        {"bot_key": "sklad", "summary": "Papka B: sanaldi 1, joy 1, xato 0, kun 2/28"},
+        {"bot_key": "sklad", "summary": "Papka C: sanaldi 1, joy 1, xato 0, kun 3/28"},
+    ]
+    out = _replay_merged_by_bot(rows)["sklad"]
+    pts, _ = score_bot_summary("sklad", out)
+    assert pts == 6, (pts, out)
+    assert "sanaldi 3" in out.lower(), out
+
+
 def test_fetch_replay_not_latest_zero():
     from cross_bot_hub import _replay_merged_by_bot
 
@@ -187,4 +215,6 @@ if __name__ == "__main__":
     test_ombor_cumulative_replaces_not_adds()
     test_ombor_cumulative_after_legacy_per_order()
     test_omborga_sessions_sum()
+    test_ombor_replay_ignores_zero_spam()
+    test_sklad_sanaldi_summed()
     print("PASS test_hub_merge")

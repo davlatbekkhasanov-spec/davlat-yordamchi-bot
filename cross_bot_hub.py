@@ -102,8 +102,17 @@ def _parse_omborga_ish_sec(sl: str) -> int:
     token = ish_m.group(1).strip()
     m = re.match(r"^(\d+):(\d{2})$", token)
     if m:
-        return int(m.group(1)) * 60 + int(m.group(2))
+        mins = int(m.group(1))
+        if mins > 600:
+            return 0
+        return mins * 60 + int(m.group(2))
     return _parse_duration_seconds(f"ish vaqti {token}")
+
+
+_MAX_DAILY_WORK_SEC = 12 * 3600
+
+# Kunlik bitta kanonik yozuv — analytics 100% izchillik
+CANONICAL_UPSERT_KEYS = frozenset({"yuk", "ombor", "omborga"})
 
 
 def _is_ombor_cumulative(summary: str) -> bool:
@@ -287,6 +296,108 @@ def _best_yuk_daily(summaries: list[str]) -> str:
     return f"Yuk (jami): ish vaqti {best} soniya"
 
 
+def _omborga_parse_dam_sec(summary: str) -> int:
+    sl = (summary or "").lower()
+    dam_m = re.search(r"dam\s+([\d:]+)", sl)
+    if not dam_m:
+        return 0
+    token = dam_m.group(1).strip()
+    m = re.match(r"^(\d+):(\d{2})$", token)
+    if m:
+        mins = int(m.group(1))
+        if mins > 600:
+            return 0
+        return mins * 60 + int(m.group(2))
+    return 0
+
+
+def _format_omborga_summary(reys: int, ish_sec: int, dam_sec: int = 0) -> str:
+    ish_sec = min(max(0, ish_sec), _MAX_DAILY_WORK_SEC)
+    ish_t = f"{ish_sec // 60}:{ish_sec % 60:02d}"
+    dam_t = f"{dam_sec // 60}:{dam_sec % 60:02d}"
+    return f"Reys {reys}, ish {ish_t}, dam {dam_t}"
+
+
+def _omborga_sessions_daily(summaries: list[str]) -> str:
+    """Har sessiya piki, keyin kunlik jami (reys/ish qo'shiladi)."""
+    peaks: list[tuple[int, int, str]] = []
+    cur = (0, 0, "")
+    prev_reys = 0
+    for s in summaries:
+        r, i = _parse_omborga_totals(s)
+        if r <= 0 and i <= 0:
+            continue
+        if prev_reys > 0 and r < prev_reys:
+            if cur[0] > 0 or cur[1] > 0:
+                peaks.append(cur)
+            cur = (r, i, s)
+        elif (r, i) >= (cur[0], cur[1]):
+            cur = (r, i, s)
+        prev_reys = r
+    if cur[0] > 0 or cur[1] > 0:
+        peaks.append(cur)
+    if not peaks:
+        return ""
+    if len(peaks) == 1:
+        r, i, src = peaks[0]
+        return src if src else _format_omborga_summary(r, i, _omborga_parse_dam_sec(src))
+    total_reys = sum(p[0] for p in peaks)
+    total_ish = min(sum(p[1] for p in peaks), _MAX_DAILY_WORK_SEC)
+    return _format_omborga_summary(total_reys, total_ish, 0)
+
+
+def _ombor_is_order(summary: str) -> bool:
+    sl = (summary or "").lower()
+    return "#" in (summary or "") and "bajarildi" in sl
+
+
+def _best_ombor_daily(summaries: list[str]) -> str:
+    """Kunlik jami (bugun jami) yoki barcha #buyurtmalar yig'indisi; 0 spam e'tiborsiz."""
+    from hub_sanity import hub_summary_blocked
+
+    clean = [s for s in summaries if s and not hub_summary_blocked(s, bot_key="ombor")]
+    if not clean:
+        return ""
+    cumulatives = [s for s in clean if _is_ombor_cumulative(s)]
+    good_cum = [s for s in cumulatives if _parse_count_sec(s, "ombor")[1] > 0]
+    if good_cum:
+        best = max(good_cum, key=lambda s: _parse_count_sec(s, "ombor")[1])
+        nc, ns = _parse_count_sec(best, "ombor")
+        return f"Ombor (jami): {nc} ta, ish vaqti {ns} soniya"
+    orders = [s for s in clean if _ombor_is_order(s)]
+    total_c = len(orders)
+    total_s = 0
+    for s in orders:
+        _, sec = _parse_count_sec(s, "ombor")
+        total_s += sec
+    total_s = min(total_s, _MAX_DAILY_WORK_SEC)
+    if total_s <= 0 and total_c <= 0:
+        for s in reversed(clean):
+            if "0 soniya" in s.lower():
+                return s
+        return ""
+    return f"Ombor (jami): {total_c} ta, ish vaqti {total_s} soniya"
+
+
+def _best_sklad_daily(summaries: list[str]) -> str:
+    """Har papka alohida — sanaldi yig'indisi."""
+    from hub_sanity import hub_summary_blocked
+
+    clean = [s for s in summaries if s and not hub_summary_blocked(s, bot_key="sklad")]
+    if not clean:
+        return ""
+    total_n = 0
+    last = clean[-1]
+    for s in clean:
+        sm = re.search(r"sanaldi\s*(\d+)", (s or "").lower())
+        if sm:
+            total_n += int(sm.group(1))
+    if total_n <= 0:
+        return last
+    out = re.sub(r"sanaldi\s*\d+", f"sanaldi {total_n}", last, count=1, flags=re.I)
+    return out if out else last
+
+
 def _best_omborga_daily(summaries: list[str]) -> str:
     from hub_sanity import hub_summary_blocked
 
@@ -296,10 +407,7 @@ def _best_omborga_daily(summaries: list[str]) -> str:
     totals = [s for s in clean if _omborga_looks_daily_total(s)]
     if totals:
         return max(totals, key=lambda s: _parse_omborga_totals(s))
-    merged = ""
-    for s in clean:
-        merged = _merge_hub_summary("omborga", merged, s) if merged else s
-    return merged
+    return _omborga_sessions_daily(clean)
 
 
 def _now_iso() -> str:
@@ -351,7 +459,7 @@ async def record_event(
         cur = _conn.cursor()
         if key == "yuk" and "jonli" in text.lower():
             return
-        if key == "yuk":
+        if key in CANONICAL_UPSERT_KEYS:
             cur.execute(
                 """
                 SELECT summary FROM cross_bot_events
@@ -361,7 +469,8 @@ async def record_event(
                 (day_s, int(tg_id), key),
             )
             prev = [str(r[0]) for r in cur.fetchall()]
-            merged = _best_yuk_daily(prev + [text]) or text
+            rows = [{"bot_key": key, "summary": s} for s in prev + [text]]
+            merged = _replay_merged_by_bot(rows).get(key, "") or text
             cur.execute(
                 "DELETE FROM cross_bot_events WHERE day = ? AND tg_id = ? AND bot_key = ?",
                 (day_s, int(tg_id), key),
@@ -440,6 +549,10 @@ def _replay_merged_by_bot(rows: list) -> dict[str, str]:
             merged = _best_omborga_daily(summaries)
         elif k == "yuk":
             merged = _best_yuk_daily(summaries)
+        elif k == "ombor":
+            merged = _best_ombor_daily(summaries)
+        elif k == "sklad":
+            merged = _best_sklad_daily(summaries)
         else:
             merged = ""
             for s in summaries:
