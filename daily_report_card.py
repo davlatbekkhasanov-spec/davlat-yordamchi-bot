@@ -126,6 +126,24 @@ def _truncate(text: str, n: int = 36) -> str:
     return t if len(t) <= n else t[: n - 1] + "…"
 
 
+def _parse_yuk_work_seconds(text: str) -> int:
+    """Yuk bot formatlari: soniya, daq:son, soat daq."""
+    sl = (text or "").lower()
+    m = re.search(r"ish\s+vaqti\s+(\d+)\s*soniya", sl)
+    if m:
+        return int(m.group(1))
+    m = re.search(r"ish\s+vaqti\s+(\d+)\s*soat\s+(\d+)\s*daq", sl)
+    if m:
+        return int(m.group(1)) * 3600 + int(m.group(2)) * 60
+    m = re.search(r"ish\s+vaqti\s+(\d+):(\d{2}):(\d{2})", sl)
+    if m:
+        return int(m.group(1)) * 3600 + int(m.group(2)) * 60 + int(m.group(3))
+    m = re.search(r"ish\s+vaqti\s+(\d+):(\d{2})(?!\d)", sl)
+    if m:
+        return int(m.group(1)) * 60 + int(m.group(2))
+    return _parse_hms(text)
+
+
 def _parse_hms(text: str) -> int:
     text = (text or "").lower()
     m = re.search(r"(\d{1,2}):(\d{2})(?::(\d{2}))?", text)
@@ -254,11 +272,7 @@ def score_bot_summary(key: str, summary: str) -> tuple[int, int]:
             return 0, 0
         return mins, sec
     if key == "yuk":
-        sec = _parse_hms(s)
-        if not sec:
-            sm = re.search(r"ish\s+vaqti\s+(\d+)", sl)
-            if sm:
-                sec = int(sm.group(1))
+        sec = _parse_yuk_work_seconds(s)
         sec = _cap_daily_work(sec)
         mins = _ceil_minutes(sec)
         if not mins:

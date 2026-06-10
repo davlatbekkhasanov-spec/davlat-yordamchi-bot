@@ -325,8 +325,17 @@
 
     document.getElementById("btnRefresh").addEventListener("click", refresh);
 
+    function scheduleAutoRefresh() {
+      const day = document.getElementById("dayInput").value;
+      const today = new Date().toISOString().slice(0, 10);
+      if (day === today || day === (DATA.day || "")) {
+        setInterval(refresh, 45000);
+      }
+    }
+
     window.addEventListener("load", () => {
       try { renderCharts(); } catch (e) { console.error(e); }
+      scheduleAutoRefresh();
     });
   </script>
 </body>

@@ -34,6 +34,8 @@ def test_ombor():
 
 def test_yuk():
     assert score_bot_summary("yuk", "Yuk (jami): ish vaqti 6840 soniya") == (57, 6840)
+    assert score_bot_summary("yuk", "Yuk (bugun jami): ish vaqti 48:30") == (24, 48 * 60 + 30)
+    assert score_bot_summary("yuk", "Yuk (bugun jami): ish vaqti 0:00") == (0, 0)
 
 
 def test_sklad():

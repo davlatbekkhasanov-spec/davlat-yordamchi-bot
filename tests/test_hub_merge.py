@@ -101,6 +101,29 @@ def test_omborga_seed_not_doubled_with_trips():
     assert _replay_merged_by_bot(rows)["omborga"] == merged
 
 
+def test_yuk_zero_does_not_wipe():
+    good = "Yuk (forward jami): ish vaqti 3457 soniya"
+    bad = "Yuk (bugun jami): ish vaqti 0:00"
+    assert _merge_hub_summary("yuk", good, bad) == good
+    merged = _merge_hub_summary("yuk", bad, good)
+    assert "3457" in merged, merged
+
+
+def test_yuk_daily_total_max_not_sum():
+    a = "Yuk (bugun jami): ish vaqti 1200 soniya"
+    b = "Yuk (bugun jami): ish vaqti 2400 soniya"
+    merged = _merge_hub_summary("yuk", a, b)
+    assert "2400" in merged, merged
+    assert "3600" not in merged, merged
+
+
+def test_yuk_mm_ss_parsed():
+    from cross_bot_hub import _parse_yuk_ish_sec
+
+    assert _parse_yuk_ish_sec("yuk (bugun jami): ish vaqti 48:30") == 48 * 60 + 30
+    assert _parse_yuk_ish_sec("yuk (bugun jami): ish vaqti 0:45") == 45
+
+
 def test_fetch_replay_not_latest_zero():
     from cross_bot_hub import _replay_merged_by_bot
 

@@ -111,6 +111,29 @@ def _is_ombor_cumulative(summary: str) -> bool:
     return "jami" in sl and "ish vaqti" in sl and "soniya" in sl
 
 
+def _parse_yuk_ish_sec(sl: str) -> int:
+    """Yuk: 'N soniya', '48:30' (daq:son), '1 soat 30 daq', '1:23:45'."""
+    text = (sl or "").lower()
+    m = re.search(r"ish\s+vaqti\s+(\d+)\s*soniya", text)
+    if m:
+        return int(m.group(1))
+    m = re.search(r"ish\s+vaqti\s+(\d+)\s*soat\s+(\d+)\s*daq", text)
+    if m:
+        return int(m.group(1)) * 3600 + int(m.group(2)) * 60
+    m = re.search(r"ish\s+vaqti\s+(\d+):(\d{2}):(\d{2})", text)
+    if m:
+        return int(m.group(1)) * 3600 + int(m.group(2)) * 60 + int(m.group(3))
+    m = re.search(r"ish\s+vaqti\s+(\d+):(\d{2})(?!\d)", text)
+    if m:
+        return int(m.group(1)) * 60 + int(m.group(2))
+    return 0
+
+
+def _yuk_looks_daily_total(summary: str) -> bool:
+    sl = (summary or "").lower()
+    return "jami" in sl and "ish vaqti" in sl
+
+
 def _parse_count_sec(summary: str, bot_key: str) -> tuple[int, int]:
     """ombor/yuk — jami yoki bitta ariza (#47 bajarildi, ...) formatidan."""
     sl = (summary or "").lower()
@@ -129,11 +152,10 @@ def _parse_count_sec(summary: str, bot_key: str) -> tuple[int, int]:
     cm = re.search(r"(\d+)\s*ta", sl)
     if cm:
         cnt = int(cm.group(1))
-    sm = re.search(r"ish\s+vaqti\s+(\d+)\s*soniya", sl)
-    if sm:
-        sec = int(sm.group(1))
-    elif bot_key == "yuk":
-        sm = re.search(r"ish\s+vaqti\s+(\d+)", sl)
+    if bot_key == "yuk":
+        sec = _parse_yuk_ish_sec(sl)
+    else:
+        sm = re.search(r"ish\s+vaqti\s+(\d+)\s*soniya", sl)
         if sm:
             sec = int(sm.group(1))
     return cnt, sec
@@ -170,6 +192,13 @@ def _merge_hub_summary(bot_key: str, old: str, new: str) -> str:
     if key == "yuk":
         oc, os_ = _parse_count_sec(old, key)
         nc, ns = _parse_count_sec(new, key)
+        if ns <= 0 and os_ > 0:
+            return old if _yuk_looks_daily_total(old) else f"Yuk (jami): ish vaqti {os_} soniya"
+        if os_ <= 0 and ns > 0:
+            return new if _yuk_looks_daily_total(new) else f"Yuk (jami): ish vaqti {ns} soniya"
+        if _yuk_looks_daily_total(old) or _yuk_looks_daily_total(new):
+            best = max(os_, ns)
+            return f"Yuk (jami): ish vaqti {best} soniya"
         total_s = os_ + ns
         return f"Yuk (jami): ish vaqti {total_s} soniya"
     if key == "omborga":
