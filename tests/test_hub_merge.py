@@ -128,6 +128,37 @@ def test_yuk_per_session_max_not_sum():
     assert _best_yuk_daily([r["summary"] for r in rows]) == merged
 
 
+def test_yuk_live_inflation_abdullo_case():
+    """Jonli pushlar 13500 soniya — rasmiy yakun yo'q, 0 bo'lishi kerak."""
+    from cross_bot_hub import _best_yuk_daily, _replay_merged_by_bot
+
+    rows = [
+        {"bot_key": "yuk", "summary": f"Yuk (bugun jami): ish vaqti {i * 450} soniya"}
+        for i in range(1, 31)
+    ]
+    merged = _replay_merged_by_bot(rows)["yuk"]
+    assert "0 soniya" in merged, merged
+    assert "13500" not in merged, merged
+
+
+def test_yuk_single_3h_without_yakun_zeroed():
+    from cross_bot_hub import _best_yuk_daily
+
+    s = "Yuk (jami): ish vaqti 13500 soniya"
+    out = _best_yuk_daily([s])
+    assert "0 soniya" in out, out
+
+
+def test_yuk_official_yakun_wins():
+    from cross_bot_hub import _best_yuk_daily
+
+    legacy = [f"Yuk (bugun jami): ish vaqti {i * 450} soniya" for i in range(1, 20)]
+    official = "Yuk (yakun): ish vaqti 1847 soniya"
+    out = _best_yuk_daily(legacy + [official])
+    assert "1847" in out, out
+    assert "13500" not in out, out
+
+
 def test_yuk_mm_ss_parsed():
     from cross_bot_hub import _parse_yuk_ish_sec
 

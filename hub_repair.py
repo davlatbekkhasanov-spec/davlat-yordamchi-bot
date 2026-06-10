@@ -78,8 +78,11 @@ def repair_hub_db(db_path: str, *, day: str = "", apply: bool = False) -> list[d
             if not any(extra in s or s in extra for s in summaries):
                 summaries.append(extra)
         rebuilt = _replay(bot, summaries)
+        if not rebuilt and bot == "yuk":
+            rebuilt = "Yuk (jami): ish vaqti 0 soniya"
         latest = evs[-1]["summary"]
-        if rebuilt == latest or not rebuilt:
+        needs_collapse = bot == "yuk" and len(evs) > 1
+        if not rebuilt or (rebuilt == latest and not needs_collapse):
             continue
         fixes.append({"day": d, "tg_id": tg, "bot_key": bot, "was": latest, "now": rebuilt})
         if apply:

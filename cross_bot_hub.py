@@ -131,7 +131,32 @@ def _parse_yuk_ish_sec(sl: str) -> int:
 
 def _yuk_looks_daily_total(summary: str) -> bool:
     sl = (summary or "").lower()
-    return "jami" in sl and "ish vaqti" in sl
+    return "ish vaqti" in sl and ("yakun" in sl or "forward jami" in sl or "jami" in sl)
+
+
+def _yuk_is_official(summary: str) -> bool:
+    """Faqat sessiya yakuni / backfill / forward — jonli taymer emas."""
+    sl = (summary or "").lower()
+    if not sl or "jonli" in sl:
+        return False
+    if "yakun" in sl or "forward jami" in sl:
+        return True
+    return False
+
+
+def _yuk_live_inflation(summaries: list[str]) -> bool:
+    """Ko'p ketma-ket o'suvchi bugun jami = ochiq taymerdan jonli push."""
+    secs: list[int] = []
+    for s in summaries:
+        sl = (s or "").lower()
+        if "jonli" in sl or _yuk_is_official(s):
+            continue
+        sec = _parse_yuk_ish_sec(sl)
+        if sec > 0:
+            secs.append(sec)
+    if len(secs) < 5:
+        return False
+    return all(secs[i] >= secs[i - 1] for i in range(1, len(secs))) and secs[-1] >= 3600
 
 
 def _parse_count_sec(summary: str, bot_key: str) -> tuple[int, int]:
@@ -225,17 +250,37 @@ def _omborga_looks_daily_total(summary: str) -> bool:
 
 
 def _best_yuk_daily(summaries: list[str]) -> str:
-    """Yuk — har push kunlik jami; qo'shish emas, eng katta qiymat."""
+    """
+    Yuk kunlik vaqt — faqat rasmiy yakun/backfill.
+    Eski jonli pushlar (o'sib boruvchi bugun jami) va shubhali yakka 3+ soat yozuvlar hisobga olinmaydi.
+    """
     from hub_sanity import hub_summary_blocked
 
     clean = [s for s in summaries if s and not hub_summary_blocked(s, bot_key="yuk")]
     if not clean:
         return ""
-    best = 0
-    for s in clean:
-        best = max(best, _parse_yuk_ish_sec(s.lower()))
+
+    official = [s for s in clean if _yuk_is_official(s)]
+    if official:
+        best = max(_parse_yuk_ish_sec(s.lower()) for s in official)
+        if best > 0:
+            return f"Yuk (jami): ish vaqti {best} soniya"
+        for s in reversed(official):
+            if _parse_yuk_ish_sec(s.lower()) <= 0:
+                return s
+        return ""
+
+    legacy = [s for s in clean if "jonli" not in (s or "").lower()]
+    if _yuk_live_inflation(legacy):
+        return "Yuk (jami): ish vaqti 0 soniya"
+
+    legacy_secs = [_parse_yuk_ish_sec(s.lower()) for s in legacy]
+    best = max(legacy_secs) if legacy_secs else 0
+    # Yakun belgisisiz 3+ soat — odatda ochiq taymer xatosi
+    if best >= 10800:
+        return "Yuk (jami): ish vaqti 0 soniya"
     if best <= 0:
-        for s in reversed(clean):
+        for s in reversed(legacy):
             if _parse_yuk_ish_sec(s.lower()) <= 0:
                 return s
         return ""
@@ -304,13 +349,38 @@ async def record_event(
 
     async with _lock:
         cur = _conn.cursor()
-        cur.execute(
-            """
-            INSERT INTO cross_bot_events(day, tg_id, bot_key, summary, created_at)
-            VALUES (?, ?, ?, ?, ?)
-            """,
-            (day_s, int(tg_id), key, text, _now_iso()),
-        )
+        if key == "yuk" and "jonli" in text.lower():
+            return
+        if key == "yuk":
+            cur.execute(
+                """
+                SELECT summary FROM cross_bot_events
+                WHERE day = ? AND tg_id = ? AND bot_key = ?
+                ORDER BY id ASC
+                """,
+                (day_s, int(tg_id), key),
+            )
+            prev = [str(r[0]) for r in cur.fetchall()]
+            merged = _best_yuk_daily(prev + [text]) or text
+            cur.execute(
+                "DELETE FROM cross_bot_events WHERE day = ? AND tg_id = ? AND bot_key = ?",
+                (day_s, int(tg_id), key),
+            )
+            cur.execute(
+                """
+                INSERT INTO cross_bot_events(day, tg_id, bot_key, summary, created_at)
+                VALUES (?, ?, ?, ?, ?)
+                """,
+                (day_s, int(tg_id), key, merged[:MAX_SUMMARY_LEN], _now_iso()),
+            )
+        else:
+            cur.execute(
+                """
+                INSERT INTO cross_bot_events(day, tg_id, bot_key, summary, created_at)
+                VALUES (?, ?, ?, ?, ?)
+                """,
+                (day_s, int(tg_id), key, text, _now_iso()),
+            )
         _conn.commit()
 
 
