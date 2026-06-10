@@ -183,6 +183,54 @@ table.data .name { font-weight: 600; min-width: 150px; }
   border-left: 4px solid var(--gold); font-size: .86rem;
 }
 .hint-item strong { display: block; margin-bottom: 6px; color: var(--text); }
+.hint-item.pri-high { border-left-color: var(--red); }
+.hint-item.pri-med { border-left-color: var(--gold); }
+.muted { color: var(--muted); font-size: .86rem; }
+
+.kaizen-pdca {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 10px; padding: 14px 16px 6px;
+}
+.pdca-card {
+  background: var(--panel2); border: 1px solid var(--border); border-radius: 12px;
+  padding: 12px 14px; position: relative;
+}
+.pdca-card.act { border-color: #3dffa055; background: #0a2818; }
+.pdca-card b { display: block; font-size: .78rem; color: var(--teal); margin-bottom: 4px; }
+.pdca-card p { margin: 0; font-size: .82rem; color: var(--text); line-height: 1.4; }
+.pdca-tag {
+  position: absolute; top: 10px; right: 12px; font-weight: 800; font-size: .9rem;
+  color: var(--muted); opacity: .7;
+}
+
+.kaizen-stats {
+  display: flex; flex-wrap: wrap; gap: 10px; padding: 0 16px 14px;
+}
+.kstat {
+  background: #0c162e; border: 1px solid var(--border); border-radius: 10px;
+  padding: 8px 14px; min-width: 100px;
+}
+.kstat span { display: block; font-size: .68rem; color: var(--muted); text-transform: uppercase; }
+.kstat b { font-size: 1.1rem; color: var(--green); }
+
+.kaizen-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 12px; padding: 0 16px 16px;
+}
+.kaizen-box {
+  background: var(--panel2); border: 1px solid var(--border); border-radius: 12px; padding: 14px;
+}
+.kaizen-box h4 { margin: 0 0 10px; font-size: .88rem; color: var(--teal); }
+
+.muda-list, .action-list, .balance-list { margin: 0; padding-left: 0; list-style: none; font-size: .8rem; }
+.muda-list li, .action-list li, .balance-list li { padding: 6px 0; border-bottom: 1px solid #1a2840; color: var(--muted); }
+.muda-list li.sev-high { color: #ff8fa3; }
+.muda-list li.sev-med { color: #ffd966; }
+.action-list .pri { font-weight: 800; color: var(--gold); margin-right: 6px; }
+.action-list li.pri-A { color: #ff8fa3; }
+.cov-table { width: 100%; font-size: .78rem; border-collapse: collapse; }
+.cov-table th, .cov-table td { padding: 5px 4px; text-align: left; border-bottom: 1px solid #1a2840; }
+.cov-table th { color: var(--muted); font-weight: 600; }
 
 .footer {
   text-align: center; color: var(--muted); font-size: .74rem; margin-top: 28px; padding-top: 16px;

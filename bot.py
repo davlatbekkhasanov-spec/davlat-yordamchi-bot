@@ -2122,7 +2122,8 @@ async def analytics_btn(message: Message):
         f"<a href=\"{html.escape(url)}\">{html.escape(url)}</a>\n\n"
         "• Смена матрицаси — ҳар бир ходим × рол\n"
         "• 4 та диаграмма (тренд, рейтинг, Pareto, роллар)\n"
-        "• Период рейтинг · Kaizen эслатмалар",
+        "• Kaizen: PDCA · Muda · рол қамрови · A/B/C harakatlar\n"
+        "• Период рейтинг · ходим бўйича coaching",
         parse_mode="HTML",
         disable_web_page_preview=False,
         reply_markup=await keyboard_for_user(uid),

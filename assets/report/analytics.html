@@ -202,17 +202,85 @@
     </div>
 
     <div id="tab-kaizen" class="panel" style="display:none">
-      <div class="panel-head">💡 Kaizen эслатмалар</div>
+      <div class="panel-head">💡 Kaizen ҳисоботи — {{ d.day }}</div>
+
+      <div class="kaizen-pdca">
+        <div class="pdca-card"><span class="pdca-tag">P</span><b>Reja</b><p>{{ d.kaizen_report.pdca.plan }}</p></div>
+        <div class="pdca-card"><span class="pdca-tag">D</span><b>Bajarish</b><p>{{ d.kaizen_report.pdca.do }}</p></div>
+        <div class="pdca-card"><span class="pdca-tag">C</span><b>Tekshirish</b><p>{{ d.kaizen_report.pdca.check }}</p></div>
+        <div class="pdca-card act"><span class="pdca-tag">A</span><b>Harakat</b><p>{{ d.kaizen_report.pdca.act }}</p></div>
+      </div>
+
+      <div class="kaizen-stats">
+        <div class="kstat"><span>Юк иштирок</span><b>{{ d.kaizen_report.stats.yuk_participants }}</b></div>
+        <div class="kstat"><span>Жами дам (дақ)</span><b>{{ d.kaizen_report.stats.total_dam_min }}</b></div>
+        <div class="kstat"><span>Кечага</span><b>{% if d.kaizen_report.stats.delta_yesterday > 0 %}+{% endif %}{{ d.kaizen_report.stats.delta_yesterday }}</b></div>
+        <div class="kstat"><span>7к ўрта</span><b>{% if d.kaizen_report.stats.delta_7d_avg > 0 %}+{% endif %}{{ d.kaizen_report.stats.delta_7d_avg }}</b></div>
+        <div class="kstat"><span>Muda</span><b>{{ d.kaizen_report.muda_count }}</b></div>
+      </div>
+
+      <div class="kaizen-grid">
+        <section class="kaizen-box">
+          <h4>⚠️ Muda (исроф) — аниқланган</h4>
+          {% if d.kaizen_report.muda %}
+          <ul class="muda-list">
+            {% for m in d.kaizen_report.muda %}
+            <li class="sev-{{ m.severity }}"><span>{{ m.icon }}</span> <b>{{ m.title }}</b> — {{ m.detail }}</li>
+            {% endfor %}
+          </ul>
+          {% else %}
+          <p class="muted">Исроф сигнали йўқ ✅</p>
+          {% endif %}
+        </section>
+
+        <section class="kaizen-box">
+          <h4>🎯 Устувор harakatlar (A/B/C)</h4>
+          <ul class="action-list">
+            {% for a in d.kaizen_report.actions %}
+            <li class="pri-{{ a.priority }}"><span class="pri">{{ a.priority }}</span> {{ a.text }}</li>
+            {% endfor %}
+          </ul>
+        </section>
+
+        <section class="kaizen-box">
+          <h4>📊 Рол қамрови (кун)</h4>
+          <table class="cov-table">
+            <tr><th>Рол</th><th>Ходим</th><th>Очко</th></tr>
+            {% for meta in d.roles %}
+            {% set cov = d.kaizen_report.role_coverage[meta.key] %}
+            <tr>
+              <td>{{ meta.icon }} {{ meta.short }}</td>
+              <td>{{ cov.active_employees }}/{{ d.team_size }} ({{ cov.coverage_pct }}%)</td>
+              <td>{% if cov.points > 0 %}+{{ cov.points }}{% elif cov.points < 0 %}{{ cov.points }}{% else %}—{% endif %}</td>
+            </tr>
+            {% endfor %}
+          </table>
+        </section>
+
+        <section class="kaizen-box">
+          <h4>⚖️ Рол баланси</h4>
+          <ul class="balance-list">
+            {% for b in d.kaizen_report.balance %}
+            <li><b>{{ b.employee }}</b> — {{ b.roles_active }} рол · {{ b.label }}</li>
+            {% endfor %}
+            {% if not d.kaizen_report.balance %}
+            <li class="muted">Фаол ходим йўқ</li>
+            {% endif %}
+          </ul>
+        </section>
+      </div>
+
+      <div class="panel-head" style="margin-top:8px;border-top:1px solid var(--border);padding-top:14px">👤 Ходим бўйича Kaizen</div>
       <div class="hint-list">
         {% if d.kaizen_hints %}
           {% for h in d.kaizen_hints %}
-          <div class="hint-item">
+          <div class="hint-item pri-{{ h.priority }}">
             <strong>{{ h.employee }}</strong>
             {% for n in h.notes %}• {{ n }}<br>{% endfor %}
           </div>
           {% endfor %}
         {% else %}
-          <p style="color:var(--muted)">Махсус эслатма йўқ</p>
+          <p class="muted">Махсус эслатма йўқ</p>
         {% endif %}
       </div>
     </div>

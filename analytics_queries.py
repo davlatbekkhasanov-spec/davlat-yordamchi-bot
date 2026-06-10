@@ -12,6 +12,7 @@ from zoneinfo import ZoneInfo
 from cross_bot_hub import BOT_LABELS, DB_PATH, _replay_merged_by_bot
 from daily_report_card import BOT_ORDER, _bot_metrics, score_bot_summary
 from employee_tg_map import employee_name_variants, resolve_owner_tg_id, resolve_tg_id, tg_ids_for_employee
+from kaizen_analytics import build_kaizen_employee_hints, build_kaizen_report
 from points_breakdown import explain_bot_formula
 from ranking_broadcast import period_days_through
 
@@ -521,29 +522,6 @@ def db_snapshot() -> dict:
         conn.close()
 
 
-def kaizen_hints(matrix: list[dict], day: str) -> list[dict]:
-    hints: list[dict] = []
-    active = [r for r in matrix if r["total"] > 0]
-    for row in matrix:
-        emp = row["employee"]
-        notes: list[str] = []
-        if row["total"] == 0:
-            notes.append("Бу кун фаолият йўқ — бошқа санани текширинг")
-        if row["bot_total"] == 0 and row["cat_total"] > 0:
-            notes.append("Фақат ёрдамчи бот — операцион роллар бўш")
-        if row["cat_total"] == 0 and row["bot_total"] > 0:
-            notes.append("Фақат ботлар — ёрдамчи категория киритилмаган")
-        omb = row["roles"].get("omborga", {})
-        for m in omb.get("metrics", []):
-            if m.get("k") == "dam" and m.get("v") not in ("00:00", "0:00", "—", ""):
-                notes.append(f"Омборга дам {m['v']} — кутишни камайтиринг")
-        if row["total"] > 0 and active and row["rank"] >= max(3, len(active)):
-            notes.append(f"Рейтинг {row['rank']}/{len(active)} — coaching керак")
-        if notes:
-            hints.append({"employee": emp, "notes": notes[:4]})
-    return hints
-
-
 def build_dashboard(day: str | None = None) -> dict:
     resolved, day_fallback = resolve_analytics_day(day)
     ref = date.fromisoformat(resolved)
@@ -552,6 +530,29 @@ def build_dashboard(day: str | None = None) -> dict:
     team_total = sum(r["total"] for r in matrix)
     active_count = sum(1 for r in matrix if r["total"] > 0)
     leader = matrix[0] if matrix and matrix[0]["total"] > 0 else None
+
+    conn = _connect()
+    try:
+        kaizen_report = build_kaizen_report(
+            conn=conn,
+            day=resolved,
+            matrix=matrix,
+            employees=EMPLOYEES,
+            sum_day_total=_sum_day_total,
+            hub_merged=_hub_merged,
+            employee_tg_map=_employee_tg_map,
+        )
+        kaizen_hints = build_kaizen_employee_hints(
+            conn=conn,
+            day=resolved,
+            matrix=matrix,
+            employees=EMPLOYEES,
+            sum_day_total=_sum_day_total,
+            hub_merged=_hub_merged,
+            employee_tg_map=_employee_tg_map,
+        )
+    finally:
+        conn.close()
 
     return {
         "day": resolved,
@@ -569,7 +570,8 @@ def build_dashboard(day: str | None = None) -> dict:
         "pareto": category_pareto_period(period, ref),
         "hub_pulse": hub_pulse(resolved),
         "period_ranking": period_ranking(period, ref),
-        "kaizen_hints": kaizen_hints(matrix, resolved),
+        "kaizen_report": kaizen_report,
+        "kaizen_hints": kaizen_hints,
         "roles": ROLE_META,
         "role_reports": ROLE_REPORTS,
         "categories": CATEGORIES,
