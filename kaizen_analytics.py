@@ -24,18 +24,13 @@ MUDA_TYPES = (
 
 
 def _parse_dam_sec(summary: str) -> int:
+    from time_display import parse_colon_token
+
     sl = (summary or "").lower()
     m = re.search(r"dam\s+([\d:]+)", sl)
     if not m:
         return 0
-    token = m.group(1)
-    parts = token.split(":")
-    if len(parts) == 3:
-        h, mi, s = (int(parts[0]), int(parts[1]), int(parts[2]))
-        return h * 3600 + mi * 60 + s
-    if len(parts) == 2:
-        return int(parts[0]) * 60 + int(parts[1])
-    return 0
+    return parse_colon_token(m.group(1))
 
 
 def _prev_active_days(conn: sqlite3.Connection, before_day: str, limit: int = 7) -> list[str]:
@@ -297,6 +292,7 @@ def build_kaizen_report(
             "active_count": len(active),
             "yuk_participants": yuk_active,
             "total_dam_min": total_dam_sec // 60,
+            "total_dam_fmt": _fmt_short(total_dam_sec),
             "delta_yesterday": delta_y,
             "delta_7d_avg": delta_avg,
         },
@@ -304,11 +300,9 @@ def build_kaizen_report(
 
 
 def _fmt_short(sec: int) -> str:
-    m, s = divmod(max(0, int(sec)), 60)
-    if m >= 60:
-        h, m = divmod(m, 60)
-        return f"{h}:{m:02d}:{s:02d}"
-    return f"{m}:{s:02d}"
+    from time_display import fmt_duration
+
+    return fmt_duration(sec)
 
 
 def _pick_team_action(muda: list, role_cov: dict, yuk_n: int, dam_sec: int) -> str:

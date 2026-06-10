@@ -245,10 +245,9 @@ def _role_meaningful(key: str, summary: str, score: int, work_sec: int) -> bool:
 
 
 def _fmt_hms(seconds: int) -> str:
-    sec = max(0, int(seconds))
-    h, rem = divmod(sec, 3600)
-    m, s = divmod(rem, 60)
-    return f"{h:02d}:{m:02d}:{s:02d}"
+    from time_display import fmt_duration_hms
+
+    return fmt_duration_hms(seconds)
 
 
 def _role_block(key: str, summary: str, score: int, work_sec: int) -> dict:
@@ -529,14 +528,17 @@ def build_dashboard(day: str | None = None) -> dict:
     from analytics_extensions import (
         build_alerts,
         build_benchmark,
+        build_bot_activity_strip,
         build_bottleneck,
         build_cat_bot_matrix,
         build_complaints_trend,
         build_dam_analysis,
+        build_employee_work_split,
         build_integrity_panel,
         build_norms_vs_fact,
         build_period_summary,
         build_role_heatmap,
+        build_role_work_times,
         build_session_analysis,
         build_shift_timeline,
         build_sklad_progress,
@@ -595,6 +597,11 @@ def build_dashboard(day: str | None = None) -> dict:
         alerts = build_alerts(
             conn, resolved, matrix, employees=EMPLOYEES, employee_tg_map=etg
         )
+        bot_feed = build_bot_activity_strip(
+            conn, resolved, employees=EMPLOYEES, employee_tg_map=etg
+        )
+        role_work = build_role_work_times(matrix)
+        work_split = build_employee_work_split(matrix)
     finally:
         conn.close()
 
@@ -634,4 +641,7 @@ def build_dashboard(day: str | None = None) -> dict:
         "benchmark": benchmark,
         "bottleneck": bottleneck,
         "alerts": alerts,
+        "bot_feed": bot_feed,
+        "role_work": role_work,
+        "work_split": work_split,
     }

@@ -145,17 +145,9 @@ def _parse_yuk_work_seconds(text: str) -> int:
 
 
 def _parse_hms(text: str) -> int:
-    text = (text or "").lower()
-    m = re.search(r"(\d{1,2}):(\d{2})(?::(\d{2}))?", text)
-    if m:
-        return int(m.group(1)) * 3600 + int(m.group(2)) * 60 + int(m.group(3) or 0)
-    m = re.search(r"(\d+)\s*soniya", text)
-    if m:
-        return int(m.group(1))
-    m = re.search(r"(\d+)\s*daqiqa", text)
-    if m:
-        return int(m.group(1)) * 60
-    return 0
+    from time_display import parse_duration_text
+
+    return parse_duration_text(text or "")
 
 
 def _parse_ombor_duration(text: str) -> int:
@@ -189,46 +181,36 @@ def _cap_daily_work(seconds: int) -> int:
 
 
 def _parse_omborga_time(token: str) -> int:
-    """OmborgaKiritishBot fmt_duration_short: daqiqa:soniya (75:39 = 75 daq 39 son)."""
-    token = (token or "").strip()
-    m = re.match(r"^(\d+):(\d{2})$", token)
-    if m:
-        mins = int(m.group(1))
-        # 10 soatdan ortiq daqiqa — format xato (982:00 kabi), ish vaqtini hisoblamaymiz
-        if mins > 600:
-            return 0
-        return mins * 60 + int(m.group(2))
-    return _cap_daily_work(_parse_hms(token))
+    from time_display import parse_colon_token, parse_duration_text
+
+    sec = parse_colon_token((token or "").strip())
+    if sec:
+        return _cap_daily_work(sec)
+    return _cap_daily_work(parse_duration_text(token or ""))
 
 
 def _fmt_hms(seconds: int) -> str:
-    seconds = max(0, int(seconds))
-    h, r = divmod(seconds, 3600)
-    m, s = divmod(r, 60)
-    return f"{h:02d}:{m:02d}:{s:02d}"
+    from time_display import fmt_duration_hms
+
+    return fmt_duration_hms(seconds)
 
 
 def _fmt_short(seconds: int) -> str:
-    seconds = max(0, int(seconds))
-    h, r = divmod(seconds, 3600)
-    m, s = divmod(r, 60)
-    if h:
-        return f"{h}:{m:02d}:{s:02d}"
-    return f"{m:02d}:{s:02d}"
+    from time_display import fmt_duration
+
+    return fmt_duration(seconds)
 
 
 def _fmt_clock(seconds: int) -> str:
-    """Reyting va umumiy ish vaqti — soat bo'lsa H:MM:SS, aks holda MM:SS."""
-    return _fmt_work_duration(seconds)
+    from time_display import fmt_duration
+
+    return fmt_duration(seconds)
 
 
 def _fmt_work_duration(seconds: int) -> str:
-    seconds = max(0, int(seconds))
-    h, r = divmod(seconds, 3600)
-    m, s = divmod(r, 60)
-    if h:
-        return f"{h}:{m:02d}:{s:02d}"
-    return f"{m:02d}:{s:02d}"
+    from time_display import fmt_duration
+
+    return fmt_duration(seconds)
 
 
 def _ceil_minutes(seconds: int) -> int:

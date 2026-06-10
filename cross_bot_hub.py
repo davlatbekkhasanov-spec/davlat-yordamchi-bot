@@ -95,18 +95,17 @@ def _parse_duration_seconds(sl: str) -> int:
 
 
 def _parse_omborga_ish_sec(sl: str) -> int:
-    """Omborga: ish 3:29 = daqiqa:soniya."""
+    """Omborga: ish 3:29 yoki 1:15:29."""
+    from time_display import parse_colon_token, parse_duration_text
+
     ish_m = re.search(r"ish\s+([\d:]+)", sl)
     if not ish_m:
         return 0
     token = ish_m.group(1).strip()
-    m = re.match(r"^(\d+):(\d{2})$", token)
-    if m:
-        mins = int(m.group(1))
-        if mins > 600:
-            return 0
-        return mins * 60 + int(m.group(2))
-    return _parse_duration_seconds(f"ish vaqti {token}")
+    sec = parse_colon_token(token)
+    if sec:
+        return sec
+    return parse_duration_text(f"ish vaqti {token}")
 
 
 _MAX_DAILY_WORK_SEC = 12 * 3600
@@ -238,10 +237,11 @@ def _merge_hub_summary(bot_key: str, old: str, new: str) -> str:
             if (nr, ni) >= (or_, oi):
                 return new
             return old
+        from time_display import fmt_duration
+
         total_reys = or_ + nr
         total_ish = oi + ni
-        ish_t = f"{total_ish // 60}:{total_ish % 60:02d}"
-        return f"Reys {total_reys}, ish {ish_t}, dam 0:00"
+        return f"Reys {total_reys}, ish {fmt_duration(total_ish)}, dam 00:00"
     return new
 
 
@@ -300,25 +300,21 @@ def _best_yuk_daily(summaries: list[str]) -> str:
 
 
 def _omborga_parse_dam_sec(summary: str) -> int:
+    from time_display import parse_colon_token
+
     sl = (summary or "").lower()
     dam_m = re.search(r"dam\s+([\d:]+)", sl)
     if not dam_m:
         return 0
-    token = dam_m.group(1).strip()
-    m = re.match(r"^(\d+):(\d{2})$", token)
-    if m:
-        mins = int(m.group(1))
-        if mins > 600:
-            return 0
-        return mins * 60 + int(m.group(2))
-    return 0
+    return parse_colon_token(dam_m.group(1).strip())
 
 
 def _format_omborga_summary(reys: int, ish_sec: int, dam_sec: int = 0) -> str:
+    from time_display import fmt_duration
+
     ish_sec = min(max(0, ish_sec), _MAX_DAILY_WORK_SEC)
-    ish_t = f"{ish_sec // 60}:{ish_sec % 60:02d}"
-    dam_t = f"{dam_sec // 60}:{dam_sec % 60:02d}"
-    return f"Reys {reys}, ish {ish_t}, dam {dam_t}"
+    dam_sec = min(max(0, dam_sec), _MAX_DAILY_WORK_SEC)
+    return f"Reys {reys}, ish {fmt_duration(ish_sec)}, dam {fmt_duration(dam_sec)}"
 
 
 def _omborga_sessions_daily(summaries: list[str]) -> str:

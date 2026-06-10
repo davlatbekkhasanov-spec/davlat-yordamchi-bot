@@ -76,6 +76,23 @@
       {% endfor %}
     </div>
 
+    {% if d.bot_feed %}
+    <div class="bot-feed" id="botFeed">
+      <div class="bot-feed-title">📡 Ботлар — охирги ҳаракат ({{ d.day }})</div>
+      <div class="bot-feed-row">
+        {% for b in d.bot_feed %}
+        <div class="bot-feed-item">
+          <span class="bf-ico">{{ b.icon }}</span>
+          <span class="bf-bot">{{ b.label }}</span>
+          <span class="bf-emp">{{ b.employee }}</span>
+          <span class="bf-time">{{ b.time }}</span>
+          <span class="bf-sum">{{ b.summary[:50] }}{% if b.summary|length > 50 %}…{% endif %}</span>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
     <div class="charts-grid">
       <div class="chart-card">
         <h3>📈 14 кун — жами очко тренди</h3>
@@ -92,6 +109,10 @@
       <div class="chart-card">
         <h3>🔧 Роллар бўйича очко (кун)</h3>
         <div class="chart-wrap"><canvas id="chartRoles"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <h3>⏱ Роллар бўйича иш вақти (кун)</h3>
+        <div class="chart-wrap"><canvas id="chartWorkTime"></canvas></div>
       </div>
     </div>
 
@@ -230,7 +251,7 @@
 
       <div class="kaizen-stats">
         <div class="kstat"><span>Юк иштирок</span><b>{{ d.kaizen_report.stats.yuk_participants }}</b></div>
-        <div class="kstat"><span>Жами дам (дақ)</span><b>{{ d.kaizen_report.stats.total_dam_min }}</b></div>
+        <div class="kstat"><span>Жами дам</span><b>{{ d.kaizen_report.stats.total_dam_fmt }}</b></div>
         <div class="kstat"><span>Кечага</span><b>{% if d.kaizen_report.stats.delta_yesterday > 0 %}+{% endif %}{{ d.kaizen_report.stats.delta_yesterday }}</b></div>
         <div class="kstat"><span>7к ўрта</span><b>{% if d.kaizen_report.stats.delta_7d_avg > 0 %}+{% endif %}{{ d.kaizen_report.stats.delta_7d_avg }}</b></div>
         <div class="kstat"><span>Muda</span><b>{{ d.kaizen_report.muda_count }}</b></div>
@@ -373,10 +394,23 @@
           <table class="cov-table">
             <tr><th>Ходим</th><th>Дам</th><th>Иш</th><th>%</th></tr>
             {% for r in d.dam_analysis %}
-            <tr><td>{{ r.short_name }}</td><td>{{ r.dam_min }} д</td><td>{{ r.ish_min }} д</td><td>{{ r.ratio_pct }}%</td></tr>
+            <tr><td>{{ r.short_name }}</td><td>{{ r.dam_fmt }}</td><td>{{ r.ish_fmt }}</td><td>{{ r.ratio_pct }}%</td></tr>
             {% endfor %}
           </table>
           {% else %}<p class="muted">Дам маълумоти йўқ</p>{% endif %}
+        </section>
+        <section class="kaizen-box">
+          <h4>⏱ Иш вақти бўлиши</h4>
+          {% for w in d.work_split[:8] %}
+          <div class="bar-row">
+            <div class="bar-label"><span>{{ w.short_name }}</span><span>{{ w.total_fmt }}</span></div>
+            <div class="bar-track" style="display:flex;overflow:hidden">
+              {% for p in w.parts %}
+              <div style="flex:{{ p.sec }};background:var(--teal);min-width:2px" title="{{ p.label }} {{ p.fmt }}"></div>
+              {% endfor %}
+            </div>
+          </div>
+          {% else %}<p class="muted">Иш вақти йўқ</p>{% endfor %}
         </section>
         <section class="kaizen-box">
           <h4>⚙️ SMED / sessiya</h4>
@@ -571,6 +605,38 @@
 
       const roleKeys = ["yordamchi","omborga","ombor","yuk","sklad","ishxona"];
       const roleSums = roleKeys.map(k => matrix.reduce((s, r) => s + ((r.roles[k] && r.roles[k].points) || 0), 0));
+      const rw = DATA.role_work || {};
+      destroyChart("workTime");
+      const wtEl = document.getElementById("chartWorkTime");
+      if (wtEl && (rw.seconds || []).some(s => s > 0)) {
+        charts.workTime = new Chart(wtEl, {
+          type: "bar",
+          data: {
+            labels: (rw.labels || []).map(x => x.slice(0, 12)),
+            datasets: [{
+              label: "Soniya",
+              data: rw.seconds || [],
+              backgroundColor: "#3dffa088",
+              borderRadius: 8,
+            }],
+          },
+          options: {
+            responsive: true, maintainAspectRatio: false, plugins: {
+              legend: { display: false },
+              tooltip: {
+                callbacks: {
+                  label: ctx => {
+                    const f = (rw.formatted || [])[ctx.dataIndex] || "";
+                    return f + " (" + ctx.raw + "s)";
+                  },
+                },
+              },
+            },
+            scales: { x: { ticks: { color: "#ccd", font: { size: 9 } } }, y: { ticks: { color: "#7d8eac" }, grid: { color: "#1a2840" } } },
+          },
+        });
+      }
+
       destroyChart("roles");
       charts.roles = new Chart(document.getElementById("chartRoles"), {
         type: "bar",

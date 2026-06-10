@@ -16,6 +16,7 @@ from daily_report_card import (
     _parse_hms,
     score_bot_summary,
 )
+from time_display import fmt_duration_scoring
 from employee_tg_map import employee_name_variants, tg_ids_for_employee
 from ranking_broadcast import period_days_through
 
@@ -62,22 +63,21 @@ def explain_bot_formula(key: str, summary: str) -> tuple[int, str]:
         ish = _parse_omborga_time(ish_m.group(1)) if ish_m else sec
         mins = _ceil_minutes(ish)
         half = mins // 2 if mins else 0
+        ish_lbl = fmt_duration_scoring(ish)
         if half:
-            return pts, f"{reys}×2 + {half} = {pts}"
+            return pts, f"{reys}×2 + {ish_lbl}÷2 = {pts}"
         return pts, f"{reys}×2 = {pts}"
     if key == "ombor":
         sec = _parse_ombor_duration(sl) or sec or _parse_hms(s)
-        mins = _ceil_minutes(sec)
-        return pts, f"{mins} дақ×1"
+        return pts, f"{fmt_duration_scoring(sec)}×1"
     if key == "yuk":
         sec = _parse_hms(s)
         if not sec:
             sm = re.search(r"ish\s+vaqti\s+(\d+)", sl)
             if sm:
                 sec = int(sm.group(1))
-        mins = _ceil_minutes(sec)
-        half = mins // 2 if mins else 0
-        return pts, f"{mins} дақ÷2 = {half}"
+        half = _ceil_minutes(sec) // 2 if sec else 0
+        return pts, f"{fmt_duration_scoring(sec)}÷2 = {half}"
     if key == "sklad":
         sm = re.search(r"sanaldi\s*(\d+)", sl)
         n = int(sm.group(1)) if sm else 0

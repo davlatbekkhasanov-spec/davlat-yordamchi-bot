@@ -106,12 +106,16 @@ def build_dam_analysis(matrix: list[dict]) -> list[dict]:
             continue
         total = dam + ish_sec
         pct = int(round(dam * 100 / total)) if total else 0
+        from time_display import fmt_duration
+
         rows.append(
             {
                 "employee": row["employee"],
                 "short_name": row.get("short_name") or _short_name(row["employee"]),
-                "dam_min": dam // 60,
-                "ish_min": ish_sec // 60,
+                "dam_sec": dam,
+                "ish_sec": ish_sec,
+                "dam_fmt": fmt_duration(dam),
+                "ish_fmt": fmt_duration(ish_sec),
                 "ratio_pct": pct,
             }
         )
@@ -284,11 +288,13 @@ def build_session_analysis(
             ).get("yuk", "")
             _, sec = score_bot_summary("yuk", merged)
             yakun = sum(1 for s in bots["yuk"] if "yakun" in s.lower())
+            from time_display import fmt_duration
+
             item["yuk"] = {
                 "events": len(bots["yuk"]),
                 "yakun_count": yakun,
                 "work_sec": sec,
-                "work_fmt": f"{sec // 60}:{sec % 60:02d}",
+                "work_fmt": fmt_duration(sec),
             }
         if bots.get("omborga"):
             merged = _replay_merged_by_bot(
@@ -569,6 +575,99 @@ def build_alerts(
         )
 
     return alerts[:25]
+
+
+def build_bot_activity_strip(
+    conn: sqlite3.Connection,
+    day: str,
+    *,
+    employees: list[str],
+    employee_tg_map: dict[str, int],
+) -> list[dict]:
+    """Har bot — bugungi oxirgi event (live lenta)."""
+    tg_to_emp: dict[int, str] = {}
+    for emp in employees:
+        for tid in tg_ids_for_employee(emp, employee_tg_map=employee_tg_map):
+            tg_to_emp[int(tid)] = emp
+
+    by_bot: dict[str, dict] = {}
+    for r in conn.execute(
+        """
+        SELECT bot_key, tg_id, summary, created_at FROM cross_bot_events
+        WHERE day=? ORDER BY id DESC
+        """,
+        (day,),
+    ):
+        key = str(r["bot_key"] or "")
+        if key in by_bot:
+            continue
+        emp = tg_to_emp.get(int(r["tg_id"]), f"tg:{r['tg_id']}")
+        by_bot[key] = {
+            "bot": key,
+            "icon": BOT_ICONS.get(key, "•"),
+            "label": BOT_LABELS.get(key, key),
+            "employee": emp.split()[-1] if emp else emp,
+            "time": _time_hm(r["created_at"]),
+            "summary": str(r["summary"] or "")[:72],
+        }
+    order = list(BOT_ORDER) + ["yordamchi"]
+    return [by_bot[k] for k in order if k in by_bot]
+
+
+def build_role_work_times(matrix: list[dict]) -> dict:
+    """Rol bo'yicha jami ish vaqti (diagramma)."""
+    from time_display import fmt_duration
+
+    keys = list(BOT_ORDER)
+    secs = []
+    labels = []
+    for k in keys:
+        total = 0
+        for row in matrix:
+            role = (row.get("roles", {}) or {}).get(k, {}) or {}
+            _, wsec = score_bot_summary(k, role.get("summary", ""))
+            total += wsec
+        secs.append(total)
+        labels.append(BOT_LABELS.get(k, k))
+    return {
+        "labels": labels,
+        "seconds": secs,
+        "formatted": [fmt_duration(s) for s in secs],
+    }
+
+
+def build_employee_work_split(matrix: list[dict]) -> list[dict]:
+    """Har xodim — rol bo'yicha ish vaqti (stacked)."""
+    from time_display import fmt_duration
+
+    out = []
+    for row in matrix:
+        parts = []
+        for k in BOT_ORDER:
+            role = (row.get("roles", {}) or {}).get(k, {}) or {}
+            if not role.get("active"):
+                continue
+            _, sec = score_bot_summary(k, role.get("summary", ""))
+            if sec > 0:
+                parts.append(
+                    {
+                        "key": k,
+                        "icon": BOT_ICONS.get(k, ""),
+                        "label": BOT_LABELS.get(k, k),
+                        "sec": sec,
+                        "fmt": fmt_duration(sec),
+                    }
+                )
+        if parts:
+            out.append(
+                {
+                    "employee": row["employee"],
+                    "short_name": row.get("short_name") or _short_name(row["employee"]),
+                    "total_fmt": row.get("work_time", "00:00:00"),
+                    "parts": parts,
+                }
+            )
+    return out
 
 
 def build_export_rows(matrix: list[dict], day: str) -> list[dict]:

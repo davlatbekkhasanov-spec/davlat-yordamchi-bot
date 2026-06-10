@@ -86,6 +86,25 @@ body {
 .pulse .pts { font-size: 1.2rem; font-weight: 700; color: var(--green); margin-top: 2px; }
 .pulse .meta { font-size: .68rem; color: var(--muted); }
 
+.bot-feed {
+  background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius);
+  margin-bottom: 18px; overflow: hidden;
+}
+.bot-feed-title {
+  padding: 10px 16px; background: var(--panel2); border-bottom: 1px solid var(--border);
+  font-size: .82rem; font-weight: 600; color: var(--muted);
+}
+.bot-feed-row { padding: 8px 12px; display: flex; flex-direction: column; gap: 6px; }
+.bot-feed-item {
+  display: grid; grid-template-columns: auto auto auto auto 1fr; gap: 8px; align-items: center;
+  font-size: .76rem; padding: 6px 8px; background: #0c162e; border-radius: 8px;
+}
+.bf-ico { font-size: 1rem; }
+.bf-bot { color: var(--teal); font-weight: 600; min-width: 88px; }
+.bf-emp { color: var(--gold); min-width: 72px; }
+.bf-time { color: var(--muted); font-variant-numeric: tabular-nums; }
+.bf-sum { color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
 .charts-grid {
   display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 22px;
 }
