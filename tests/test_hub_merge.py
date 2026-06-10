@@ -84,6 +84,30 @@ def test_omborga_sessions_sum():
     assert pts > score_bot_summary("omborga", s2)[0]
 
 
+def test_omborga_live_high_reys_not_daily_total():
+    """Jonli Reys 18/22 — sessiyalar yig'indisi, bitta qator emas."""
+    from cross_bot_hub import _best_omborga_daily, _omborga_looks_daily_total
+    from daily_report_card import score_bot_summary
+
+    live18 = "Reys 18, yuk 270m, ish 6:02, dam 0:33"
+    live22 = "Reys 22, yuk 330m, ish 8:52, dam 0:31"
+    assert not _omborga_looks_daily_total(live18)
+    assert not _omborga_looks_daily_total(live22)
+    rows = [
+        "Reys 1, yuk 37m, ish 2:08, dam 0:48",
+        "Reys 12, yuk 324m, ish 11:00, dam 0:42",
+        "Reys 4, yuk 108m, ish 3:23, dam 0:13",
+        live18,
+        live22,
+        "Reys 7, yuk 105m, ish 2:45, dam 0:14",
+    ]
+    merged = _best_omborga_daily(rows)
+    pts, sec = score_bot_summary("omborga", merged)
+    assert "Reys 22" not in merged or "Reys 3" in merged or pts > 50, (pts, sec, merged)
+    assert pts > 50, (pts, sec, merged)
+    assert sec > 2000, (pts, sec, merged)
+
+
 def test_omborga_seed_not_doubled_with_trips():
     from cross_bot_hub import _best_omborga_daily, _replay_merged_by_bot
     from daily_report_card import score_bot_summary

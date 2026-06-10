@@ -246,12 +246,15 @@ def _merge_hub_summary(bot_key: str, old: str, new: str) -> str:
 
 
 def _omborga_looks_daily_total(summary: str) -> bool:
-    """Kunlik yakuniy xulosa (seed) — alohida reyslar bilan qo'shilmasin."""
+    """Kunlik yakuniy xulosa (seed/forward) — jonli sessiya pushi emas."""
     sl = (summary or "").lower()
-    reys, ish = _parse_omborga_totals(summary)
-    if reys >= 12 and "dam 0:00" in sl:
+    if "forward" in sl or "yakun" in sl or "kunlik jami" in sl:
         return True
-    if reys >= 18:
+    # Jonli push: reys o'sadi, odatda «yuk Nm» ham bor — buni kunlik jami deb olmang
+    if re.search(r"yuk\s+\d", sl):
+        return False
+    reys, ish = _parse_omborga_totals(summary)
+    if "dam 0:00" in sl and reys >= 8:
         return True
     if reys >= 8 and ish >= 3 * 3600:
         return True
