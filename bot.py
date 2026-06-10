@@ -55,9 +55,11 @@ from hub_ingest import start_ingest_server
 from admin_status import (
     BTN_ADMIN_PHOTO,
     BTN_ADMIN_STATUS,
+    BTN_ANALYTICS,
     BTN_PREVIEW_REPORT,
     BTN_RANKING,
     admin_status_kb,
+    analytics_dashboard_url,
     handle_admin_status,
 )
 from admin_ranking_adj import (
@@ -313,6 +315,7 @@ def categories_kb(user_id: int | None = None):
     if user_id and is_admin(user_id):
         rows.append([KeyboardButton(text=BTN_ADMIN_STATUS), KeyboardButton(text=BTN_PREVIEW_REPORT)])
         rows.append([KeyboardButton(text=BTN_ADMIN_PHOTO), KeyboardButton(text=BTN_RANKING)])
+        rows.append([KeyboardButton(text=BTN_ANALYTICS)])
         rows.append([KeyboardButton(text=BTN_BONUS), KeyboardButton(text=BTN_PENALTY)])
     return ReplyKeyboardMarkup(keyboard=rows, resize_keyboard=True)
 
@@ -325,6 +328,7 @@ def after_save_kb(user_id: int | None = None):
     ]
     if user_id and is_admin(user_id):
         rows.append([KeyboardButton(text=BTN_ADMIN_STATUS), KeyboardButton(text=BTN_ADMIN_PHOTO), KeyboardButton(text=BTN_RANKING)])
+        rows.append([KeyboardButton(text=BTN_ANALYTICS)])
     return ReplyKeyboardMarkup(keyboard=rows, resize_keyboard=True)
 
 def delete_date_kb():
@@ -369,6 +373,7 @@ _INTAKE_SKIP_TEXTS = frozenset(
         BTN_PREVIEW_REPORT,
         BTN_ADMIN_PHOTO,
         BTN_RANKING,
+        BTN_ANALYTICS,
         BTN_BONUS,
         BTN_PENALTY,
         BTN_ADJ_CONFIRM,
@@ -2089,6 +2094,39 @@ async def admin_status_btn(message: Message):
         return
     uid = message.from_user.id if message.from_user else 0
     await handle_admin_status(message, bot, reply_markup=await keyboard_for_user(uid))
+
+
+@dp.message(lambda m: is_private(m) and m.text == BTN_ANALYTICS)
+@dp.message(Command("analytics"))
+@dp.message(Command("kaizen"))
+async def analytics_btn(message: Message):
+    if not is_admin(message.from_user.id):
+        await message.answer(
+            f"Faqat admin.\nSizning ID: <code>{message.from_user.id}</code>",
+            parse_mode="HTML",
+        )
+        return
+    url = analytics_dashboard_url()
+    if not url:
+        await message.answer(
+            "📈 Analytics URL yo'q.\n"
+            "Railway: <code>RAILWAY_PUBLIC_DOMAIN</code> yoki <code>YORDAMCHI_HUB_URL</code>\n"
+            "va <code>YORDAMCHI_HUB_SECRET</code> sozlang.",
+            parse_mode="HTML",
+        )
+        return
+    uid = message.from_user.id if message.from_user else 0
+    await message.answer(
+        "📈 <b>Kaizen tahlil paneli</b>\n\n"
+        "Brauzerda oching (faqat siz — maxfiy havola):\n"
+        f"<a href=\"{html.escape(url)}\">{html.escape(url)}</a>\n\n"
+        "• Смена матрицаси — ҳар бир ходим × рол\n"
+        "• 4 та диаграмма (тренд, рейтинг, Pareto, роллар)\n"
+        "• Период рейтинг · Kaizen эслатмалар",
+        parse_mode="HTML",
+        disable_web_page_preview=False,
+        reply_markup=await keyboard_for_user(uid),
+    )
 
 
 @dp.message(Command("botdebug"))

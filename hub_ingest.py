@@ -8,6 +8,7 @@ import os
 from aiohttp import web
 
 from cross_bot_hub import hub_secret_ok, record_event
+from analytics_web import register_analytics_routes
 from preview_web import register_preview_routes
 
 log = logging.getLogger(__name__)
@@ -62,6 +63,7 @@ def make_app() -> web.Application:
     app.router.add_post("/ingest", handle_ingest)
     app.router.add_get("/health", handle_health)
     register_preview_routes(app)
+    register_analytics_routes(app)
     return app
 
 
@@ -74,7 +76,7 @@ async def start_ingest_server() -> web.AppRunner | None:
     await site.start()
     secret = os.getenv("YORDAMCHI_HUB_SECRET", "").strip()
     log.info(
-        "HTTP :%s — /health /preview /preview.png%s",
+        "HTTP :%s — /health /preview /analytics%s",
         port,
         " /ingest" if secret else " (ingest o'chiq: SECRET yo'q)",
     )

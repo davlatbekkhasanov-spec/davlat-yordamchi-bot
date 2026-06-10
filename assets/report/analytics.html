@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="uz-Cyrl">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Kaizen тahlil — Kanstik Samarqand</title>
+  <style>{{ css }}</style>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
+<body>
+  <div class="page">
+    <header class="header">
+      <img src="data:image/svg+xml;base64,{{ logo_b64 }}" alt="Kanstik"/>
+      <div>
+        <h1>📈 Kaizen тahlил панели</h1>
+        <p class="sub">Ҳар бир ходим · ҳар бир рол · кунлик/период · диаграммалар</p>
+      </div>
+    </header>
+
+    <div class="toolbar">
+      <label>📅 Сана: <input type="date" id="dayInput" value="{{ day }}"/></label>
+      <button type="button" id="btnRefresh">Янгилаш</button>
+      <span id="periodLabel" style="color:var(--muted)"></span>
+    </div>
+
+    <div class="kpi-row" id="kpiRow"></div>
+
+    <div class="charts-grid">
+      <div class="chart-card">
+        <h3>📈 14 кун — жами очко тренди</h3>
+        <div class="chart-wrap"><canvas id="chartTrend"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <h3>🏆 Кунлик рейтинг (жами очко)</h3>
+        <div class="chart-wrap"><canvas id="chartRank"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <h3>📊 Период — категория Pareto (ёрдамчи)</h3>
+        <div class="chart-wrap"><canvas id="chartPareto"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <h3>🔧 Роллар бўйича очко (танланган кун)</h3>
+        <div class="chart-wrap"><canvas id="chartRoles"></canvas></div>
+      </div>
+    </div>
+
+    <div class="tabs">
+      <button class="tab active" data-tab="shift">🌙 Смена матрицаси</button>
+      <button class="tab" data-tab="period">🗓 Период рейтинг</button>
+      <button class="tab" data-tab="roles">📋 Рол ҳисоботлари</button>
+      <button class="tab" data-tab="kaizen">💡 Kaizen эслатмалар</button>
+    </div>
+
+    <div id="tab-shift" class="panel">
+      <div class="panel-head">Кунлик матрица — ходим × рол (очко)</div>
+      <div class="table-wrap">
+        <table class="data" id="matrixTable">
+          <thead><tr id="matrixHead"></tr></thead>
+          <tbody id="matrixBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div id="tab-period" class="panel" style="display:none">
+      <div class="panel-head">Период рейтинг (2-санадан)</div>
+      <div class="table-wrap">
+        <table class="data" id="periodTable">
+          <thead>
+            <tr>
+              <th>№</th><th>Ходим</th><th class="num">Ёрд</th>
+              <th class="num">Омбг</th><th class="num">Омб</th><th class="num">Юк</th>
+              <th class="num">Скл</th><th class="num">Ишх</th><th class="num">Жами</th>
+            </tr>
+          </thead>
+          <tbody id="periodBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div id="tab-roles" class="panel" style="display:none">
+      <div class="panel-head">Ҳар бир рол кесимида чиқадиган ҳисоботлар</div>
+      <div class="role-grid" id="roleReports"></div>
+    </div>
+
+    <div id="tab-kaizen" class="panel" style="display:none">
+      <div class="panel-head">Автоматик Kaizen эслатмалар</div>
+      <div class="hint-list" id="hintList"></div>
+    </div>
+
+    <footer class="footer">Kanstik Samarqand · Yordamchi bot analytics MVP · {{ day }}</footer>
+  </div>
+
+  <script id="boot-data" type="application/json">{{ data_json }}</script>
+  <script>
+    const TOKEN = {{ token|tojson }};
+    let DATA = JSON.parse(document.getElementById("boot-data").textContent);
+    let charts = {};
+
+    function fmtPts(v) {
+      if (!v) return '<span class="zero">—</span>';
+      const cls = v > 0 ? "pos" : "neg";
+      return `<span class="${cls}">${v > 0 ? "+" : ""}${v}</span>`;
+    }
+
+    function renderKpi() {
+      const m = DATA.matrix || [];
+      const total = m.reduce((s, r) => s + r.total, 0);
+      const active = m.length;
+      const top = m[0];
+      document.getElementById("periodLabel").textContent =
+        `Период: ${DATA.period} · Жамоа: ${DATA.team_size} нафар`;
+      document.getElementById("kpiRow").innerHTML = `
+        <div class="kpi"><div class="label">Жами очко (кун)</div><div class="value green">+${total}</div></div>
+        <div class="kpi"><div class="label">Фаол ходимлар</div><div class="value">${active}</div></div>
+        <div class="kpi"><div class="label">Лидер</div><div class="value" style="font-size:1rem">${top ? top.employee.split(" ").slice(-1)[0] : "—"}</div></div>
+        <div class="kpi"><div class="label">Лидер очко</div><div class="value green">${top ? "+" + top.total : "—"}</div></div>`;
+    }
+
+    function destroyChart(id) {
+      if (charts[id]) { charts[id].destroy(); delete charts[id]; }
+    }
+
+    function renderCharts() {
+      const t = DATA.trend;
+      destroyChart("trend");
+      charts.trend = new Chart(document.getElementById("chartTrend"), {
+        type: "line",
+        data: {
+          labels: t.labels,
+          datasets: [
+            { label: "Жами", data: t.totals, borderColor: "#00a8bc", tension: 0.3, fill: false },
+            { label: "Ёрдамчи", data: t.yordamchi, borderColor: "#37eb91", tension: 0.3, borderDash: [4,4] },
+            { label: "Ботлар", data: t.bots, borderColor: "#ffc846", tension: 0.3, borderDash: [2,2] },
+          ],
+        },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: "#aab" } } }, scales: { x: { ticks: { color: "#7d8eac" } }, y: { ticks: { color: "#7d8eac" } } } },
+      });
+
+      const labels = DATA.matrix.map(r => r.employee.split(" ").pop());
+      const vals = DATA.matrix.map(r => r.total);
+      destroyChart("rank");
+      charts.rank = new Chart(document.getElementById("chartRank"), {
+        type: "bar",
+        data: { labels, datasets: [{ label: "Очко", data: vals, backgroundColor: "#00a8bc88" }] },
+        options: { indexAxis: "y", responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { color: "#7d8eac" } }, y: { ticks: { color: "#aab" } } } },
+      });
+
+      const p = DATA.pareto || [];
+      destroyChart("pareto");
+      charts.pareto = new Chart(document.getElementById("chartPareto"), {
+        type: "doughnut",
+        data: {
+          labels: p.map(x => x.name.slice(0, 14)),
+          datasets: [{ data: p.map(x => x.value), backgroundColor: ["#00a8bc","#37eb91","#ffc846","#9b6ef0","#ff822d","#5fc355","#f0556e","#4ecdc4","#95a5a6","#e67e22"] }],
+        },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: "right", labels: { color: "#aab", boxWidth: 12 } } } },
+      });
+
+      const roleKeys = ["yordamchi","omborga","ombor","yuk","sklad","ishxona"];
+      const roleSums = roleKeys.map(k => DATA.matrix.reduce((s, r) => s + (r.roles[k]?.points || 0), 0));
+      destroyChart("roles");
+      charts.roles = new Chart(document.getElementById("chartRoles"), {
+        type: "bar",
+        data: {
+          labels: ["Ёрд","Омбг","Омб","Юк","Скл","Ишх"],
+          datasets: [{ label: "Очко", data: roleSums, backgroundColor: ["#00a8bc","#00afca","#ff822d","#5fc355","#9b6ef0","#f0556e"] }],
+        },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { color: "#aab" } }, y: { ticks: { color: "#7d8eac" } } } },
+      });
+    }
+
+    function renderMatrix() {
+      const roles = DATA.roles;
+      let head = "<th>№</th><th>Ходим</th>";
+      roles.forEach(r => { head += `<th class="num">${r.short}</th>`; });
+      head += "<th class="num">Жами</th><th class="num">Иш вақти</th>";
+      document.getElementById("matrixHead").innerHTML = head;
+
+      const body = document.getElementById("matrixBody");
+      body.innerHTML = "";
+      (DATA.matrix || []).forEach(row => {
+        const tr = document.createElement("tr");
+        tr.style.cursor = "pointer";
+        let cells = `<td>${row.rank}</td><td class="name">${row.employee}</td>`;
+        roles.forEach(meta => {
+          const rk = meta.key;
+          const pts = row.roles[rk]?.points || 0;
+          cells += `<td class="num">${fmtPts(pts)}</td>`;
+        });
+        cells += `<td class="num"><b>${fmtPts(row.total)}</b></td><td class="num">${row.work_time}</td>`;
+        tr.innerHTML = cells;
+        const detail = document.createElement("tr");
+        detail.className = "detail-row";
+        let inner = '<td colspan="' + (roles.length + 4) + '"><div class="detail-metrics">';
+        roles.forEach(meta => {
+          const block = row.roles[meta.key];
+          if (!block || !block.active) return;
+          inner += `<div class="metric-chip"><b>${meta.icon} ${meta.label}</b> ${fmtPts(block.points)}`;
+          (block.metrics || []).forEach(m => { inner += ` · ${m.k}: ${m.v}`; });
+          if (block.summary) inner += `<br><small style="color:#7d8eac">${block.summary}</small>`;
+          inner += "</div>";
+        });
+        inner += "</div></td>";
+        detail.innerHTML = inner;
+        tr.addEventListener("click", () => detail.classList.toggle("open"));
+        body.appendChild(tr);
+        body.appendChild(detail);
+      });
+    }
+
+    function renderPeriod() {
+      const body = document.getElementById("periodBody");
+      body.innerHTML = "";
+      (DATA.period_ranking || []).forEach(r => {
+        const b = r.bots || {};
+        body.innerHTML += `<tr>
+          <td>${r.rank}</td><td class="name">${r.employee}</td>
+          <td class="num">${fmtPts(r.yordamchi)}</td>
+          <td class="num">${fmtPts(b.omborga||0)}</td>
+          <td class="num">${fmtPts(b.ombor||0)}</td>
+          <td class="num">${fmtPts(b.yuk||0)}</td>
+          <td class="num">${fmtPts(b.sklad||0)}</td>
+          <td class="num">${fmtPts(b.ishxona||0)}</td>
+          <td class="num"><b>${fmtPts(r.total)}</b></td>
+        </tr>`;
+      });
+    }
+
+    function renderRoleReports() {
+      const rr = DATA.role_reports || {};
+      const el = document.getElementById("roleReports");
+      el.innerHTML = "";
+      (DATA.roles || []).forEach(meta => {
+        const items = (rr[meta.key] || []).map(i => `<li>${i}</li>`).join("");
+        el.innerHTML += `<div class="role-card"><h4>${meta.icon} ${meta.label}</h4><ul>${items}</ul></div>`;
+      });
+    }
+
+    function renderHints() {
+      const el = document.getElementById("hintList");
+      const hints = DATA.kaizen_hints || [];
+      if (!hints.length) {
+        el.innerHTML = "<p style='color:var(--muted);padding:8px'>Бу кун учун maxsus eslatma йўқ</p>";
+        return;
+      }
+      el.innerHTML = hints.map(h =>
+        `<div class="hint-item"><strong>${h.employee}</strong>${h.notes.map(n => "• " + n).join("<br>")}</div>`
+      ).join("");
+    }
+
+    function renderAll() {
+      renderKpi();
+      renderCharts();
+      renderMatrix();
+      renderPeriod();
+      renderRoleReports();
+      renderHints();
+    }
+
+    document.querySelectorAll(".tab").forEach(btn => {
+      btn.addEventListener("click", () => {
+        document.querySelectorAll(".tab").forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+        ["shift","period","roles","kaizen"].forEach(id => {
+          document.getElementById("tab-" + id).style.display = btn.dataset.tab === id ? "block" : "none";
+        });
+      });
+    });
+
+    async function refresh() {
+      const day = document.getElementById("dayInput").value;
+      const url = `/analytics/api?token=${encodeURIComponent(TOKEN)}&day=${encodeURIComponent(day)}`;
+      const res = await fetch(url);
+      if (!res.ok) { alert("Хато: " + res.status); return; }
+      DATA = await res.json();
+      renderAll();
+    }
+
+    document.getElementById("btnRefresh").addEventListener("click", refresh);
+    renderAll();
+  </script>
+</body>
+</html>

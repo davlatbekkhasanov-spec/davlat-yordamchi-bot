@@ -20,6 +20,7 @@ BTN_ADMIN_STATUS = "📊 Tizim holati"
 BTN_PREVIEW_REPORT = "👁 Hisobot ko'rish"
 BTN_ADMIN_PHOTO = "📷 Xodim rasmi"
 BTN_RANKING = "🏆 Reyting"
+BTN_ANALYTICS = "📈 Kaizen tahlil"
 
 
 def admin_status_kb() -> ReplyKeyboardMarkup:
@@ -27,10 +28,25 @@ def admin_status_kb() -> ReplyKeyboardMarkup:
         keyboard=[
             [KeyboardButton(text=BTN_ADMIN_STATUS), KeyboardButton(text=BTN_PREVIEW_REPORT)],
             [KeyboardButton(text=BTN_ADMIN_PHOTO), KeyboardButton(text=BTN_RANKING)],
+            [KeyboardButton(text=BTN_ANALYTICS)],
             [KeyboardButton(text=BTN_BONUS), KeyboardButton(text=BTN_PENALTY)],
         ],
         resize_keyboard=True,
     )
+
+
+def analytics_dashboard_url() -> str:
+    """Admin uchun maxfiy analytics havola."""
+    base = resolve_public_hub_url()
+    if not base:
+        return ""
+    secret = (
+        os.getenv("ANALYTICS_SECRET", "").strip()
+        or os.getenv("YORDAMCHI_HUB_SECRET", "").strip()
+    )
+    if not secret:
+        return ""
+    return f"{base}/analytics?token={secret}"
 
 
 def _flag(ok: bool) -> str:
