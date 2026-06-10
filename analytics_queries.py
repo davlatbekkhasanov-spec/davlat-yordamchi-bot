@@ -223,6 +223,8 @@ def _is_empty_hub_summary(key: str, summary: str) -> bool:
             return True
         if re.search(r"ish\s+vaqti\s+0\s*soniya", sl):
             return True
+        if "jami" in sl and re.search(r"\b0\s*soniya\b", sl):
+            return True
     if key == "ombor":
         if "0 ta" in sl and ("0 soniya" in sl or "ish vaqti 0" in sl):
             return True
