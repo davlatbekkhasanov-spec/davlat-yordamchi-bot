@@ -26,6 +26,7 @@ BOT_LABELS = {
     "yuk": "Yuk jarayoni",
     "sklad": "Sklad nazorat",
     "ishxona": "Ishxona nazorat",
+    "mesta": "Mesta nazorat",
 }
 
 _BOT_KEY_ALIASES = {
@@ -34,6 +35,7 @@ _BOT_KEY_ALIASES = {
     "yuk": {"yuk", "yukjarayoni", "yuk_jarayoni"},
     "sklad": {"sklad", "skladnazorat", "sklad_nazorat"},
     "ishxona": {"ishxona", "ishxonanazorat", "ishxona_nazorat"},
+    "mesta": {"mesta", "mesta_nazorat", "mestanazorat"},
 }
 
 _PERSIST = bootstrap_persistence(DB_PATH, legacy_names=("data.db",))

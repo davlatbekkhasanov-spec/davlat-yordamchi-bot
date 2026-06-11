@@ -229,6 +229,7 @@ def score_bot_summary(key: str, summary: str) -> tuple[int, int]:
     yuk: ceil(ish_daq)/2
     sklad: sanaldi×2
     ishxona: ochiq shikoyat × (−40); bartaraf/rad = 0
+    mesta: poz×1 (ish vaqti sekundda)
     """
     s = (summary or "").strip()
     if not s:
@@ -290,6 +291,15 @@ def score_bot_summary(key: str, summary: str) -> tuple[int, int]:
         if "shikoyat" in sl:
             return -40, 0
         return 0, 0
+    if key == "mesta":
+        poz_m = re.search(r"poz\s*(\d+)", sl)
+        poz = int(poz_m.group(1)) if poz_m else 0
+        ish_m = re.search(r"ish\s+([\d:]+)", sl)
+        ish_sec = _parse_hms(ish_m.group(1)) if ish_m else 0
+        ish_sec = _cap_daily_work(ish_sec)
+        if not poz and not ish_sec:
+            return 0, 0
+        return poz, ish_sec
     return 0, 0
 
 
@@ -321,6 +331,13 @@ def _bot_metrics(key: str, summary: str, work_sec: int) -> list[tuple[str, str]]
         return [("ma'lumot", _truncate(s, 28))]
     if key == "ishxona":
         return [("shikoyat", _truncate(s, 28))]
+    if key == "mesta":
+        poz_m = re.search(r"poz\s*(\d+)", sl)
+        poz = poz_m.group(1) if poz_m else "0"
+        return [
+            ("pozitsiya", poz),
+            ("ish vaqti", _fmt_work_duration(work_sec)),
+        ]
     return [("info", _truncate(s, 28))]
 
 

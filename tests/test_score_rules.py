@@ -59,6 +59,11 @@ def test_ombor_17h_capped():
     assert pts <= 720
 
 
+def test_mesta():
+    assert score_bot_summary("mesta", "Mesta: poz 20, ish 60:00, dam 5:00, bekor 0:00") == (20, 60 * 60)
+    assert score_bot_summary("mesta", "Mesta: poz 0, ish 0:00, dam 0:00, bekor 0:00") == (0, 0)
+
+
 def test_omborga_982_ignored():
     pts, sec = score_bot_summary("omborga", "Reys 18, yuk 522m, ish 982:00, dam 6:12")
     assert pts == 36
@@ -73,5 +78,6 @@ if __name__ == "__main__":
     test_sklad()
     test_ishxona()
     test_ombor_17h_capped()
+    test_mesta()
     test_omborga_982_ignored()
     print("PASS test_score_rules")
