@@ -613,7 +613,7 @@ async def build_appendix_lines_async(tg_id: int | set[int], day_iso: str) -> lis
     if not events:
         return []
 
-    order = ("omborga", "ombor", "yuk", "sklad", "ishxona")
+    order = ("omborga", "ombor", "yuk", "sklad", "mesta", "ishxona")
     lines = ["", "── Boshqa botlar (bugun) ──"]
     used = 0
     for key in order:

@@ -10,7 +10,9 @@ from cross_bot_hub import BOT_LABELS, fetch_merged_latest_by_bot
 from daily_report_card import (
     BOT_ORDER,
     DailyReportCardData,
+    MESTA_NORM_MIN,
     _ceil_minutes,
+    _mesta_scoring,
     _parse_omborga_time,
     _parse_ombor_duration,
     _parse_hms,
@@ -25,7 +27,8 @@ RULES_FOOTER = (
     "Ёрдамчи — 1 бирлик = 1 очко\n"
     "Омборга — рейс×2 + иш вақти÷2\n"
     "Омбор — иш вақти×1 · Юк — иш вақти÷2\n"
-    "Склад — саналди×2 · Ишхона — очиқ шикоят −40"
+    "Склад — саналди×2 · Mesta — tejash÷3 (1 poz=3 daq)\n"
+    "Ишхона — очиқ шикоят −40"
 )
 
 _MEDALS = {1: "🥇", 2: "🥈", 3: "🥉"}
@@ -35,6 +38,7 @@ _BOT_COLS = (
     ("ombor", "Omb"),
     ("yuk", "Yuk"),
     ("sklad", "Skl"),
+    ("mesta", "Mes"),
     ("ishxona", "In"),
 )
 
@@ -43,6 +47,7 @@ BOT_SOURCE_CYRL = {
     "ombor": "Омбор хизмат",
     "yuk": "Юк жараёни",
     "sklad": "Склад назорат",
+    "mesta": "Mesta nazorat",
     "ishxona": "Ишхона шикоят",
 }
 
@@ -82,6 +87,12 @@ def explain_bot_formula(key: str, summary: str) -> tuple[int, str]:
         sm = re.search(r"sanaldi\s*(\d+)", sl)
         n = int(sm.group(1)) if sm else 0
         return pts, f"{n}×2"
+    if key == "mesta":
+        poz, work_sec, saved_sec, _ = _mesta_scoring(s)
+        if not poz:
+            return 0, "—"
+        saved_min = saved_sec // 60
+        return pts, f"{poz}p·{fmt_duration_scoring(work_sec)} tejash {saved_min}÷{MESTA_NORM_MIN}={pts}"
     if key == "ishxona":
         om = re.search(r"ochiq\s*=\s*(\d+)", sl)
         if om:
@@ -125,7 +136,7 @@ def _period_table_lines(
     """Period jamoa jadvali — bir qator = bir xodim."""
     hdr = (
         f"{'#':>2} {'Xodim':13} "
-        f"{'Kat':>4} {'Ombg':>4} {'Omb':>4} {'Yuk':>3} {'Skl':>3} {'In':>3} "
+        f"{'Kat':>4} {'Ombg':>4} {'Omb':>4} {'Yuk':>3} {'Skl':>3} {'Mes':>3} {'In':>3} "
         f"{'Σ':>5}"
     )
     sep = "─" * len(hdr)
@@ -140,7 +151,8 @@ def _period_table_lines(
             f"{rank:>2} {name} "
             f"{_n(cat_pts, 4)} {_n(bot_by_key.get('omborga', 0), 4)} "
             f"{_n(bot_by_key.get('ombor', 0), 4)} {_n(bot_by_key.get('yuk', 0), 3)} "
-            f"{_n(bot_by_key.get('sklad', 0), 3)} {_n(bot_by_key.get('ishxona', 0), 3)} "
+            f"{_n(bot_by_key.get('sklad', 0), 3)} {_n(bot_by_key.get('mesta', 0), 3)} "
+            f"{_n(bot_by_key.get('ishxona', 0), 3)} "
             f"{_n(total, 5)}"
         )
     return out

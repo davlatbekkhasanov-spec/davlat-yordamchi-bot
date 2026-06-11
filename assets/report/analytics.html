@@ -213,7 +213,7 @@
           <thead>
             <tr>
               <th>№</th><th>Ходим</th><th class="num">Ёрд</th><th class="num">Омбг</th>
-              <th class="num">Омб</th><th class="num">Юк</th><th class="num">Скл</th><th class="num">Ишх</th><th class="num">Жами</th>
+              <th class="num">Омб</th><th class="num">Юк</th><th class="num">Скл</th><th class="num">Мст</th><th class="num">Ишх</th><th class="num">Жами</th>
             </tr>
           </thead>
           <tbody>
@@ -222,7 +222,7 @@
               <td>{{ r.rank }}</td>
               <td class="name">{{ r.employee }}</td>
               <td class="num">{% if r.yordamchi %}<span class="pos">+{{ r.yordamchi }}</span>{% else %}<span class="zero">—</span>{% endif %}</td>
-              {% for k in ['omborga','ombor','yuk','sklad','ishxona'] %}
+              {% for k in ['omborga','ombor','yuk','sklad','mesta','ishxona'] %}
               {% set v = r.bots[k] %}
               <td class="num">{% if v > 0 %}<span class="pos">+{{ v }}</span>{% elif v < 0 %}<span class="neg">{{ v }}</span>{% else %}<span class="zero">—</span>{% endif %}</td>
               {% endfor %}
@@ -648,7 +648,7 @@
         });
       }
 
-      const roleKeys = ["yordamchi","omborga","ombor","yuk","sklad","ishxona"];
+      const roleKeys = ["yordamchi","omborga","ombor","yuk","sklad","mesta","ishxona"];
       const roleSums = roleKeys.map(k => matrix.reduce((s, r) => s + ((r.roles[k] && r.roles[k].points) || 0), 0));
       const rw = DATA.role_work || {};
       destroyChart("workTime");
@@ -686,8 +686,8 @@
       charts.roles = new Chart(document.getElementById("chartRoles"), {
         type: "bar",
         data: {
-          labels: ["Ёрд","Омбг","Омб","Юк","Скл","Ишх"],
-          datasets: [{ data: roleSums, backgroundColor: ["#00c4d4","#00afca","#ff822d","#5fc355","#9b6ef0","#ff5c7a"], borderRadius: 8 }],
+          labels: ["Ёрд","Омбг","Омб","Юк","Скл","Мст","Ишх"],
+          datasets: [{ data: roleSums, backgroundColor: ["#00c4d4","#00afca","#ff822d","#5fc355","#9b6ef0","#78c8a0","#ff5c7a"], borderRadius: 8 }],
         },
         options: {
           responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } },
@@ -697,9 +697,9 @@
     }
 
     const TAB_IDS = ["detail","shift","period","roles","kaizen","timeline","advanced","goals","integrity","summary"];
-    const ROLE_KEYS = ["yordamchi","omborga","ombor","yuk","sklad","ishxona"];
-    const ROLE_SHORT = ["Ёрд","Омбг","Омб","Юк","Скл","Ишх"];
-    const ROLE_COLORS = ["#00c4d4","#00afca","#ff822d","#5fc355","#9b6ef0","#ff5c7a"];
+    const ROLE_KEYS = ["yordamchi","omborga","ombor","yuk","sklad","mesta","ishxona"];
+    const ROLE_SHORT = ["Ёрд","Омбг","Омб","Юк","Скл","Мст","Ишх"];
+    const ROLE_COLORS = ["#00c4d4","#00afca","#ff822d","#5fc355","#9b6ef0","#78c8a0","#ff5c7a"];
 
     const CHART_OPTS = {
       responsive: true, maintainAspectRatio: false,
@@ -768,7 +768,7 @@
           data: { labels: pl, datasets: [{ data: pr.map(r => r.total), backgroundColor: "#00c4d488", borderRadius: 6 }] },
           options: { indexAxis: "y", ...CHART_OPTS, plugins: { legend: { display: false } }, scales: SCALE_XY },
         });
-        const botKeys = ["omborga","ombor","yuk","sklad","ishxona"];
+        const botKeys = ["omborga","ombor","yuk","sklad","mesta","ishxona"];
         const pds = [{ label: "Ёрд", data: pr.map(r => r.yordamchi || 0), backgroundColor: ROLE_COLORS[0], stack: "p" }]
           .concat(botKeys.map((k, i) => ({
             label: ROLE_SHORT[i + 1], data: pr.map(r => (r.bots || {})[k] || 0),

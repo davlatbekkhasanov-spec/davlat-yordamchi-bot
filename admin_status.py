@@ -177,7 +177,7 @@ async def build_admin_status_report(bot: Bot, admin_uid: int) -> str:
     lines.append("")
 
     lines.append("🤖 <b>Botlar (bugun)</b>")
-    order = ("omborga", "ombor", "yuk", "sklad", "ishxona")
+    order = ("omborga", "ombor", "yuk", "sklad", "mesta", "ishxona")
     problems: list[str] = []
     for key in order:
         label = BOT_LABELS.get(key, key)

@@ -19,14 +19,17 @@ W, H = 1520, 2280
 M = 24
 FONT_DIR = Path(__file__).resolve().parent / "assets" / "fonts"
 
-BOT_ORDER = ("omborga", "ombor", "yuk", "sklad", "ishxona")
+BOT_ORDER = ("omborga", "ombor", "yuk", "sklad", "mesta", "ishxona")
 BOT_BADGE = {
     "omborga": ("OM", (0, 175, 210)),
     "ombor": ("OX", (255, 130, 45)),
     "yuk": ("YJ", (95, 195, 85)),
     "sklad": ("SN", (155, 110, 240)),
+    "mesta": ("MS", (120, 200, 160)),
     "ishxona": ("IN", (240, 85, 110)),
 }
+
+MESTA_NORM_MIN = 3
 
 # Ranglar (referens)
 BG = (7, 12, 32)
@@ -221,6 +224,21 @@ def _ceil_minutes(seconds: int) -> int:
     return int(math.ceil(sec / 60))
 
 
+def _mesta_scoring(summary: str) -> tuple[int, int, int, int]:
+    """(poz, work_sec, saved_sec, points) — har tejangan 3 daq = 1 ball."""
+    sl = (summary or "").lower()
+    poz_m = re.search(r"poz\s*(\d+)", sl)
+    poz = int(poz_m.group(1)) if poz_m else 0
+    ish_m = re.search(r"ish\s+([\d:]+)", sl)
+    work_sec = _cap_daily_work(_parse_hms(ish_m.group(1)) if ish_m else 0)
+    if not poz:
+        return 0, work_sec, 0, 0
+    expected_sec = poz * MESTA_NORM_MIN * 60
+    saved_sec = max(0, expected_sec - work_sec)
+    pts = saved_sec // (MESTA_NORM_MIN * 60)
+    return poz, work_sec, saved_sec, pts
+
+
 def score_bot_summary(key: str, summary: str) -> tuple[int, int]:
     """
     Ochko qoidalari (kelishilgan):
@@ -228,8 +246,8 @@ def score_bot_summary(key: str, summary: str) -> tuple[int, int]:
     ombor: ceil(ish_daq)×1
     yuk: ceil(ish_daq)/2
     sklad: sanaldi×2
+    mesta: tejash÷3 (1 poz=3 daq norma; tez ishlasa ball)
     ishxona: ochiq shikoyat × (−40); bartaraf/rad = 0
-    mesta: poz×1 (ish vaqti sekundda)
     """
     s = (summary or "").strip()
     if not s:
@@ -292,14 +310,10 @@ def score_bot_summary(key: str, summary: str) -> tuple[int, int]:
             return -40, 0
         return 0, 0
     if key == "mesta":
-        poz_m = re.search(r"poz\s*(\d+)", sl)
-        poz = int(poz_m.group(1)) if poz_m else 0
-        ish_m = re.search(r"ish\s+([\d:]+)", sl)
-        ish_sec = _parse_hms(ish_m.group(1)) if ish_m else 0
-        ish_sec = _cap_daily_work(ish_sec)
+        poz, ish_sec, saved_sec, pts = _mesta_scoring(s)
         if not poz and not ish_sec:
             return 0, 0
-        return poz, ish_sec
+        return pts, ish_sec
     return 0, 0
 
 
@@ -332,11 +346,12 @@ def _bot_metrics(key: str, summary: str, work_sec: int) -> list[tuple[str, str]]
     if key == "ishxona":
         return [("shikoyat", _truncate(s, 28))]
     if key == "mesta":
-        poz_m = re.search(r"poz\s*(\d+)", sl)
-        poz = poz_m.group(1) if poz_m else "0"
+        poz, _, saved_sec, pts = _mesta_scoring(s)
         return [
-            ("pozitsiya", poz),
+            ("pozitsiya", str(poz)),
             ("ish vaqti", _fmt_work_duration(work_sec)),
+            ("tejash", _fmt_work_duration(saved_sec)),
+            ("ball", str(pts)),
         ]
     return [("info", _truncate(s, 28))]
 
