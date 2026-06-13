@@ -133,7 +133,32 @@ def test_yuk_zero_does_not_wipe():
     assert "3457" in merged, merged
 
 
-def test_yuk_daily_total_max_not_sum():
+def test_mesta_multiple_sessions_sum_kaizen():
+    """Bir kunda 5 ta mesta yakuni — botdagi kabi ball yig'indisi."""
+    from cross_bot_hub import _merge_mesta_daily, _replay_merged_by_bot
+    from daily_report_card import score_bot_summary
+
+    sessions = [
+        "Mesta: poz 13, ish 7:49, dam 0:00, tejash 31:11, bekor 0:00",
+        "Mesta: poz 15, ish 9:33, dam 0:00, tejash 35:27, bekor 0:00",
+        "Mesta: poz 33, ish 13:30, dam 0:00, tejash 1:25:30, bekor 0:00",
+        "Mesta: poz 11, ish 5:16, dam 0:00, tejash 27:44, bekor 0:00",
+        "Mesta: poz 18, ish 7:34, dam 0:00, tejash 46:26, bekor 0:00",
+    ]
+    per = [score_bot_summary("mesta", s)[0] for s in sessions]
+    assert per == [10, 11, 28, 9, 15]
+    assert sum(per) == 73
+
+    merged = _merge_mesta_daily(sessions)
+    assert "poz 90" in merged
+    assert "kaizen 73" in merged
+    assert score_bot_summary("mesta", merged)[0] == 73
+
+    rows = [{"bot_key": "mesta", "summary": s} for s in sessions]
+    replay = _replay_merged_by_bot(rows)["mesta"]
+    assert score_bot_summary("mesta", replay)[0] == 73
+
+
     a = "Yuk (bugun jami): ish vaqti 1200 soniya"
     b = "Yuk (bugun jami): ish vaqti 2400 soniya"
     merged = _merge_hub_summary("yuk", a, b)

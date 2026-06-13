@@ -203,11 +203,59 @@ def _parse_omborga_totals(summary: str) -> tuple[int, int]:
     return reys, _parse_omborga_ish_sec(sl)
 
 
+def _parse_mesta_hub_summary(summary: str) -> tuple[int, int, int, int, int]:
+    """poz, ish_sec, dam_sec, tejash_sec, bekor_sec."""
+    from time_display import parse_duration_text
+
+    sl = (summary or "").lower()
+
+    def _field(name: str) -> int:
+        m = re.search(rf"{name}\s+([^,]+)", sl)
+        return parse_duration_text(m.group(1).strip()) if m else 0
+
+    poz_m = re.search(r"poz\s*(\d+)", sl)
+    poz = int(poz_m.group(1)) if poz_m else 0
+    return poz, _field("ish"), _field("dam"), _field("tejash"), _field("bekor")
+
+
+def _merge_mesta_daily(summaries: list[str]) -> str:
+    """Bir kunda bir nechta mesta sessiyasi — botdagi kabi ball yig'indisi."""
+    from time_display import fmt_duration
+
+    clean = [s for s in summaries if s and re.search(r"poz\s*\d+", (s or "").lower())]
+    if not clean:
+        return ""
+    if len(clean) == 1:
+        return clean[0][:MAX_SUMMARY_LEN]
+
+    from daily_report_card import _mesta_scoring
+
+    total_poz = total_ish = total_dam = total_tej = total_bek = 0
+    total_pts = 0
+    for s in clean:
+        p, i, d, t, b = _parse_mesta_hub_summary(s)
+        total_poz += p
+        total_ish += i
+        total_dam += d
+        total_tej += t
+        total_bek += b
+        _, _, _, pts = _mesta_scoring(s)
+        total_pts += pts
+
+    merged = (
+        f"Mesta: poz {total_poz}, ish {fmt_duration(total_ish)}, dam {fmt_duration(total_dam)}, "
+        f"tejash {fmt_duration(total_tej)}, bekor {fmt_duration(total_bek)}, kaizen {total_pts}"
+    )
+    return merged[:MAX_SUMMARY_LEN]
+
+
 def _merge_hub_summary(bot_key: str, old: str, new: str) -> str:
     """Bir xil kun+xodim+bot uchun yangi hisobotni eskisiga qo'shish."""
     key = normalize_bot_key(bot_key)
     if not old:
         return new
+    if key == "mesta":
+        return _merge_mesta_daily([old, new])
     if key == "ombor":
         if _is_ombor_cumulative(new):
             nc, ns = _parse_count_sec(new, key)
@@ -554,6 +602,8 @@ def _replay_merged_by_bot(rows: list) -> dict[str, str]:
             merged = _best_ombor_daily(summaries)
         elif k == "sklad":
             merged = _best_sklad_daily(summaries)
+        elif k == "mesta":
+            merged = _merge_mesta_daily(summaries)
         else:
             merged = ""
             for s in summaries:

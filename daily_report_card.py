@@ -229,12 +229,22 @@ def _mesta_scoring(summary: str) -> tuple[int, int, int, int]:
     sl = (summary or "").lower()
     poz_m = re.search(r"poz\s*(\d+)", sl)
     poz = int(poz_m.group(1)) if poz_m else 0
-    ish_m = re.search(r"ish\s+([\d:]+)", sl)
-    work_sec = _cap_daily_work(_parse_hms(ish_m.group(1)) if ish_m else 0)
+    ish_m = re.search(r"ish\s+([^,]+)", sl)
+    work_sec = _cap_daily_work(_parse_hms(ish_m.group(1).strip()) if ish_m else 0)
+    tej_m = re.search(r"tejash\s+([^,]+)", sl)
+    saved_sec = _cap_daily_work(_parse_hms(tej_m.group(1).strip()) if tej_m else 0)
+    kaizen_m = re.search(r"kaizen\s+(\d+)", sl)
+    if kaizen_m:
+        pts = int(kaizen_m.group(1))
+        if not saved_sec and poz:
+            expected_sec = poz * MESTA_NORM_MIN * 60
+            saved_sec = max(0, expected_sec - work_sec)
+        return poz, work_sec, saved_sec, pts
     if not poz:
         return 0, work_sec, 0, 0
-    expected_sec = poz * MESTA_NORM_MIN * 60
-    saved_sec = max(0, expected_sec - work_sec)
+    if not saved_sec:
+        expected_sec = poz * MESTA_NORM_MIN * 60
+        saved_sec = max(0, expected_sec - work_sec)
     pts = saved_sec // (MESTA_NORM_MIN * 60)
     return poz, work_sec, saved_sec, pts
 
