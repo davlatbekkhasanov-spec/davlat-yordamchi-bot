@@ -27,6 +27,7 @@ BOT_LABELS = {
     "sklad": "Sklad nazorat",
     "ishxona": "Ishxona nazorat",
     "mesta": "Mesta nazorat",
+    "faceid": "Face ID davomat",
 }
 
 _BOT_KEY_ALIASES = {
@@ -36,6 +37,7 @@ _BOT_KEY_ALIASES = {
     "sklad": {"sklad", "skladnazorat", "sklad_nazorat"},
     "ishxona": {"ishxona", "ishxonanazorat", "ishxona_nazorat"},
     "mesta": {"mesta", "mesta_nazorat", "mestanazorat"},
+    "faceid": {"faceid", "face_id", "face-id", "faceidbot", "davomat"},
 }
 
 _PERSIST = bootstrap_persistence(DB_PATH, legacy_names=("data.db",))
@@ -113,7 +115,7 @@ def _parse_omborga_ish_sec(sl: str) -> int:
 _MAX_DAILY_WORK_SEC = 12 * 3600
 
 # Kunlik bitta kanonik yozuv — analytics 100% izchillik
-CANONICAL_UPSERT_KEYS = frozenset({"yuk", "ombor", "omborga"})
+CANONICAL_UPSERT_KEYS = frozenset({"yuk", "ombor", "omborga", "faceid"})
 
 
 def _is_ombor_cumulative(summary: str) -> bool:
@@ -256,6 +258,8 @@ def _merge_hub_summary(bot_key: str, old: str, new: str) -> str:
         return new
     if key == "mesta":
         return _merge_mesta_daily([old, new])
+    if key == "faceid":
+        return new or old
     if key == "ombor":
         if _is_ombor_cumulative(new):
             nc, ns = _parse_count_sec(new, key)
@@ -663,7 +667,7 @@ async def build_appendix_lines_async(tg_id: int | set[int], day_iso: str) -> lis
     if not events:
         return []
 
-    order = ("omborga", "ombor", "yuk", "sklad", "mesta", "ishxona")
+    order = ("omborga", "ombor", "yuk", "sklad", "mesta", "ishxona", "faceid")
     lines = ["", "── Boshqa botlar (bugun) ──"]
     used = 0
     for key in order:

@@ -40,6 +40,7 @@ _BOT_COLS = (
     ("sklad", "Skl"),
     ("mesta", "Mes"),
     ("ishxona", "In"),
+    ("faceid", "FI"),
 )
 
 BOT_SOURCE_CYRL = {
@@ -101,6 +102,11 @@ def explain_bot_formula(key: str, summary: str) -> tuple[int, str]:
         if "shikoyat" in sl:
             return pts, "−40"
         return pts, "0"
+    if key == "faceid":
+        ball_m = re.search(r"ball\s*[=:]?\s*([+-]?\d+)", sl)
+        if ball_m:
+            return pts, f"ball={ball_m.group(1)}"
+        return pts, "—"
     return pts, "—"
 
 

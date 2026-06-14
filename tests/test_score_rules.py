@@ -85,6 +85,12 @@ def test_omborga_982_ignored():
     assert sec == 0
 
 
+def test_faceid():
+    assert score_bot_summary("faceid", "Face ID: ball=-60 kech=10 qarz=242 bonus=0") == (-60, 0)
+    assert score_bot_summary("faceid", "Face ID: ball=23 kech=7 bonus=30") == (23, 0)
+    assert score_bot_summary("faceid", "") == (0, 0)
+
+
 if __name__ == "__main__":
     test_ceil_minutes()
     test_omborga()
@@ -94,5 +100,6 @@ if __name__ == "__main__":
     test_ishxona()
     test_ombor_17h_capped()
     test_mesta()
+    test_faceid()
     test_omborga_982_ignored()
     print("PASS test_score_rules")

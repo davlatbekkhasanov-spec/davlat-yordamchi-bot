@@ -19,7 +19,7 @@ W, H = 1520, 2280
 M = 24
 FONT_DIR = Path(__file__).resolve().parent / "assets" / "fonts"
 
-BOT_ORDER = ("omborga", "ombor", "yuk", "sklad", "mesta", "ishxona")
+BOT_ORDER = ("omborga", "ombor", "yuk", "sklad", "mesta", "ishxona", "faceid")
 BOT_BADGE = {
     "omborga": ("OM", (0, 175, 210)),
     "ombor": ("OX", (255, 130, 45)),
@@ -27,6 +27,7 @@ BOT_BADGE = {
     "sklad": ("SN", (155, 110, 240)),
     "mesta": ("MS", (120, 200, 160)),
     "ishxona": ("IN", (240, 85, 110)),
+    "faceid": ("FI", (255, 200, 60)),
 }
 
 MESTA_NORM_MIN = 3
@@ -258,6 +259,7 @@ def score_bot_summary(key: str, summary: str) -> tuple[int, int]:
     sklad: sanaldi×2
     mesta: tejash÷3 (1 poz=3 daq norma; tez ishlasa ball)
     ishxona: ochiq shikoyat × (−40); bartaraf/rad = 0
+    faceid: ball= qiymati to'g'ridan-to'g'ri (kech/qarz/bonus yig'indisi)
     """
     s = (summary or "").strip()
     if not s:
@@ -319,6 +321,11 @@ def score_bot_summary(key: str, summary: str) -> tuple[int, int]:
         if "shikoyat" in sl:
             return -40, 0
         return 0, 0
+    if key == "faceid":
+        ball_m = re.search(r"ball\s*[=:]?\s*([+-]?\d+)", sl)
+        if ball_m:
+            return int(ball_m.group(1)), 0
+        return 0, 0
     if key == "mesta":
         poz, ish_sec, saved_sec, pts = _mesta_scoring(s)
         if not poz and not ish_sec:
@@ -355,6 +362,19 @@ def _bot_metrics(key: str, summary: str, work_sec: int) -> list[tuple[str, str]]
         return [("ma'lumot", _truncate(s, 28))]
     if key == "ishxona":
         return [("shikoyat", _truncate(s, 28))]
+    if key == "faceid":
+        ball_m = re.search(r"ball\s*[=:]?\s*([+-]?\d+)", sl)
+        kech_m = re.search(r"kech\s*[=:]?\s*(\d+)", sl)
+        qarz_m = re.search(r"qarz\s*[=:]?\s*(\d+)", sl)
+        bonus_m = re.search(r"bonus\s*[=:]?\s*(\d+)", sl)
+        out = [("ball", ball_m.group(1) if ball_m else "0")]
+        if kech_m:
+            out.append(("kech", f"-{kech_m.group(1)}"))
+        if qarz_m:
+            out.append(("qarz", f"-{qarz_m.group(1)}"))
+        if bonus_m:
+            out.append(("bonus", f"+{bonus_m.group(1)}"))
+        return out
     if key == "mesta":
         poz, _, saved_sec, pts = _mesta_scoring(s)
         return [

@@ -11,6 +11,7 @@ from jinja2 import Environment, FileSystemLoader, select_autoescape
 from cross_bot_hub import BOT_LABELS
 from daily_report_card import DailyReportCardData
 from points_breakdown import build_daily_breakdown_lines
+from time_display import fmt_duration, parse_duration_text
 
 ASSETS = Path(__file__).resolve().parent / "assets" / "report"
 
@@ -107,8 +108,42 @@ def _format_omborga_body(summary: str) -> tuple[str, bool]:
     return summary.strip(), False
 
 
-def _format_bot_body(summary: str, metrics: list[tuple[str, str]]) -> tuple[str, bool]:
+def _format_hub_time_body(summary: str, *, count_label: str | None = None) -> tuple[str, bool]:
+    if not summary or not summary.strip():
+        return EMPTY_BOT, True
+    sl = summary.lower()
+    if "event yo'q" in sl or "faoliyat yo'q" in sl:
+        return EMPTY_BOT, True
+    sec = parse_duration_text(summary)
+    bits: list[str] = []
+    if count_label:
+        cnt = re.search(r"(\d+)\s*ta", sl)
+        if cnt:
+            bits.append(f"{cnt.group(1)} {count_label}")
+    if sec > 0:
+        bits.append(f"Иш: {fmt_duration(sec)}")
+    if bits:
+        return " · ".join(bits), False
+    return summary.strip(), False
+
+
+def _format_bot_body(
+    summary: str, metrics: list[tuple[str, str]], *, bot_key: str = ""
+) -> tuple[str, bool]:
+    if bot_key == "yuk":
+        body, empty = _format_hub_time_body(summary)
+        if not empty:
+            return body, False
+    if bot_key == "ombor":
+        body, empty = _format_hub_time_body(summary, count_label="та")
+        if not empty:
+            return body, False
     if summary and summary.strip() and "event yo'q" not in summary.lower():
+        sl = summary.lower()
+        if "ish vaqti" in sl and re.search(r"\d+\s*soniya", sl):
+            body, empty = _format_hub_time_body(summary)
+            if not empty:
+                return body, False
         return summary.strip(), False
     if metrics:
         parts = [f"{_metric_label(k)}: {v}" for k, v in metrics if _metric_value_ok(v)]
@@ -117,12 +152,12 @@ def _format_bot_body(summary: str, metrics: list[tuple[str, str]]) -> tuple[str,
     return EMPTY_BOT, True
 
 
-def _report_density(row_count: int) -> str:
-    if row_count <= 6:
-        return "normal"
-    if row_count <= 10:
+def _report_density(row_count: int, breakdown_count: int = 0) -> str:
+    if breakdown_count > 7 or row_count > 10:
+        return "dense"
+    if breakdown_count > 4 or row_count > 6:
         return "compact"
-    return "dense"
+    return "normal"
 
 
 def build_report_html(data: DailyReportCardData, avatar: bytes | None = None) -> str:
@@ -135,7 +170,7 @@ def build_report_html(data: DailyReportCardData, avatar: bytes | None = None) ->
         if bot.key == "omborga":
             body, empty = _format_omborga_body(bot.summary)
         else:
-            body, empty = _format_bot_body(bot.summary, bot.metrics)
+            body, empty = _format_bot_body(bot.summary, bot.metrics, bot_key=bot.key)
         bots.append(
             {
                 "title": title,
@@ -152,7 +187,7 @@ def build_report_html(data: DailyReportCardData, avatar: bytes | None = None) ->
     breakdown_lines = build_daily_breakdown_lines(data)
 
     row_count = len(data.categories)
-    density = _report_density(row_count)
+    density = _report_density(row_count, len(breakdown_lines))
 
     ctx = {
         "css": _css_text(),
