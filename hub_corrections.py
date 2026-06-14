@@ -14,11 +14,19 @@ HUB_PURGE_RULES: tuple[tuple[str, int, str, str], ...] = (
     ("2026-06-07", 8440127425, "ombor", "17 soat"),
     ("2026-06-09", 5465963344, "omborga", "982:00"),
     ("2026-06-09", 5465963344, "omborga", "ish 982"),
+    # 12.06 Toxirov — eski hub format (1:25 → 85 son sifatida o'qilgan) noto'g'ri ball
+    ("2026-06-12", 5732350707, "mesta", "poz"),
 )
 
 # Purge dan keyin bo'sh qolgan slotlarga to'g'ri yozuv (day, tg_id, bot_key, summary)
 HUB_RESTORE_ROWS: tuple[tuple[str, int, str, str], ...] = (
     ("2026-06-09", 5465963344, "omborga", "Reys 18, yuk 522m, dam 6:12"),
+    (
+        "2026-06-12",
+        5732350707,
+        "mesta",
+        "Mesta: poz 90, ish 43:42, dam 0:00, tejash 3:46:18, bekor 0:00, kaizen 73",
+    ),
 )
 
 

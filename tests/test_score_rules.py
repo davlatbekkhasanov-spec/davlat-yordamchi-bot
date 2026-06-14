@@ -69,6 +69,14 @@ def test_mesta():
     # Ortda qolsa — ball yo'q
     assert score_bot_summary("mesta", "Mesta: poz 10, ish 35:00, dam 0:00, tejash 0:00, bekor 5:00") == (0, 35 * 60)
     assert score_bot_summary("mesta", "Mesta: poz 0, ish 0:00, dam 0:00, bekor 0:00") == (0, 0)
+    # ≥1 soat tejash — H:MM:SS
+    assert score_bot_summary(
+        "mesta", "Mesta: poz 33, ish 13:30, dam 0:00, tejash 1:25:30, bekor 0:00, kaizen 28"
+    ) == (28, 13 * 60 + 30)
+    # kaizen maydoni ustuvor
+    assert score_bot_summary(
+        "mesta", "Mesta: poz 13, ish 7:49, dam 0:00, tejash 0:00, bekor 0:00, kaizen 10"
+    ) == (10, 7 * 60 + 49)
 
 
 def test_omborga_982_ignored():

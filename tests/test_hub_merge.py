@@ -139,11 +139,11 @@ def test_mesta_multiple_sessions_sum_kaizen():
     from daily_report_card import score_bot_summary
 
     sessions = [
-        "Mesta: poz 13, ish 7:49, dam 0:00, tejash 31:11, bekor 0:00",
-        "Mesta: poz 15, ish 9:33, dam 0:00, tejash 35:27, bekor 0:00",
-        "Mesta: poz 33, ish 13:30, dam 0:00, tejash 1:25:30, bekor 0:00",
-        "Mesta: poz 11, ish 5:16, dam 0:00, tejash 27:44, bekor 0:00",
-        "Mesta: poz 18, ish 7:34, dam 0:00, tejash 46:26, bekor 0:00",
+        "Mesta: poz 13, ish 7:49, dam 0:00, tejash 31:11, bekor 0:00, kaizen 10",
+        "Mesta: poz 15, ish 9:33, dam 0:00, tejash 35:27, bekor 0:00, kaizen 11",
+        "Mesta: poz 33, ish 13:30, dam 0:00, tejash 1:25:30, bekor 0:00, kaizen 28",
+        "Mesta: poz 11, ish 5:16, dam 0:00, tejash 27:44, bekor 0:00, kaizen 9",
+        "Mesta: poz 18, ish 7:34, dam 0:00, tejash 46:26, bekor 0:00, kaizen 15",
     ]
     per = [score_bot_summary("mesta", s)[0] for s in sessions]
     assert per == [10, 11, 28, 9, 15]
