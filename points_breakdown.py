@@ -52,8 +52,8 @@ BOT_SOURCE_CYRL = {
     "ombor": "Омбор хизмат",
     "yuk": "Юк жараёни",
     "sklad": "Склад назорат",
-    "mesta": "Mesta nazorat",
-    "inventarizatsiya": "Inventarizatsiya nazorat",
+    "mesta": "Mesta",
+    "inventarizatsiya": "Inventarizatsiya",
     "ishxona": "Ишхона шикоят",
     "faceid": "Face ID davomat",
 }

@@ -26,8 +26,8 @@ BOT_LABELS = {
     "yuk": "Yuk jarayoni",
     "sklad": "Sklad nazorat",
     "ishxona": "Ishxona nazorat",
-    "mesta": "Mesta nazorat",
-    "inventarizatsiya": "Inventarizatsiya nazorat",
+    "mesta": "Mesta",
+    "inventarizatsiya": "Inventarizatsiya",
     "faceid": "Face ID davomat",
 }
 
