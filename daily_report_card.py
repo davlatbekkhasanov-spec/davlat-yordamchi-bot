@@ -15,6 +15,7 @@ from cross_bot_hub import BOT_LABELS, fetch_merged_latest_by_bot
 from employee_tg_map import tg_ids_for_employee
 from report_summary import build_summary_text as _build_summary_text
 from report_format import (
+    CategoryRow,
     FaceIdFrame,
     build_compare_rows,
     parse_faceid_summary,
@@ -53,16 +54,6 @@ MUTED = (125, 142, 172)
 GREEN = (55, 235, 145)
 ORANGE = (255, 160, 55)
 TRACK = (28, 42, 68)
-
-
-@dataclass
-class CategoryRow:
-    name: str
-    added: int
-    today: int
-    period: int
-    norm: int
-    yesterday: str = "йўқ"
 
 
 @dataclass
