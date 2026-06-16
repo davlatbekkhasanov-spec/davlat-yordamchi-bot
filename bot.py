@@ -198,6 +198,10 @@ CATEGORIES = [
     "Места хр"
 ]
 
+# Qo'lda kiritish faqat shu kategoriyalar uchun.
+# "Места хр" qiymati cross-bot (mesta bot) orqali keladi.
+MANUAL_INPUT_CATEGORIES = [c for c in CATEGORIES if c != "Места хр"]
+
 # PINлар (ходимларга берилади)
 EMPLOYEE_PINS = {
     "Sagdullaev Yunus": "1111",
@@ -311,7 +315,7 @@ async def seed_pins():
 # ============================================================
 
 def categories_kb(user_id: int | None = None):
-    rows = [[KeyboardButton(text=c)] for c in CATEGORIES] + [[KeyboardButton(text="❌ Бекор қилиш")]]
+    rows = [[KeyboardButton(text=c)] for c in MANUAL_INPUT_CATEGORIES] + [[KeyboardButton(text="❌ Бекор қилиш")]]
     if user_id and is_admin(user_id):
         rows.append([KeyboardButton(text=BTN_ADMIN_STATUS), KeyboardButton(text=BTN_PREVIEW_REPORT)])
         rows.append([KeyboardButton(text=BTN_ADMIN_PHOTO), KeyboardButton(text=BTN_RANKING)])
@@ -1097,7 +1101,7 @@ async def cancel_btn(message: Message):
 # Категория -> Сон (ГУРУҲГА СПАМ ЙЎҚ)
 # ============================================================
 
-@dp.message(lambda m: is_private(m) and m.text in CATEGORIES)
+@dp.message(lambda m: is_private(m) and m.text in MANUAL_INPUT_CATEGORIES)
 async def select_category(message: Message):
     state = user_state.get(message.from_user.id)
     if not state:
@@ -1116,6 +1120,14 @@ async def save_number(message: Message):
 
     emp = state["employee"]
     cat = state["category"]
+    if cat not in MANUAL_INPUT_CATEGORIES:
+        state.pop("category", None)
+        await message.answer(
+            "❗ Бу категорияни ёрдамчи ботдан қўлда киритиш ёпилган.\n"
+            "Места ботдан келган маълумот автоматик ҳисобга олинади.",
+            reply_markup=categories_kb(message.from_user.id),
+        )
+        return
     add_val = int(message.text)
 
     today = date.today()
