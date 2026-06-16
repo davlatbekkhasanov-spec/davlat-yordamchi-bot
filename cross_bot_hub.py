@@ -27,6 +27,7 @@ BOT_LABELS = {
     "sklad": "Sklad nazorat",
     "ishxona": "Ishxona nazorat",
     "mesta": "Mesta nazorat",
+    "inventarizatsiya": "Inventarizatsiya nazorat",
     "faceid": "Face ID davomat",
 }
 
@@ -37,6 +38,13 @@ _BOT_KEY_ALIASES = {
     "sklad": {"sklad", "skladnazorat", "sklad_nazorat"},
     "ishxona": {"ishxona", "ishxonanazorat", "ishxona_nazorat"},
     "mesta": {"mesta", "mesta_nazorat", "mestanazorat"},
+    "inventarizatsiya": {
+        "inventarizatsiya",
+        "inventarizatsiya_nazorat",
+        "inventarizatsiyanazorat",
+        "hisobchi",
+        "pereschet",
+    },
     "faceid": {"faceid", "face_id", "face-id", "faceidbot", "davomat"},
 }
 
@@ -251,6 +259,37 @@ def _merge_mesta_daily(summaries: list[str]) -> str:
     return merged[:MAX_SUMMARY_LEN]
 
 
+def _merge_inventarizatsiya_daily(summaries: list[str]) -> str:
+    """Bir kunda bir nechta inventarizatsiya sessiyasi."""
+    from time_display import fmt_duration
+
+    clean = [s for s in summaries if s and re.search(r"poz\s*\d+", (s or "").lower())]
+    if not clean:
+        return ""
+    if len(clean) == 1:
+        return clean[0][:MAX_SUMMARY_LEN]
+
+    from daily_report_card import _inventarizatsiya_scoring
+
+    total_poz = total_ish = total_dam = total_tej = total_bek = 0
+    total_pts = 0
+    for s in clean:
+        p, i, d, t, b = _parse_mesta_hub_summary(s)
+        total_poz += p
+        total_ish += i
+        total_dam += d
+        total_tej += t
+        total_bek += b
+        _, _, _, pts = _inventarizatsiya_scoring(s)
+        total_pts += pts
+
+    merged = (
+        f"Inventarizatsiya: poz {total_poz}, ish {fmt_duration(total_ish)}, dam {fmt_duration(total_dam)}, "
+        f"tejash {fmt_duration(total_tej)}, bekor {fmt_duration(total_bek)}, kaizen {total_pts}"
+    )
+    return merged[:MAX_SUMMARY_LEN]
+
+
 def _merge_hub_summary(bot_key: str, old: str, new: str) -> str:
     """Bir xil kun+xodim+bot uchun yangi hisobotni eskisiga qo'shish."""
     key = normalize_bot_key(bot_key)
@@ -258,6 +297,8 @@ def _merge_hub_summary(bot_key: str, old: str, new: str) -> str:
         return new
     if key == "mesta":
         return _merge_mesta_daily([old, new])
+    if key == "inventarizatsiya":
+        return _merge_inventarizatsiya_daily([old, new])
     if key == "faceid":
         return new or old
     if key == "ombor":
@@ -608,6 +649,8 @@ def _replay_merged_by_bot(rows: list) -> dict[str, str]:
             merged = _best_sklad_daily(summaries)
         elif k == "mesta":
             merged = _merge_mesta_daily(summaries)
+        elif k == "inventarizatsiya":
+            merged = _merge_inventarizatsiya_daily(summaries)
         else:
             merged = ""
             for s in summaries:
@@ -667,7 +710,7 @@ async def build_appendix_lines_async(tg_id: int | set[int], day_iso: str) -> lis
     if not events:
         return []
 
-    order = ("omborga", "ombor", "yuk", "sklad", "mesta", "ishxona", "faceid")
+    order = ("omborga", "ombor", "yuk", "sklad", "mesta", "inventarizatsiya", "ishxona", "faceid")
     lines = ["", "── Boshqa botlar (bugun) ──"]
     used = 0
     for key in order:

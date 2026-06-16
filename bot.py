@@ -199,8 +199,8 @@ CATEGORIES = [
 ]
 
 # Qo'lda kiritish faqat shu kategoriyalar uchun.
-# "Места хр" qiymati cross-bot (mesta bot) orqali keladi.
-MANUAL_INPUT_CATEGORIES = [c for c in CATEGORIES if c != "Места хр"]
+# "Места хр" va "Пересчет товаров" qiymati cross-bot orqali keladi.
+MANUAL_INPUT_CATEGORIES = [c for c in CATEGORIES if c not in ("Места хр", "Пересчет товаров")]
 
 # PINлар (ходимларга берилади)
 EMPLOYEE_PINS = {

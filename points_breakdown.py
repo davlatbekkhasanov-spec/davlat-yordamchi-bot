@@ -10,8 +10,10 @@ from cross_bot_hub import BOT_LABELS, fetch_merged_latest_by_bot
 from daily_report_card import (
     BOT_ORDER,
     DailyReportCardData,
+    INV_NORM_MIN,
     MESTA_NORM_MIN,
     _ceil_minutes,
+    _inventarizatsiya_scoring,
     _mesta_scoring,
     _parse_omborga_time,
     _parse_ombor_duration,
@@ -28,6 +30,7 @@ RULES_FOOTER = (
     "Омборга — рейс×2 + иш вақти÷2\n"
     "Омбор — иш вақти×1 · Юк — иш вақти÷2\n"
     "Склад — саналди×2 · Mesta — tejash÷3 (1 poz=3 daq)\n"
+    "Inventarizatsiya — tejash÷2 (1 poz=2 daq)\n"
     "Ишхона — очиқ шикоят −40"
 )
 
@@ -39,7 +42,8 @@ _BOT_COLS = (
     ("yuk", "Yuk"),
     ("sklad", "Skl"),
     ("mesta", "Mes"),
-    ("ishxona", "In"),
+    ("inventarizatsiya", "Inv"),
+    ("ishxona", "Ish"),
     ("faceid", "FI"),
 )
 
@@ -49,7 +53,9 @@ BOT_SOURCE_CYRL = {
     "yuk": "Юк жараёни",
     "sklad": "Склад назорат",
     "mesta": "Mesta nazorat",
+    "inventarizatsiya": "Inventarizatsiya nazorat",
     "ishxona": "Ишхона шикоят",
+    "faceid": "Face ID davomat",
 }
 
 _TG_MAX = 3900
@@ -94,6 +100,12 @@ def explain_bot_formula(key: str, summary: str) -> tuple[int, str]:
             return 0, "—"
         saved_min = saved_sec // 60
         return pts, f"{poz}p·{fmt_duration_scoring(work_sec)} tejash {saved_min}÷{MESTA_NORM_MIN}={pts}"
+    if key == "inventarizatsiya":
+        poz, work_sec, saved_sec, _ = _inventarizatsiya_scoring(s)
+        if not poz:
+            return 0, "—"
+        saved_min = saved_sec // 60
+        return pts, f"{poz}p·{fmt_duration_scoring(work_sec)} tejash {saved_min}÷{INV_NORM_MIN}={pts}"
     if key == "ishxona":
         om = re.search(r"ochiq\s*=\s*(\d+)", sl)
         if om:
@@ -251,6 +263,7 @@ def build_daily_breakdown_lines(card: DailyReportCardData) -> list[dict[str, str
                 "source": row.name,
                 "formula": f"{row.today} бирлик (1:1)",
                 "points": f"+{row.added}",
+                "points_raw": row.added,
             }
         )
     for bot in card.bots:
@@ -259,7 +272,14 @@ def build_daily_breakdown_lines(card: DailyReportCardData) -> list[dict[str, str
         _, formula = explain_bot_formula(bot.key, bot.summary)
         label = BOT_SOURCE_CYRL.get(bot.key, BOT_LABELS.get(bot.key, bot.key))
         sign = f"+{bot.score}" if bot.score >= 0 else str(bot.score)
-        lines.append({"source": label, "formula": formula, "points": sign})
+        lines.append(
+            {
+                "source": label,
+                "formula": formula,
+                "points": sign,
+                "points_raw": bot.score,
+            }
+        )
     return lines
 
 

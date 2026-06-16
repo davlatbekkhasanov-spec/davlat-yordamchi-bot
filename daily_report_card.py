@@ -14,23 +14,31 @@ from PIL import Image, ImageDraw, ImageFont
 from cross_bot_hub import BOT_LABELS, fetch_merged_latest_by_bot
 from employee_tg_map import tg_ids_for_employee
 from report_summary import build_summary_text as _build_summary_text
+from report_format import (
+    FaceIdFrame,
+    build_compare_rows,
+    parse_faceid_summary,
+    pick_weakest_category,
+)
 
 W, H = 1520, 2280
 M = 24
 FONT_DIR = Path(__file__).resolve().parent / "assets" / "fonts"
 
-BOT_ORDER = ("omborga", "ombor", "yuk", "sklad", "mesta", "ishxona", "faceid")
+BOT_ORDER = ("omborga", "ombor", "yuk", "sklad", "mesta", "inventarizatsiya", "ishxona", "faceid")
 BOT_BADGE = {
     "omborga": ("OM", (0, 175, 210)),
     "ombor": ("OX", (255, 130, 45)),
     "yuk": ("YJ", (95, 195, 85)),
     "sklad": ("SN", (155, 110, 240)),
     "mesta": ("MS", (120, 200, 160)),
-    "ishxona": ("IN", (240, 85, 110)),
+    "inventarizatsiya": ("IN", (90, 170, 230)),
+    "ishxona": ("IX", (240, 85, 110)),
     "faceid": ("FI", (255, 200, 60)),
 }
 
 MESTA_NORM_MIN = 3
+INV_NORM_MIN = 2
 
 # Ranglar (referens)
 BG = (7, 12, 32)
@@ -99,6 +107,10 @@ class DailyReportCardData:
     work_ish_time: str = "00:00"
     work_dam_time: str = "00:00"
     footer_date: str = ""
+    weak_cat: str = ""
+    weak_add: int = 0
+    compare_rows: list = field(default_factory=list)
+    face: FaceIdFrame = field(default_factory=FaceIdFrame)
 
 
 def _load_fonts():
@@ -250,6 +262,31 @@ def _mesta_scoring(summary: str) -> tuple[int, int, int, int]:
     return poz, work_sec, saved_sec, pts
 
 
+def _inventarizatsiya_scoring(summary: str) -> tuple[int, int, int, int]:
+    """(poz, work_sec, saved_sec, points) — har tejangan 2 daq = 1 ball."""
+    sl = (summary or "").lower()
+    poz_m = re.search(r"poz\s*(\d+)", sl)
+    poz = int(poz_m.group(1)) if poz_m else 0
+    ish_m = re.search(r"ish\s+([^,]+)", sl)
+    work_sec = _cap_daily_work(_parse_hms(ish_m.group(1).strip()) if ish_m else 0)
+    tej_m = re.search(r"tejash\s+([^,]+)", sl)
+    saved_sec = _cap_daily_work(_parse_hms(tej_m.group(1).strip()) if tej_m else 0)
+    kaizen_m = re.search(r"kaizen\s+(\d+)", sl)
+    if kaizen_m:
+        pts = int(kaizen_m.group(1))
+        if not saved_sec and poz:
+            expected_sec = poz * INV_NORM_MIN * 60
+            saved_sec = max(0, expected_sec - work_sec)
+        return poz, work_sec, saved_sec, pts
+    if not poz:
+        return 0, work_sec, 0, 0
+    if not saved_sec:
+        expected_sec = poz * INV_NORM_MIN * 60
+        saved_sec = max(0, expected_sec - work_sec)
+    pts = saved_sec // (INV_NORM_MIN * 60)
+    return poz, work_sec, saved_sec, pts
+
+
 def score_bot_summary(key: str, summary: str) -> tuple[int, int]:
     """
     Ochko qoidalari (kelishilgan):
@@ -258,6 +295,7 @@ def score_bot_summary(key: str, summary: str) -> tuple[int, int]:
     yuk: ceil(ish_daq)/2
     sklad: sanaldi×2
     mesta: tejash÷3 (1 poz=3 daq norma; tez ishlasa ball)
+    inventarizatsiya: tejash÷2 (1 poz=2 daq norma; tez ishlasa ball)
     ishxona: ochiq shikoyat × (−40); bartaraf/rad = 0
     faceid: ball= qiymati to'g'ridan-to'g'ri (kech/qarz/bonus yig'indisi)
     """
@@ -331,6 +369,11 @@ def score_bot_summary(key: str, summary: str) -> tuple[int, int]:
         if not poz and not ish_sec:
             return 0, 0
         return pts, ish_sec
+    if key == "inventarizatsiya":
+        poz, ish_sec, saved_sec, pts = _inventarizatsiya_scoring(s)
+        if not poz and not ish_sec:
+            return 0, 0
+        return pts, ish_sec
     return 0, 0
 
 
@@ -377,6 +420,14 @@ def _bot_metrics(key: str, summary: str, work_sec: int) -> list[tuple[str, str]]
         return out
     if key == "mesta":
         poz, _, saved_sec, pts = _mesta_scoring(s)
+        return [
+            ("pozitsiya", str(poz)),
+            ("ish vaqti", _fmt_work_duration(work_sec)),
+            ("tejash", _fmt_work_duration(saved_sec)),
+            ("ball", str(pts)),
+        ]
+    if key == "inventarizatsiya":
+        poz, _, saved_sec, pts = _inventarizatsiya_scoring(s)
         return [
             ("pozitsiya", str(poz)),
             ("ish vaqti", _fmt_work_duration(work_sec)),
@@ -478,8 +529,21 @@ async def build_card_data(
             data.work_log.append((BOT_LABELS.get(key, key), _fmt_clock(wsec)))
         data.bot_total += score
 
-    data.total_work = _fmt_hms(total_work_sec)
+    face = parse_faceid_summary(events.get("faceid", ""))
+    if tg_set and yday_iso:
+        yevents = await fetch_merged_latest_by_bot(tg_set, yday_iso)
+        yface = parse_faceid_summary(yevents.get("faceid", ""))
+        face.qarz_yesterday_min = yface.qarz_today_min
+    data.face = face
+
+    if face.active_min > 0:
+        data.total_work = face.active_work
+    else:
+        data.total_work = _fmt_hms(total_work_sec)
+
     data.grand_total = cat_total + data.bot_total
+    data.compare_rows = build_compare_rows(data.categories)
+    data.weak_cat, data.weak_add = pick_weakest_category(data.categories)
 
     scores: list[tuple[str, int, int]] = []
     for emp in employees:
