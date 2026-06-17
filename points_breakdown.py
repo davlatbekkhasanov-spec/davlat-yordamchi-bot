@@ -10,6 +10,7 @@ from cross_bot_hub import BOT_LABELS, fetch_merged_latest_by_bot
 from daily_report_card import (
     BOT_ORDER,
     DailyReportCardData,
+    HUB_CATEGORY_BOT_KEYS,
     INV_NORM_MIN,
     MESTA_NORM_MIN,
     _ceil_minutes,
@@ -196,6 +197,8 @@ def format_daily_breakdown_html(card: DailyReportCardData) -> str:
             f"{row.name[:14]:<14} {str(row.today) + ' ta (1:1)':<16} {('+' + str(row.added)):>5}"
         )
     for bot in card.bots:
+        if bot.key in HUB_CATEGORY_BOT_KEYS:
+            continue
         if bot.score == 0 and not (bot.summary or "").strip():
             continue
         n += 1
@@ -255,18 +258,28 @@ async def gather_period_breakdown_rows(
 def build_daily_breakdown_lines(card: DailyReportCardData) -> list[dict[str, str]]:
     """Kunlik hisobot ichidagi «Манба ва ҳисоблаш» qatorlari (kirill)."""
     lines: list[dict[str, str]] = []
+    mesta_bot = next((b for b in card.bots if b.key == "mesta"), None)
+    inv_bot = next((b for b in card.bots if b.key == "inventarizatsiya"), None)
     for row in card.categories:
         if row.added <= 0:
             continue
+        if row.name == "Места хр" and mesta_bot:
+            _, formula = explain_bot_formula("mesta", mesta_bot.summary)
+        elif row.name == "Пересчет товаров" and inv_bot:
+            _, formula = explain_bot_formula("inventarizatsiya", inv_bot.summary)
+        else:
+            formula = f"{row.today} бирлик (1:1)"
         lines.append(
             {
                 "source": row.name,
-                "formula": f"{row.today} бирлик (1:1)",
+                "formula": formula,
                 "points": f"+{row.added}",
                 "points_raw": row.added,
             }
         )
     for bot in card.bots:
+        if bot.key in HUB_CATEGORY_BOT_KEYS:
+            continue
         if bot.score == 0 and not (bot.summary or "").strip():
             continue
         _, formula = explain_bot_formula(bot.key, bot.summary)
@@ -278,6 +291,16 @@ def build_daily_breakdown_lines(card: DailyReportCardData) -> list[dict[str, str
                 "formula": formula,
                 "points": sign,
                 "points_raw": bot.score,
+            }
+        )
+    if card.adj_total:
+        sign = f"+{card.adj_total}" if card.adj_total > 0 else str(card.adj_total)
+        lines.append(
+            {
+                "source": "Қўшимча бонус",
+                "formula": "админ бонус/жарима",
+                "points": sign,
+                "points_raw": card.adj_total,
             }
         )
     return lines

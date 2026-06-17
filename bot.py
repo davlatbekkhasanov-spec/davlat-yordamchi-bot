@@ -74,8 +74,10 @@ from ranking_adjustments import (
     BTN_ADJ_CONFIRM,
     BTN_BONUS,
     BTN_PENALTY,
+    day_adjustment_net,
     init_schema as init_ranking_adj_schema,
 )
+from hub_reports_sync import enrich_session_agg_from_hub, replay_hub_categories_for_day
 from employee_photo_admin import (
     admin_photo_state,
     handle_photo_cancel,
@@ -687,28 +689,29 @@ async def employee_tg_map() -> dict[str, int]:
 
 async def _session_agg(uid: int, emp: str, state: dict | None) -> dict[str, int]:
     session = (state or {}).get("session") or []
+    today_iso = today_local().isoformat()
     if session:
         agg: dict[str, int] = {}
         for it in session:
             agg[it["category"]] = agg.get(it["category"], 0) + int(it["added"])
-        return agg
-    today_iso = today_local().isoformat()
-    agg = {}
-    for cat in CATEGORIES:
-        v = await sum_day(today_iso, emp, cat)
-        if v > 0:
-            agg[cat] = v
-    return agg
+    else:
+        agg = {}
+        for cat in CATEGORIES:
+            v = await sum_day(today_iso, emp, cat)
+            if v > 0:
+                agg[cat] = v
+    etg_map = await employee_tg_map()
+    return await enrich_session_agg_from_hub(emp, today_iso, agg, employee_tg_map=etg_map)
 
 
 async def build_report_png_for_user(uid: int, emp: str, agg: dict[str, int]) -> tuple[bytes, object] | None:
-    if not agg:
-        return None
     today = today_local()
     today_iso = today.isoformat()
     yday_iso = (today - timedelta(days=1)).isoformat()
     period = get_period_key(today)
-    best_cat, best_add = max(agg.items(), key=lambda x: x[1])
+    etg_map = await employee_tg_map()
+    agg = await enrich_session_agg_from_hub(emp, today_iso, dict(agg), employee_tg_map=etg_map)
+    best_cat, best_add = max(agg.items(), key=lambda x: x[1]) if agg else ("", 0)
 
     today_total = 0
     yday_total = 0
@@ -724,7 +727,7 @@ async def build_report_png_for_user(uid: int, emp: str, agg: dict[str, int]) -> 
         overall_text = f"Кечага нисбатан: {overall_delta:+d}. {motivational(overall_delta)}"
 
     avatar = await get_employee_photo(uid, employee=emp)
-    etg_map = await employee_tg_map()
+    adj = await day_adjustment_net(db_fetchone, today_iso, emp)
     card = await build_card_data(
         employee=emp,
         day_iso=today_iso,
@@ -742,7 +745,10 @@ async def build_report_png_for_user(uid: int, emp: str, agg: dict[str, int]) -> 
         sum_day_total=sum_day_total,
         employee_tg_map=etg_map,
         day_has_any=day_has_any,
+        adj_total=adj,
     )
+    if card.grand_total == 0 and not card.categories:
+        return None
     png = await render_report_png(card, avatar=avatar)
     return png, card
 
@@ -1205,6 +1211,8 @@ async def finalize_report(message: Message):
     agg: dict[str, int] = {}
     for it in state["session"]:
         agg[it["category"]] = agg.get(it["category"], 0) + int(it["added"])
+    etg_map = await employee_tg_map()
+    agg = await enrich_session_agg_from_hub(emp, today_iso, agg, employee_tg_map=etg_map)
 
     best_cat, best_add = max(agg.items(), key=lambda x: x[1])
 
@@ -2486,6 +2494,25 @@ async def hubtoday_cmd(message: Message):
     await message.answer(
         box(lines, title="HUB TODAY"),
         parse_mode="HTML",
+        reply_markup=await keyboard_for_user(uid),
+    )
+
+
+@dp.message(Command("synccategories"))
+async def sync_categories_cmd(message: Message):
+    """Admin: hub mesta/pereschet → reports (kun bo'yicha)."""
+    if not is_private(message) or not is_admin(message.from_user.id):
+        return
+    args = (message.text or "").strip().split()[1:]
+    day = today_local().isoformat()
+    for a in args:
+        if len(a) == 10 and a[4] == "-" and a[7] == "-":
+            day = a
+            break
+    n = await replay_hub_categories_for_day(day)
+    uid = message.from_user.id if message.from_user else 0
+    await message.answer(
+        f"✅ {day}: {n} ta xodim — Места хр / Пересчет reports ga yozildi.",
         reply_markup=await keyboard_for_user(uid),
     )
 

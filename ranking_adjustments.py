@@ -55,6 +55,25 @@ async def insert_adjustment(
     )
 
 
+async def day_adjustment_net(db_fetchone, day_iso: str, employee: str) -> int:
+    """Kunlik bonus − jarima (hisobot jami)."""
+    net = 0
+    for name in employee_name_variants(employee):
+        row = await db_fetchone(
+            """
+            SELECT
+                COALESCE(SUM(CASE WHEN kind = 'bonus' THEN points ELSE 0 END), 0) AS b,
+                COALESCE(SUM(CASE WHEN kind = 'penalty' THEN points ELSE 0 END), 0) AS p
+            FROM ranking_adjustments
+            WHERE day = ? AND employee = ?
+            """,
+            (day_iso, name),
+        )
+        if row:
+            net += int(row["b"] or 0) - int(row["p"] or 0)
+    return net
+
+
 async def period_adjustment_net(db_fetchone, period: str, employee: str) -> int:
     """Bonus − jarima (faqat reyting)."""
     net = 0

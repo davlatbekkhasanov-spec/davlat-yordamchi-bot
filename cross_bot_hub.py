@@ -586,6 +586,14 @@ async def record_event(
             )
         _conn.commit()
 
+    if key in ("mesta", "inventarizatsiya"):
+        try:
+            from hub_reports_sync import sync_hub_categories_for_tg
+
+            await sync_hub_categories_for_tg(int(tg_id), day_s)
+        except Exception:
+            log.exception("Hub→reports sync xato tg=%s day=%s key=%s", tg_id, day_s, key)
+
 
 async def ensure_hub_seed() -> int:
     """Kod ichidagi boshlang'ich yozuvlar — faqat bo'sh slotlarga, bir marta."""

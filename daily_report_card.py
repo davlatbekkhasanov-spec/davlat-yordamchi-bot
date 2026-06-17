@@ -27,6 +27,13 @@ M = 24
 FONT_DIR = Path(__file__).resolve().parent / "assets" / "fonts"
 
 BOT_ORDER = ("omborga", "ombor", "yuk", "sklad", "mesta", "inventarizatsiya", "ishxona", "faceid")
+# Ballari «Места хр» / «Пересчет товаров» категориясида — bot_total ga qo'shilmaydi
+HUB_CATEGORY_BOT_KEYS = frozenset({"mesta", "inventarizatsiya"})
+HUB_CATEGORY_MAP = {
+    "mesta": "Места хр",
+    "inventarizatsiya": "Пересчет товаров",
+}
+HUB_ONLY_CATEGORIES = frozenset(HUB_CATEGORY_MAP.values())
 BOT_BADGE = {
     "omborga": ("OM", (0, 175, 210)),
     "ombor": ("OX", (255, 130, 45)),
@@ -87,6 +94,7 @@ class DailyReportCardData:
     cat_total: int = 0
     bot_total: int = 0
     grand_total: int = 0
+    adj_total: int = 0
     total_work: str = "00:00:00"
     period_sum: int = 0
     rank: int = 0
@@ -368,6 +376,19 @@ def score_bot_summary(key: str, summary: str) -> tuple[int, int]:
     return 0, 0
 
 
+def hub_category_points(events: dict[str, str]) -> dict[str, int]:
+    """Kunlik hub xulosasidan kategoriya ballari."""
+    out: dict[str, int] = {}
+    for key, cat in HUB_CATEGORY_MAP.items():
+        summary = (events.get(key) or "").strip()
+        if not summary:
+            continue
+        pts, _ = score_bot_summary(key, summary)
+        if pts > 0:
+            out[cat] = pts
+    return out
+
+
 def _bot_metrics(key: str, summary: str, work_sec: int) -> list[tuple[str, str]]:
     s = summary or ""
     sl = s.lower()
@@ -464,6 +485,7 @@ async def build_card_data(
     sum_day_total: Callable[..., Awaitable[int]],
     employee_tg_map: dict[str, int],
     day_has_any: Callable[..., Awaitable[bool]] | None = None,
+    adj_total: int = 0,
 ) -> DailyReportCardData:
     data = DailyReportCardData(
         day_iso=day_iso,
@@ -473,14 +495,31 @@ async def build_card_data(
         best_add=best_add,
         overall_text=overall_text,
     )
+    tg_set = tg_ids_for_employee(employee, employee_tg_map=employee_tg_map)
+    events: dict[str, str] = {}
+    if tg_set:
+        events = await fetch_merged_latest_by_bot(tg_set, day_iso)
+    hub_pts = hub_category_points(events)
+    merged_agg = dict(session_agg)
+    for cat, pts in hub_pts.items():
+        if pts > 0:
+            merged_agg[cat] = pts
+
     period_sum = 0
     cat_total = 0
     for cat in categories:
-        if cat not in session_agg:
+        if cat not in merged_agg:
             continue
-        added = int(session_agg[cat])
-        cat_total += added
-        today = await sum_day(day_iso, employee, cat)
+        added = int(merged_agg[cat])
+        if added <= 0:
+            continue
+        if cat in HUB_ONLY_CATEGORIES:
+            if cat == "Места хр":
+                today, _, _, _ = _mesta_scoring(events.get("mesta", ""))
+            else:
+                today, _, _, _ = _inventarizatsiya_scoring(events.get("inventarizatsiya", ""))
+        else:
+            today = await sum_day(day_iso, employee, cat)
         per = await sum_period(period, employee, cat)
         plan = await get_plan(period, employee, cat)
         norm = int(plan) if plan else today
@@ -496,12 +535,10 @@ async def build_card_data(
         data.categories.append(
             CategoryRow(name=cat, added=added, today=today, period=per, norm=norm, yesterday=ytxt)
         )
+        cat_total += added
 
     data.cat_total = cat_total
     data.period_sum = period_sum
-    # Faqat shu xodimga bog'langan tg_id — operator Telegrami boshqa profil uchun emas
-    tg_set = tg_ids_for_employee(employee, employee_tg_map=employee_tg_map)
-    events = await fetch_merged_latest_by_bot(tg_set, day_iso) if tg_set else {}
     total_work_sec = 0
     for key in BOT_ORDER:
         summary = events.get(key, "")
@@ -518,7 +555,8 @@ async def build_card_data(
         )
         if summary.strip() and wsec:
             data.work_log.append((BOT_LABELS.get(key, key), _fmt_clock(wsec)))
-        data.bot_total += score
+        if key not in HUB_CATEGORY_BOT_KEYS:
+            data.bot_total += score
 
     face = parse_faceid_summary(events.get("faceid", ""))
     if tg_set and yday_iso:
@@ -532,7 +570,8 @@ async def build_card_data(
     else:
         data.total_work = _fmt_hms(total_work_sec)
 
-    data.grand_total = cat_total + data.bot_total
+    data.grand_total = cat_total + data.bot_total + int(adj_total or 0)
+    data.adj_total = int(adj_total or 0)
     data.compare_rows = build_compare_rows(data.categories)
     data.weak_cat, data.weak_add = pick_weakest_category(data.categories)
 
@@ -545,10 +584,13 @@ async def build_card_data(
         if tg_set:
             ev = await fetch_merged_latest_by_bot(tg_set, day_iso)
             for k in BOT_ORDER:
-                if k in ev:
-                    sc, ws = score_bot_summary(k, ev[k])
-                    bot_pts += sc
-                    work_sec += ws
+                if k not in ev:
+                    continue
+                if k in HUB_CATEGORY_BOT_KEYS:
+                    continue
+                sc, ws = score_bot_summary(k, ev[k])
+                bot_pts += sc
+                work_sec += ws
         total = cat_pts + bot_pts
         if total > 0 or emp == employee:
             scores.append((emp, total, work_sec))
@@ -565,6 +607,11 @@ async def build_card_data(
     data.work_ish_time, data.work_dam_time = _parse_work_rest(events)
     data.footer_date = _fmt_footer_date(day_iso)
     data.summary_text, data.recommendation_text = _build_summary_text(data)
+    if data.categories:
+        data.best_cat, data.best_add = max(
+            ((c.name, c.added) for c in data.categories),
+            key=lambda x: x[1],
+        )
     return data
 
 
