@@ -134,7 +134,7 @@ def test_yuk_zero_does_not_wipe():
 
 
 def test_mesta_multiple_sessions_sum_kaizen():
-    """Bir kunda 5 ta mesta yakuni — botdagi kabi ball yig'indisi."""
+    """Bir kunda 5 ta mesta yakuni — kaizen faqat bonus, jami = poz + bonus."""
     from cross_bot_hub import _merge_mesta_daily, _replay_merged_by_bot
     from daily_report_card import score_bot_summary
 
@@ -146,17 +146,36 @@ def test_mesta_multiple_sessions_sum_kaizen():
         "Mesta: poz 18, ish 7:34, dam 0:00, tejash 46:26, bekor 0:00, kaizen 15",
     ]
     per = [score_bot_summary("mesta", s)[0] for s in sessions]
-    assert per == [10, 11, 28, 9, 15]
-    assert sum(per) == 73
+    assert per == [23, 26, 61, 20, 33]
+    assert sum(per) == 163
 
     merged = _merge_mesta_daily(sessions)
     assert "poz 90" in merged
     assert "kaizen 73" in merged
-    assert score_bot_summary("mesta", merged)[0] == 73
+    assert score_bot_summary("mesta", merged)[0] == 163
 
     rows = [{"bot_key": "mesta", "summary": s} for s in sessions]
     replay = _replay_merged_by_bot(rows)["mesta"]
-    assert score_bot_summary("mesta", replay)[0] == 73
+    assert score_bot_summary("mesta", replay)[0] == 163
+
+
+def test_inventarizatsiya_multiple_sessions_no_double_poz():
+    """Bir nechta sessiya — kaizen maydonida poz qayta hisoblanmasin."""
+    from cross_bot_hub import _merge_inventarizatsiya_daily
+    from daily_report_card import score_bot_summary
+
+    sessions = [
+        "Inventarizatsiya: poz 100, ish 3:00:00, dam 0:00, tejash 0:30:00, bekor 0:00, kaizen 15",
+        "Inventarizatsiya: poz 170, ish 5:00:00, dam 0:00, tejash 1:00:00, bekor 0:00, kaizen 30",
+    ]
+    per = [score_bot_summary("inventarizatsiya", s)[0] for s in sessions]
+    assert per == [115, 200]
+    assert sum(per) == 315
+
+    merged = _merge_inventarizatsiya_daily(sessions)
+    assert "poz 270" in merged
+    assert "kaizen 45" in merged
+    assert score_bot_summary("inventarizatsiya", merged)[0] == 315
 
 
     a = "Yuk (bugun jami): ish vaqti 1200 soniya"
