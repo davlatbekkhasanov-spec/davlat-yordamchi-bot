@@ -100,19 +100,17 @@ def explain_bot_formula(key: str, summary: str) -> tuple[int, str]:
         if not poz:
             return 0, "—"
         saved_min = saved_sec // 60
-        bonus_pts = int(re.search(r"kaizen\s+(\d+)", sl).group(1)) if re.search(r"kaizen\s+(\d+)", sl) else saved_sec // (MESTA_NORM_MIN * 60)
         if re.search(r"kaizen\s+(\d+)", sl):
-            return pts, f"{poz} поз + bonus {bonus_pts} = {pts}"
-        return pts, f"{poz} поз + tejash {saved_min}÷{MESTA_NORM_MIN}={bonus_pts} = {pts}"
+            return pts, f"{poz} poz · kaizen bonus +{pts}"
+        return pts, f"{poz} poz · tejash {saved_min}÷{MESTA_NORM_MIN}={pts}"
     if key == "inventarizatsiya":
         poz, work_sec, saved_sec, _ = _inventarizatsiya_scoring(s)
         if not poz:
             return 0, "—"
         saved_min = saved_sec // 60
-        bonus_pts = int(re.search(r"kaizen\s+(\d+)", sl).group(1)) if re.search(r"kaizen\s+(\d+)", sl) else saved_sec // (INV_NORM_MIN * 60)
         if re.search(r"kaizen\s+(\d+)", sl):
-            return pts, f"{poz} поз + bonus {bonus_pts} = {pts}"
-        return pts, f"{poz} поз + tejash {saved_min}÷{INV_NORM_MIN}={bonus_pts} = {pts}"
+            return pts, f"{poz} poz · kaizen bonus +{pts}"
+        return pts, f"{poz} poz · tejash {saved_min}÷{INV_NORM_MIN}={pts}"
     if key == "ishxona":
         om = re.search(r"ochiq\s*=\s*(\d+)", sl)
         if om:

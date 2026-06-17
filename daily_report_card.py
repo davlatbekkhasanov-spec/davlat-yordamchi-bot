@@ -247,18 +247,18 @@ def _mesta_scoring(summary: str) -> tuple[int, int, int, int]:
     saved_sec = _cap_daily_work(_parse_hms(tej_m.group(1).strip()) if tej_m else 0)
     kaizen_m = re.search(r"kaizen\s+(\d+)", sl)
     if kaizen_m:
-        bonus_pts = int(kaizen_m.group(1))
+        pts = int(kaizen_m.group(1))
         if not saved_sec and poz:
             expected_sec = poz * MESTA_NORM_MIN * 60
             saved_sec = max(0, expected_sec - work_sec)
-        return poz, work_sec, saved_sec, (poz + bonus_pts)
+        return poz, work_sec, saved_sec, pts
     if not poz:
         return 0, work_sec, 0, 0
     if not saved_sec:
         expected_sec = poz * MESTA_NORM_MIN * 60
         saved_sec = max(0, expected_sec - work_sec)
-    bonus_pts = saved_sec // (MESTA_NORM_MIN * 60)
-    return poz, work_sec, saved_sec, (poz + bonus_pts)
+    pts = saved_sec // (MESTA_NORM_MIN * 60)
+    return poz, work_sec, saved_sec, pts
 
 
 def _inventarizatsiya_scoring(summary: str) -> tuple[int, int, int, int]:
@@ -272,18 +272,18 @@ def _inventarizatsiya_scoring(summary: str) -> tuple[int, int, int, int]:
     saved_sec = _cap_daily_work(_parse_hms(tej_m.group(1).strip()) if tej_m else 0)
     kaizen_m = re.search(r"kaizen\s+(\d+)", sl)
     if kaizen_m:
-        bonus_pts = int(kaizen_m.group(1))
+        pts = int(kaizen_m.group(1))
         if not saved_sec and poz:
             expected_sec = poz * INV_NORM_MIN * 60
             saved_sec = max(0, expected_sec - work_sec)
-        return poz, work_sec, saved_sec, (poz + bonus_pts)
+        return poz, work_sec, saved_sec, pts
     if not poz:
         return 0, work_sec, 0, 0
     if not saved_sec:
         expected_sec = poz * INV_NORM_MIN * 60
         saved_sec = max(0, expected_sec - work_sec)
-    bonus_pts = saved_sec // (INV_NORM_MIN * 60)
-    return poz, work_sec, saved_sec, (poz + bonus_pts)
+    pts = saved_sec // (INV_NORM_MIN * 60)
+    return poz, work_sec, saved_sec, pts
 
 
 def score_bot_summary(key: str, summary: str) -> tuple[int, int]:
