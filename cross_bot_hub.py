@@ -238,10 +238,9 @@ def _merge_mesta_daily(summaries: list[str]) -> str:
     if len(clean) == 1:
         return clean[0][:MAX_SUMMARY_LEN]
 
-    from daily_report_card import _mesta_scoring
+    from daily_report_card import MESTA_NORM_MIN, hub_teje_bonus
 
     total_poz = total_ish = total_dam = total_tej = total_bek = 0
-    total_bonus = 0
     for s in clean:
         p, i, d, t, b = _parse_mesta_hub_summary(s)
         total_poz += p
@@ -249,8 +248,7 @@ def _merge_mesta_daily(summaries: list[str]) -> str:
         total_dam += d
         total_tej += t
         total_bek += b
-        _, _, _, pts = _mesta_scoring(s)
-        total_bonus += max(0, pts - p)
+    total_bonus = hub_teje_bonus(total_poz, total_ish, total_dam, MESTA_NORM_MIN)
 
     merged = (
         f"Mesta: poz {total_poz}, ish {fmt_duration(total_ish)}, dam {fmt_duration(total_dam)}, "
@@ -269,10 +267,9 @@ def _merge_inventarizatsiya_daily(summaries: list[str]) -> str:
     if len(clean) == 1:
         return clean[0][:MAX_SUMMARY_LEN]
 
-    from daily_report_card import _inventarizatsiya_scoring
+    from daily_report_card import INV_NORM_MIN, hub_teje_bonus
 
     total_poz = total_ish = total_dam = total_tej = total_bek = 0
-    total_bonus = 0
     for s in clean:
         p, i, d, t, b = _parse_mesta_hub_summary(s)
         total_poz += p
@@ -280,8 +277,7 @@ def _merge_inventarizatsiya_daily(summaries: list[str]) -> str:
         total_dam += d
         total_tej += t
         total_bek += b
-        _, _, _, pts = _inventarizatsiya_scoring(s)
-        total_bonus += max(0, pts - p)
+    total_bonus = hub_teje_bonus(total_poz, total_ish, total_dam, INV_NORM_MIN)
 
     merged = (
         f"Inventarizatsiya: poz {total_poz}, ish {fmt_duration(total_ish)}, dam {fmt_duration(total_dam)}, "

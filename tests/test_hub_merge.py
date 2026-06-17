@@ -151,16 +151,16 @@ def test_mesta_multiple_sessions_sum_kaizen():
 
     merged = _merge_mesta_daily(sessions)
     assert "poz 90" in merged
-    assert "kaizen 73" in merged
-    assert score_bot_summary("mesta", merged)[0] == 163
+    assert "kaizen 75" in merged
+    assert score_bot_summary("mesta", merged)[0] == 165
 
     rows = [{"bot_key": "mesta", "summary": s} for s in sessions]
     replay = _replay_merged_by_bot(rows)["mesta"]
-    assert score_bot_summary("mesta", replay)[0] == 163
+    assert score_bot_summary("mesta", replay)[0] == 165
 
 
 def test_inventarizatsiya_multiple_sessions_no_double_poz():
-    """Bir nechta sessiya — kaizen maydonida poz qayta hisoblanmasin."""
+    """Bir nechta sessiya — kunlik bonus poz+ish+dam dan qayta hisoblanadi."""
     from cross_bot_hub import _merge_inventarizatsiya_daily
     from daily_report_card import score_bot_summary
 
@@ -169,13 +169,13 @@ def test_inventarizatsiya_multiple_sessions_no_double_poz():
         "Inventarizatsiya: poz 170, ish 5:00:00, dam 0:00, tejash 1:00:00, bekor 0:00, kaizen 30",
     ]
     per = [score_bot_summary("inventarizatsiya", s)[0] for s in sessions]
-    assert per == [115, 200]
-    assert sum(per) == 315
+    assert per == [110, 190]
+    assert sum(per) == 300
 
     merged = _merge_inventarizatsiya_daily(sessions)
     assert "poz 270" in merged
-    assert "kaizen 45" in merged
-    assert score_bot_summary("inventarizatsiya", merged)[0] == 315
+    assert "kaizen 30" in merged
+    assert score_bot_summary("inventarizatsiya", merged)[0] == 300
 
 
     a = "Yuk (bugun jami): ish vaqti 1200 soniya"

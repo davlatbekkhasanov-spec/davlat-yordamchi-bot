@@ -236,53 +236,55 @@ def _ceil_minutes(seconds: int) -> int:
     return int(math.ceil(sec / 60))
 
 
-def _mesta_scoring(summary: str) -> tuple[int, int, int, int]:
-    """(poz, work_sec, saved_sec, points) — points = poz + bonus(tejash/kaizen)."""
+def _hub_session_times(summary: str) -> tuple[int, int, int, int]:
+    """poz, ish_sec, dam_sec, tejash_sec — mesta/inventarizatsiya hub."""
     sl = (summary or "").lower()
     poz_m = re.search(r"poz\s*(\d+)", sl)
     poz = int(poz_m.group(1)) if poz_m else 0
     ish_m = re.search(r"ish\s+([^,]+)", sl)
     work_sec = _cap_daily_work(_parse_hms(ish_m.group(1).strip()) if ish_m else 0)
+    dam_m = re.search(r"dam\s+([^,]+)", sl)
+    pause_sec = _cap_daily_work(_parse_hms(dam_m.group(1).strip()) if dam_m else 0)
     tej_m = re.search(r"tejash\s+([^,]+)", sl)
     saved_sec = _cap_daily_work(_parse_hms(tej_m.group(1).strip()) if tej_m else 0)
-    kaizen_m = re.search(r"kaizen\s+(\d+)", sl)
-    if kaizen_m:
-        bonus_pts = int(kaizen_m.group(1))
-        if not saved_sec and poz:
-            expected_sec = poz * MESTA_NORM_MIN * 60
-            saved_sec = max(0, expected_sec - work_sec)
-        return poz, work_sec, saved_sec, (poz + bonus_pts)
-    if not poz:
+    return poz, work_sec, pause_sec, saved_sec
+
+
+def hub_teje_bonus(poz: int, work_sec: int, pause_sec: int, norm_min: int) -> int:
+    """Mesta/Inventarizatsiya botidagi kabi tejash bonusi (poz×norm − ish − dam)."""
+    if poz <= 0:
+        return 0
+    work_min = work_sec / 60.0
+    pause_min = pause_sec / 60.0
+    saved_min = max(0.0, poz * norm_min - work_min - pause_min)
+    return int(saved_min // norm_min)
+
+
+def _mesta_scoring(summary: str) -> tuple[int, int, int, int]:
+    """(poz, work_sec, saved_sec, points) — points = poz + bonus(ish/dam bo'yicha)."""
+    poz, work_sec, pause_sec, saved_sec = _hub_session_times(summary)
+    if not poz and not work_sec:
         return 0, work_sec, 0, 0
-    if not saved_sec:
-        expected_sec = poz * MESTA_NORM_MIN * 60
-        saved_sec = max(0, expected_sec - work_sec)
-    bonus_pts = saved_sec // (MESTA_NORM_MIN * 60)
+    if not saved_sec and poz:
+        saved_sec = max(
+            0,
+            int((poz * MESTA_NORM_MIN - work_sec / 60.0 - pause_sec / 60.0) * 60),
+        )
+    bonus_pts = hub_teje_bonus(poz, work_sec, pause_sec, MESTA_NORM_MIN)
     return poz, work_sec, saved_sec, (poz + bonus_pts)
 
 
 def _inventarizatsiya_scoring(summary: str) -> tuple[int, int, int, int]:
-    """(poz, work_sec, saved_sec, points) — points = poz + bonus(tejash/kaizen)."""
-    sl = (summary or "").lower()
-    poz_m = re.search(r"poz\s*(\d+)", sl)
-    poz = int(poz_m.group(1)) if poz_m else 0
-    ish_m = re.search(r"ish\s+([^,]+)", sl)
-    work_sec = _cap_daily_work(_parse_hms(ish_m.group(1).strip()) if ish_m else 0)
-    tej_m = re.search(r"tejash\s+([^,]+)", sl)
-    saved_sec = _cap_daily_work(_parse_hms(tej_m.group(1).strip()) if tej_m else 0)
-    kaizen_m = re.search(r"kaizen\s+(\d+)", sl)
-    if kaizen_m:
-        bonus_pts = int(kaizen_m.group(1))
-        if not saved_sec and poz:
-            expected_sec = poz * INV_NORM_MIN * 60
-            saved_sec = max(0, expected_sec - work_sec)
-        return poz, work_sec, saved_sec, (poz + bonus_pts)
-    if not poz:
+    """(poz, work_sec, saved_sec, points) — points = poz + bonus(ish/dam bo'yicha)."""
+    poz, work_sec, pause_sec, saved_sec = _hub_session_times(summary)
+    if not poz and not work_sec:
         return 0, work_sec, 0, 0
-    if not saved_sec:
-        expected_sec = poz * INV_NORM_MIN * 60
-        saved_sec = max(0, expected_sec - work_sec)
-    bonus_pts = saved_sec // (INV_NORM_MIN * 60)
+    if not saved_sec and poz:
+        saved_sec = max(
+            0,
+            int((poz * INV_NORM_MIN - work_sec / 60.0 - pause_sec / 60.0) * 60),
+        )
+    bonus_pts = hub_teje_bonus(poz, work_sec, pause_sec, INV_NORM_MIN)
     return poz, work_sec, saved_sec, (poz + bonus_pts)
 
 
@@ -436,7 +438,7 @@ def _bot_metrics(key: str, summary: str, work_sec: int) -> list[tuple[str, str]]
             ("pozitsiya", str(poz)),
             ("ish vaqti", _fmt_work_duration(work_sec)),
             ("tejash", _fmt_work_duration(saved_sec)),
-            ("kaizen bonus", str(pts)),
+            ("kaizen bonus", str(max(0, pts - poz))),
         ]
     if key == "inventarizatsiya":
         poz, _, saved_sec, pts = _inventarizatsiya_scoring(s)
@@ -444,7 +446,7 @@ def _bot_metrics(key: str, summary: str, work_sec: int) -> list[tuple[str, str]]
             ("pozitsiya", str(poz)),
             ("ish vaqti", _fmt_work_duration(work_sec)),
             ("tejash", _fmt_work_duration(saved_sec)),
-            ("kaizen bonus", str(pts)),
+            ("kaizen bonus", str(max(0, pts - poz))),
         ]
     return [("info", _truncate(s, 28))]
 

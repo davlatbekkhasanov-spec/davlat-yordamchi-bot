@@ -96,27 +96,17 @@ def explain_bot_formula(key: str, summary: str) -> tuple[int, str]:
         n = int(sm.group(1)) if sm else 0
         return pts, f"{n}×2"
     if key == "mesta":
-        poz, work_sec, saved_sec, _ = _mesta_scoring(s)
+        poz, work_sec, saved_sec, pts = _mesta_scoring(s)
         if not poz:
             return 0, "—"
-        saved_min = saved_sec // 60
-        kaizen_m = re.search(r"kaizen\s+(\d+)", sl)
-        if kaizen_m:
-            bonus = int(kaizen_m.group(1))
-            return pts, f"{poz} poz + bonus {bonus} = {pts}"
         bonus = max(0, pts - poz)
-        return pts, f"{poz} poz + tejash {saved_min}÷{MESTA_NORM_MIN}={bonus} = {pts}"
+        return pts, f"{poz} poz + bonus {bonus} = {pts}"
     if key == "inventarizatsiya":
-        poz, work_sec, saved_sec, _ = _inventarizatsiya_scoring(s)
+        poz, work_sec, saved_sec, pts = _inventarizatsiya_scoring(s)
         if not poz:
             return 0, "—"
-        saved_min = saved_sec // 60
-        kaizen_m = re.search(r"kaizen\s+(\d+)", sl)
-        if kaizen_m:
-            bonus = int(kaizen_m.group(1))
-            return pts, f"{poz} poz + bonus {bonus} = {pts}"
         bonus = max(0, pts - poz)
-        return pts, f"{poz} poz + tejash {saved_min}÷{INV_NORM_MIN}={bonus} = {pts}"
+        return pts, f"{poz} poz + bonus {bonus} = {pts}"
     if key == "ishxona":
         om = re.search(r"ochiq\s*=\s*(\d+)", sl)
         if om:

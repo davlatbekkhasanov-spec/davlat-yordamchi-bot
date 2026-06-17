@@ -45,7 +45,7 @@ def _run():
                 summary=MESTA_SUMMARY,
             )
             pts = await sync_hub_categories_for_tg(MUSTAFOEV_TG, DAY)
-            assert pts.get("Места хр") == 48, pts
+            assert pts.get("Места хр") == 103, pts
 
             async def sum_day(d, emp, cat):
                 import sqlite3
@@ -103,11 +103,11 @@ def _run():
             names = [c.name for c in card.categories]
             assert "Места хр" in names, names
             mesta_row = next(c for c in card.categories if c.name == "Места хр")
-            assert mesta_row.added == 48, mesta_row
-            assert mesta_row.today == 55, mesta_row
-            assert card.cat_total == 48, card.cat_total
+            assert mesta_row.added == 103, mesta_row
+            assert mesta_row.today == 103, mesta_row
+            assert card.cat_total == 103, card.cat_total
             assert card.bot_total == 0, card.bot_total
-            assert card.grand_total == 48, card.grand_total
+            assert card.grand_total == 103, card.grand_total
             return card
 
         return asyncio.run(main())

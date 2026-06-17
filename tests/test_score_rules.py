@@ -79,6 +79,15 @@ def test_mesta():
     ) == (23, 7 * 60 + 49)
 
 
+def test_inventarizatsiya_ruziboev_merged():
+    """Buzilgan kaizen (409) emas — poz+ish+dam dan bonus."""
+    s = (
+        "Inventarizatsiya: poz 270, ish 2:28:25, dam 08:39, "
+        "tejash 6:22:56, bekor 00:00, kaizen 409"
+    )
+    assert score_bot_summary("inventarizatsiya", s) == (461, 2 * 3600 + 28 * 60 + 25)
+
+
 def test_omborga_982_ignored():
     pts, sec = score_bot_summary("omborga", "Reys 18, yuk 522m, ish 982:00, dam 6:12")
     assert pts == 36
@@ -100,6 +109,7 @@ if __name__ == "__main__":
     test_ishxona()
     test_ombor_17h_capped()
     test_mesta()
+    test_inventarizatsiya_ruziboev_merged()
     test_faceid()
     test_omborga_982_ignored()
     print("PASS test_score_rules")
