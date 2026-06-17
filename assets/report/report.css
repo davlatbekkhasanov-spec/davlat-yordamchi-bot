@@ -38,7 +38,7 @@ body {
 /* Kam yo'nalish: A4 to'liq to'ldiriladi */
 .page.density-normal {
   min-height: 1754px;
-  height: 1754px;
+  height: auto;
 }
 
 .page.density-normal .left-col .table-wrap {
@@ -425,7 +425,7 @@ body {
 }
 
 .main-grid {
-  flex: 1;
+  flex: none;
   display: grid;
   grid-template-columns: 1fr 430px;
   gap: 22px;
