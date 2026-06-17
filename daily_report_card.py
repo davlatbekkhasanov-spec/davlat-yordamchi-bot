@@ -247,11 +247,13 @@ def _mesta_scoring(summary: str) -> tuple[int, int, int, int]:
     saved_sec = _cap_daily_work(_parse_hms(tej_m.group(1).strip()) if tej_m else 0)
     kaizen_m = re.search(r"kaizen\s+(\d+)", sl)
     if kaizen_m:
-        pts = int(kaizen_m.group(1))
+        # Ba'zi satrlarda kaizen maydoni to'liq bo'lmaydi; tejash formulasidan kam bo'lsa, formulani ustun qilamiz.
+        pts_raw = int(kaizen_m.group(1))
         if not saved_sec and poz:
             expected_sec = poz * MESTA_NORM_MIN * 60
             saved_sec = max(0, expected_sec - work_sec)
-        return poz, work_sec, saved_sec, pts
+        pts_calc = saved_sec // (MESTA_NORM_MIN * 60) if saved_sec > 0 else 0
+        return poz, work_sec, saved_sec, max(pts_raw, pts_calc)
     if not poz:
         return 0, work_sec, 0, 0
     if not saved_sec:
@@ -272,11 +274,13 @@ def _inventarizatsiya_scoring(summary: str) -> tuple[int, int, int, int]:
     saved_sec = _cap_daily_work(_parse_hms(tej_m.group(1).strip()) if tej_m else 0)
     kaizen_m = re.search(r"kaizen\s+(\d+)", sl)
     if kaizen_m:
-        pts = int(kaizen_m.group(1))
+        # Ba'zi satrlarda kaizen maydoni to'liq bo'lmaydi; tejash formulasidan kam bo'lsa, formulani ustun qilamiz.
+        pts_raw = int(kaizen_m.group(1))
         if not saved_sec and poz:
             expected_sec = poz * INV_NORM_MIN * 60
             saved_sec = max(0, expected_sec - work_sec)
-        return poz, work_sec, saved_sec, pts
+        pts_calc = saved_sec // (INV_NORM_MIN * 60) if saved_sec > 0 else 0
+        return poz, work_sec, saved_sec, max(pts_raw, pts_calc)
     if not poz:
         return 0, work_sec, 0, 0
     if not saved_sec:
