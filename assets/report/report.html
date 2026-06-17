@@ -111,6 +111,27 @@
           </div>
         </div>
 
+        <div class="bots-stack bots-stack-inline">
+        {% for bot in bots %}
+        {% if not bot.empty %}
+        <div class="bot-card">
+          <div class="bot-ico">{{ bot.icon }}</div>
+          <div class="bot-body">
+            <div class="bot-title">{{ bot.title }}{% if bot.score_text %} · {{ bot.score_text }}{% endif %}</div>
+            <div class="bot-text">{{ bot.body }}</div>
+          </div>
+        </div>
+        {% endif %}
+        {% endfor %}
+        <div class="bot-card time-summary">
+          <div class="bot-ico">⏱</div>
+          <div class="bot-body">
+            <div class="bot-title">ИШ ВАҚТИ (БУГУН)</div>
+            <div class="bot-text">Жами: {{ total_work }}{% if work_ish_time and work_ish_time != "00:00" %} · Omborga иш: {{ work_ish_time }} · дам: {{ work_dam_time }}{% endif %}</div>
+          </div>
+        </div>
+        </div>
+
       </div>
 
       <div class="right-col">
@@ -146,26 +167,6 @@
                 {% endif %}
               </tbody>
             </table>
-          </div>
-          <div class="bots-stack bots-stack-compact">
-          {% for bot in bots %}
-          {% if not bot.empty %}
-          <div class="bot-card">
-            <div class="bot-ico">{{ bot.icon }}</div>
-            <div class="bot-body">
-              <div class="bot-title">{{ bot.title }}{% if bot.score_text %} · {{ bot.score_text }}{% endif %}</div>
-              <div class="bot-text">{{ bot.body }}</div>
-            </div>
-          </div>
-          {% endif %}
-          {% endfor %}
-          <div class="bot-card time-summary">
-            <div class="bot-ico">⏱</div>
-            <div class="bot-body">
-              <div class="bot-title">ИШ ВАҚТИ (БУГУН)</div>
-              <div class="bot-text">Жами: {{ total_work }}{% if work_ish_time and work_ish_time != "00:00" %} · Omborga иш: {{ work_ish_time }} · дам: {{ work_dam_time }}{% endif %}</div>
-            </div>
-          </div>
           </div>
         </div>
       </div>
