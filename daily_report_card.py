@@ -514,10 +514,8 @@ async def build_card_data(
         if added <= 0:
             continue
         if cat in HUB_ONLY_CATEGORIES:
-            if cat == "Места хр":
-                today, _, _, _ = _mesta_scoring(events.get("mesta", ""))
-            else:
-                today, _, _, _ = _inventarizatsiya_scoring(events.get("inventarizatsiya", ""))
+            # Mesta/Pereschet uchun "Бугун" ustunida ham ochko ko'rsatiladi (oldingi format).
+            today = added
         else:
             today = await sum_day(day_iso, employee, cat)
         per = await sum_period(period, employee, cat)
