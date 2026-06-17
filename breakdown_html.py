@@ -5,6 +5,7 @@ from __future__ import annotations
 from datetime import date
 
 from daily_report_card import DailyReportCardData, _fmt_footer_date
+from report_format import fmt_points
 from report_html import _css_text, _env, _logo_b64
 
 _MEDALS = {1: "🥇", 2: "🥈", 3: "🥉"}
@@ -83,8 +84,8 @@ def build_daily_breakdown_png_html(
         "employee": card.employee,
         "day_iso": card.day_iso,
         "lines": lines,
-        "cat_total": card.cat_total,
-        "bot_total": card.bot_total,
-        "grand_total": card.grand_total,
+        "cat_total": fmt_points(card.cat_total),
+        "bot_total": fmt_points(card.bot_total),
+        "grand_total": fmt_points(card.grand_total),
     }
     return _env().get_template("breakdown_daily.html").render(**ctx)

@@ -6,7 +6,7 @@
   <style>{{ css }}</style>
 </head>
 <body>
-  <div class="page density-{{ density }}">
+  <div class="page density-{{ density }} layout-v2">
     <div class="page-top">
       <div class="hero-header">
         <div class="hero-brand">
@@ -22,7 +22,7 @@
         </div>
       </div>
 
-      <div class="meta-bar">
+      <div class="meta-bar meta-bar-5">
         <div class="meta-item">
           <span class="meta-ico">📅</span>
           <div class="meta-body">
@@ -40,33 +40,87 @@
         <div class="meta-item">
           <span class="meta-ico">🗓</span>
           <div class="meta-body">
-            <span class="meta-label">Период (2-сана)</span>
+            <span class="meta-label">Период</span>
             <span class="meta-value">{{ period }}</span>
+          </div>
+        </div>
+        <div class="meta-item">
+          <span class="meta-ico">⏱</span>
+          <div class="meta-body">
+            <span class="meta-label">Актив иш</span>
+            <span class="meta-value meta-blue">{{ total_work }}</span>
+          </div>
+        </div>
+        <div class="meta-item">
+          <span class="meta-ico">🏆</span>
+          <div class="meta-body">
+            <span class="meta-label">Жамоа</span>
+            <span class="meta-value">{% if rank %}{{ rank }} / {{ rank_total }}{% else %}—{% endif %}</span>
           </div>
         </div>
       </div>
 
+      {% if face.has_frame %}
+      <div class="strip-bar strip-work">
+        <div class="strip-cell">
+          <div class="strip-label">Келди</div>
+          <div class="strip-value">{{ face_keldi }}</div>
+        </div>
+        <div class="strip-cell">
+          <div class="strip-label">Кетди</div>
+          <div class="strip-value">{{ face_ketdi }}</div>
+        </div>
+        <div class="strip-cell">
+          <div class="strip-label">Иш доираси</div>
+          <div class="strip-value strip-blue">{{ face_active_work }}</div>
+        </div>
+        <div class="strip-cell strip-wide">
+          <div class="strip-label">Face ID ball</div>
+          <div class="strip-value {{ face_ball.cls }}">{{ face_ball.text }}</div>
+        </div>
+      </div>
+
+      <div class="strip-bar strip-debt">
+        <div class="strip-cell">
+          <div class="strip-label">Қарз — бунгун</div>
+          <div class="strip-value {{ face_qarz_today.cls }}">{{ face_qarz_today.text }}</div>
+        </div>
+        <div class="strip-cell">
+          <div class="strip-label">Қарз — кеча</div>
+          <div class="strip-value {{ face_qarz_yesterday.cls }}">{{ face_qarz_yesterday.text }}</div>
+        </div>
+        <div class="strip-cell">
+          <div class="strip-label">Қарз — ой</div>
+          <div class="strip-value {{ face_qarz_month.cls }}">{{ face_qarz_month.text }}</div>
+        </div>
+        <div class="strip-cell strip-note">
+          <div class="strip-label">Эслатма</div>
+          <div class="strip-note-text">Келди–кетди ичида актив vaqt · йўналишlar keyin shu doirada</div>
+        </div>
+      </div>
+      {% endif %}
+
       <div class="kpi-row">
         <div class="kpi-card kpi-total">
           <div class="kpi-label">Жами очко</div>
-          <div class="kpi-value">+{{ grand_total }}</div>
+          <div class="kpi-value {{ grand_total.cls }}">{{ grand_total.text }}</div>
         </div>
         <div class="kpi-card">
           <div class="kpi-label">Йордамчи бот</div>
-          <div class="kpi-value kpi-green">+{{ cat_total }}</div>
+          <div class="kpi-value {{ cat_total.cls }}">{{ cat_total.text }}</div>
         </div>
         <div class="kpi-card">
           <div class="kpi-label">Бошқа ботлар</div>
-          <div class="kpi-value kpi-green">+{{ bot_total }}</div>
+          <div class="kpi-value {{ bot_total.cls }}">{{ bot_total.text }}</div>
         </div>
-        <div class="kpi-card">
+        <div class="kpi-card kpi-work">
           <div class="kpi-label">Иш вақти</div>
           <div class="kpi-value kpi-blue">{{ total_work }}</div>
         </div>
       </div>
     </div>
 
-    <div class="main-grid">
+    <div class="main-grid main-grid-wide">
       <div class="left-col">
         <div class="section-block">
           <div class="section-bar">АСОСИЙ ФАОЛИЯТЛАР</div>
@@ -87,7 +141,9 @@
               <tr>
                 <td>{{ loop.index }}</td>
                 <td>{{ row.name }}</td>
-                <td class="points">+{{ row.added }}</td>
+                <td class="points {% if row.added > 0 %}pts-pos{% elif row.added < 0 %}pts-neg{% else %}pts-zero{% endif %}">
+                  {% if row.added > 0 %}+{% endif %}{{ row.added }}
+                </td>
                 <td>{{ row.today }}</td>
                 <td>{{ row.period }}</td>
                 <td>{{ row.yesterday }}</td>
@@ -98,27 +154,47 @@
           </div>
         </div>
 
-        <div class="highlights">
-          <div class="highlight-box">
-            <div class="hl-label">⭐ ЭНГ КУЧЛИ ЙЎНАЛИШ</div>
-            <div class="hl-value">{{ best_cat }} (+{{ best_add }})</div>
-          </div>
-          <div class="highlight-box">
-            <div class="hl-label">🔥 УМУМИЙ БАҲО</div>
-            <div class="hl-value">{{ overall_text }}</div>
+        {% if compare_rows %}
+        <div class="section-block compare-block">
+          <div class="section-bar">ЙЎНАЛИШЛАР: КЕЧА → БУГУН</div>
+          <div class="table-wrap">
+            <table class="data-table compare-table">
+              <thead>
+                <tr><th>Йўналиш</th><th>Кеча</th><th>Бугун</th><th>Δ</th></tr>
+              </thead>
+              <tbody>
+                {% for row in compare_rows %}
+                <tr>
+                  <td>{{ row.name }}</td>
+                  <td>{{ row.yesterday }}</td>
+                  <td>{{ row.today }}</td>
+                  <td class="{{ row.delta_class }}">{{ row.delta_text }}</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
           </div>
         </div>
+        {% endif %}
 
-        <div class="summary-box">
-          <h3>ҚИСҚАЧА ХУЛОСА</h3>
-          <p>{{ summary_text }}</p>
-          <div class="sub">Таклиф:</div>
-          <p>{{ recommendation_text }}</p>
+        <div class="highlights highlights-3">
+          <div class="highlight-box">
+            <div class="hl-label">⭐ ЭНГ КУЧЛИ</div>
+            <div class="hl-value">{{ best_cat }} (+{{ best_add }})</div>
+          </div>
+          <div class="highlight-box hl-weak">
+            <div class="hl-label">⚠️ ЭНГ ЗАИФ</div>
+            <div class="hl-value">{% if weak_cat %}{{ weak_cat }} (+{{ weak_add }}){% else %}—{% endif %}</div>
+          </div>
+          <div class="highlight-box">
+            <div class="hl-label">📊 Период жами</div>
+            <div class="hl-value">{{ period_sum }} очко</div>
+          </div>
         </div>
       </div>
 
       <div class="right-col">
-        <div class="section-block section-block-fill">
+        <div class="section-block">
           <div class="section-bar">МАНБА ВА ҲИСОБЛАШ</div>
           <div class="table-wrap">
             <table class="data-table breakdown-daily-table">
@@ -134,14 +210,14 @@
                 <tr>
                   <td class="col-src">{{ row.source }}</td>
                   <td class="col-formula">{{ row.formula }}</td>
-                  <td class="col-pts">{{ row.points }}</td>
+                  <td class="col-pts {{ row.points_cls }}">{{ row.points }}</td>
                 </tr>
                 {% endfor %}
                 {% if breakdown_lines %}
                 <tr class="bd-total-row">
                   <td class="col-src"><b>ЖАМИ</b></td>
-                  <td class="col-formula">ёрдамчи +{{ cat_total }} + ботлар +{{ bot_total }}</td>
-                  <td class="col-pts">+{{ grand_total }}</td>
+                  <td class="col-formula">ёрдамчи {{ cat_total.text }} + ботлар {{ bot_total.text }}</td>
+                  <td class="col-pts {{ grand_total.cls }}"><b>{{ grand_total.text }}</b></td>
                 </tr>
                 {% else %}
                 <tr>
@@ -151,25 +227,30 @@
               </tbody>
             </table>
           </div>
-          <div class="bots-stack bots-stack-compact">
-          {% for bot in bots %}
-          {% if not bot.empty %}
-          <div class="bot-card">
-            <div class="bot-ico">{{ bot.icon }}</div>
-            <div class="bot-body">
-              <div class="bot-title">{{ bot.title }}{% if bot.score_text %} · {{ bot.score_text }}{% endif %}</div>
-              <div class="bot-text">{{ bot.body }}</div>
-            </div>
+        </div>
+
+        {% for bot in bots %}
+        {% if not bot.empty %}
+        <div class="bot-card bot-card-loose">
+          <div class="bot-ico">{{ bot.icon }}</div>
+          <div class="bot-body">
+            <div class="bot-title">{{ bot.title }}</div>
+            <div class="bot-text">{{ bot.body }}</div>
+            {% if bot.hub_metrics_only and bot.hub_score_fmt %}
+            <div class="bot-score bot-score-ref {{ bot.hub_score_fmt.cls }}">{{ bot.hub_score_fmt.text }} · асосий жадвалда</div>
+            {% else %}
+            <div class="bot-score {{ bot.score_fmt.cls }}">{{ bot.score_fmt.text }}</div>
+            {% endif %}
           </div>
-          {% endif %}
-          {% endfor %}
-          <div class="bot-card time-summary">
-            <div class="bot-ico">⏱</div>
-            <div class="bot-body">
-              <div class="bot-title">ИШ ВАҚТИ (БУГУН)</div>
-              <div class="bot-text">Иш: {{ work_ish_time }} · Дам: {{ work_dam_time }}</div>
-            </div>
-          </div>
+        </div>
+        {% endif %}
+        {% endfor %}
+
+        <div class="bot-card bot-card-loose bot-card-work">
+          <div class="bot-ico">⏱</div>
+          <div class="bot-body">
+            <div class="bot-title">ИШ ВАҚТИ (БУГУН)</div>
+            <div class="bot-text">Иш: {{ work_ish_time }} · Дам: {{ work_dam_time }}</div>
           </div>
         </div>
       </div>

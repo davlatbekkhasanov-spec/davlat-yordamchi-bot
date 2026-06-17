@@ -203,8 +203,9 @@ def build_report_html(data: DailyReportCardData, avatar: bytes | None = None) ->
             body, empty = _format_omborga_body(bot.summary)
         else:
             body, empty = _format_bot_body(bot.summary, bot.metrics, bot_key=bot.key)
-        # Mesta/inventarizatsiya ballari asosiy jadvalda — kartada faqat metrika
-        card_score = 0 if bot.key in HUB_CATEGORY_BOT_KEYS else bot.score
+        hub_only = bot.key in HUB_CATEGORY_BOT_KEYS
+        card_score = 0 if hub_only else bot.score
+        hub_score_fmt = fmt_points(bot.score) if hub_only and bot.score else None
         bots.append(
             {
                 "title": title,
@@ -214,7 +215,8 @@ def build_report_html(data: DailyReportCardData, avatar: bytes | None = None) ->
                 "score": card_score,
                 "score_fmt": fmt_points(card_score),
                 "score_text": fmt_points(card_score)["text"],
-                "hub_metrics_only": bot.key in HUB_CATEGORY_BOT_KEYS and bool((bot.summary or "").strip()),
+                "hub_metrics_only": hub_only and bool((bot.summary or "").strip()),
+                "hub_score_fmt": hub_score_fmt,
             }
         )
 

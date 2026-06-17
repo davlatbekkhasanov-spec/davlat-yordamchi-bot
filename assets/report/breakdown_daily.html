@@ -60,8 +60,8 @@
             {% endfor %}
             <tr class="bd-total-row">
               <td class="col-src"><b>ЖАМИ</b></td>
-              <td class="col-formula">ёрдамчи +{{ cat_total }} + ботлар +{{ bot_total }}</td>
-              <td class="col-pts">+{{ grand_total }}</td>
+              <td class="col-formula">ёрдамчи {{ cat_total.text }} + ботлар {{ bot_total.text }}</td>
+              <td class="col-pts {{ grand_total.cls }}"><b>{{ grand_total.text }}</b></td>
             </tr>
           </tbody>
         </table>
