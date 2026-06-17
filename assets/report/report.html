@@ -77,8 +77,8 @@
                 <th>№</th>
                 <th>ФАОЛИЯТ</th>
                 <th>+ОЧКО</th>
-                <th>БУГУН</th>
-                <th>ПЕРИОД</th>
+                <th>БУГУН (поз/бирлик)</th>
+                <th>ПЕРИОД (очко)</th>
                 <th>КЕЧА</th>
               </tr>
             </thead>
@@ -90,7 +90,7 @@
                 <td class="points {% if row.added > 0 %}pts-pos{% elif row.added < 0 %}pts-neg{% else %}pts-zero{% endif %}">
                   {% if row.added > 0 %}+{% elif row.added < 0 %}{% else %}{% endif %}{{ row.added }}
                 </td>
-                <td>{{ row.today }}</td>
+                <td>{% if row.today %}{% if row.name in hub_volume_categories %}{{ row.today }} поз{% else %}{{ row.today }}{% endif %}{% else %}—{% endif %}</td>
                 <td>{{ row.period }}</td>
                 <td>{{ row.yesterday }}</td>
               </tr>

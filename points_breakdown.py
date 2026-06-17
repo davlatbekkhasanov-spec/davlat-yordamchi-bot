@@ -30,8 +30,8 @@ RULES_FOOTER = (
     "Ёрдамчи — 1 бирлик = 1 очко\n"
     "Омборга — рейс×2 + иш вақти÷2\n"
     "Омбор — иш вақти×1 · Юк — иш вақти÷2\n"
-    "Склад — саналди×2 · Mesta — tejash÷3 (1 poz=3 daq)\n"
-    "Inventarizatsiya — tejash÷2 (1 poz=2 daq)\n"
+    "Склад — саналди×2 · Mesta — poz alohida, faqat tejash bonusi (kaizen) ochko\n"
+    "Inventarizatsiya — poz alohida, faqat tejash bonusi (kaizen) ochko\n"
     "Ишхона — очиқ шикоят −40"
 )
 
@@ -100,13 +100,19 @@ def explain_bot_formula(key: str, summary: str) -> tuple[int, str]:
         if not poz:
             return 0, "—"
         saved_min = saved_sec // 60
-        return pts, f"{poz}p·{fmt_duration_scoring(work_sec)} tejash {saved_min}÷{MESTA_NORM_MIN}={pts}"
+        if re.search(r"kaizen\s+(\d+)", sl):
+            return pts, f"{poz} поз · tejash {saved_min} daq · kaizen bonus +{pts}"
+        calc = saved_sec // (MESTA_NORM_MIN * 60) if saved_sec else 0
+        return pts, f"{poz} поз · tejash {saved_min}÷{MESTA_NORM_MIN}={calc}"
     if key == "inventarizatsiya":
         poz, work_sec, saved_sec, _ = _inventarizatsiya_scoring(s)
         if not poz:
             return 0, "—"
         saved_min = saved_sec // 60
-        return pts, f"{poz}p·{fmt_duration_scoring(work_sec)} tejash {saved_min}÷{INV_NORM_MIN}={pts}"
+        if re.search(r"kaizen\s+(\d+)", sl):
+            return pts, f"{poz} поз · tejash {saved_min} daq · kaizen bonus +{pts}"
+        calc = saved_sec // (INV_NORM_MIN * 60) if saved_sec else 0
+        return pts, f"{poz} поз · tejash {saved_min}÷{INV_NORM_MIN}={calc}"
     if key == "ishxona":
         om = re.search(r"ochiq\s*=\s*(\d+)", sl)
         if om:

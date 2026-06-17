@@ -438,7 +438,7 @@ def _bot_metrics(key: str, summary: str, work_sec: int) -> list[tuple[str, str]]
             ("pozitsiya", str(poz)),
             ("ish vaqti", _fmt_work_duration(work_sec)),
             ("tejash", _fmt_work_duration(saved_sec)),
-            ("ball", str(pts)),
+            ("kaizen bonus", str(pts)),
         ]
     if key == "inventarizatsiya":
         poz, _, saved_sec, pts = _inventarizatsiya_scoring(s)
@@ -446,7 +446,7 @@ def _bot_metrics(key: str, summary: str, work_sec: int) -> list[tuple[str, str]]
             ("pozitsiya", str(poz)),
             ("ish vaqti", _fmt_work_duration(work_sec)),
             ("tejash", _fmt_work_duration(saved_sec)),
-            ("ball", str(pts)),
+            ("kaizen bonus", str(pts)),
         ]
     return [("info", _truncate(s, 28))]
 

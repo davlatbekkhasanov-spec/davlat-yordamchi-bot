@@ -9,7 +9,7 @@ from pathlib import Path
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 from cross_bot_hub import BOT_LABELS
-from daily_report_card import DailyReportCardData, HUB_CATEGORY_BOT_KEYS
+from daily_report_card import DailyReportCardData, HUB_CATEGORY_BOT_KEYS, HUB_ONLY_CATEGORIES
 from points_breakdown import build_daily_breakdown_lines
 from report_format import fmt_debt_min, fmt_points
 from time_display import fmt_duration, parse_duration_text
@@ -239,6 +239,7 @@ def build_report_html(data: DailyReportCardData, avatar: bytes | None = None) ->
         "employee": data.employee,
         "period": data.period,
         "categories": data.categories,
+        "hub_volume_categories": set(HUB_ONLY_CATEGORIES),
         "best_cat": data.best_cat,
         "best_add": data.best_add,
         "weak_cat": data.weak_cat,
