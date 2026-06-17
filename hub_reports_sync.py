@@ -137,3 +137,29 @@ async def replay_hub_categories_for_day(day_iso: str) -> int:
         if await sync_hub_categories_for_tg(tg_id, day_iso):
             n += 1
     return n
+
+
+def hub_category_days_in_db() -> list[str]:
+    """Mesta/inventarizatsiya bo'lgan kunlar."""
+    conn = sqlite3.connect(DB_PATH, check_same_thread=False, timeout=30)
+    try:
+        cur = conn.cursor()
+        cur.execute(
+            """
+            SELECT DISTINCT day FROM cross_bot_events
+            WHERE bot_key IN ('mesta', 'inventarizatsiya')
+            ORDER BY day
+            """
+        )
+        return [str(r[0]) for r in cur.fetchall() if r and r[0]]
+    finally:
+        conn.close()
+
+
+async def replay_hub_categories_all_days() -> tuple[int, int]:
+    """Barcha kunlar va xodimlar — Места хр / Пересчет reports ni qayta yozish."""
+    days = hub_category_days_in_db()
+    total = 0
+    for day in days:
+        total += await replay_hub_categories_for_day(day)
+    return len(days), total

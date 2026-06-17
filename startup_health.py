@@ -110,7 +110,7 @@ async def run_startup_maintenance(db_path: str) -> dict[str, Any]:
     """Baseline, purge, hub repair — ketma-ket."""
     from baseline_restore import ensure_baseline_restored
     from hub_corrections import apply_hub_purges, apply_hub_restores
-    from hub_reports_sync import replay_hub_categories_for_day
+    from hub_reports_sync import replay_hub_categories_all_days
     from hub_repair import repair_hub_db
     from yordamchi_push import today_iso
 
@@ -133,7 +133,8 @@ async def run_startup_maintenance(db_path: str) -> dict[str, Any]:
         log.exception("hub repair")
         out["hub_repair"] = 0
     try:
-        out["hub_reports_sync"] = await replay_hub_categories_for_day(today_iso())
+        days_n, sync_n = await replay_hub_categories_all_days()
+        out["hub_reports_sync"] = {"days": days_n, "employees": sync_n}
     except Exception:
         log.exception("hub reports sync")
         out["hub_reports_sync"] = 0

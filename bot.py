@@ -77,7 +77,7 @@ from ranking_adjustments import (
     day_adjustment_net,
     init_schema as init_ranking_adj_schema,
 )
-from hub_reports_sync import enrich_session_agg_from_hub, replay_hub_categories_for_day
+from hub_reports_sync import enrich_session_agg_from_hub, replay_hub_categories_all_days, replay_hub_categories_for_day
 from employee_photo_admin import (
     admin_photo_state,
     handle_photo_cancel,
@@ -2365,9 +2365,11 @@ async def repairhub_cmd(message: Message):
         from hub_repair import repair_hub_db
 
         fixes = await asyncio.to_thread(repair_hub_db, DB_PATH, apply=True)
+        days_n, sync_n = await replay_hub_categories_all_days()
         if not fixes:
             await message.answer(
-                "✅ Hub: tuzatish kerak bo'lgan yozuv topilmadi.",
+                f"✅ Hub: tuzatish kerak bo'lgan yozuv topilmadi.\n"
+                f"📋 Reports qayta yozildi: {days_n} kun · {sync_n} xodim-kun.",
                 reply_markup=await keyboard_for_user(uid),
             )
             return
@@ -2378,6 +2380,7 @@ async def repairhub_cmd(message: Message):
             )
         if len(fixes) > 8:
             lines.append(f"… +{len(fixes) - 8} ta")
+        lines.append(f"📋 Reports: {days_n} kun · {sync_n} xodim-kun yangilandi")
         await message.answer(
             "\n".join(lines),
             reply_markup=await keyboard_for_user(uid),
@@ -2500,17 +2503,25 @@ async def hubtoday_cmd(message: Message):
 
 @dp.message(Command("synccategories"))
 async def sync_categories_cmd(message: Message):
-    """Admin: hub mesta/pereschet → reports (kun bo'yicha)."""
+    """Admin: hub mesta/pereschet → reports (kun yoki barcha kunlar)."""
     if not is_private(message) or not is_admin(message.from_user.id):
         return
     args = (message.text or "").strip().split()[1:]
+    uid = message.from_user.id if message.from_user else 0
+    if args and args[0].lower() in ("all", "hamma", "barcha", "*"):
+        days_n, sync_n = await replay_hub_categories_all_days()
+        await message.answer(
+            f"✅ Barcha kunlar: {days_n} kun · {sync_n} xodim-kun — "
+            f"Места хр / Пересчет reports ga yozildi.",
+            reply_markup=await keyboard_for_user(uid),
+        )
+        return
     day = today_local().isoformat()
     for a in args:
         if len(a) == 10 and a[4] == "-" and a[7] == "-":
             day = a
             break
     n = await replay_hub_categories_for_day(day)
-    uid = message.from_user.id if message.from_user else 0
     await message.answer(
         f"✅ {day}: {n} ta xodim — Места хр / Пересчет reports ga yozildi.",
         reply_markup=await keyboard_for_user(uid),

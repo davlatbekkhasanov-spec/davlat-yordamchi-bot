@@ -10,15 +10,14 @@ from pathlib import Path
 
 from cross_bot_hub import (
     CANONICAL_UPSERT_KEYS,
-    _best_omborga_daily,
-    _best_ombor_daily,
-    _best_sklad_daily,
-    _best_yuk_daily,
-    _merge_hub_summary,
+    _replay_merged_by_bot,
     init_schema,
 )
 
 LOST_PATH = Path(__file__).resolve().parent / "tools" / "hub_lost_events.json"
+
+# Bir nechta yozuv → bitta kunlik xulosa (mesta/inventarizatsiya ham)
+COLLAPSE_BOT_KEYS = CANONICAL_UPSERT_KEYS | frozenset({"sklad", "mesta", "inventarizatsiya"})
 
 
 def _load_lost() -> list[dict]:
@@ -30,20 +29,12 @@ def _load_lost() -> list[dict]:
 
 
 def _replay(bot_key: str, summaries: list[str]) -> str:
-    if bot_key == "omborga":
-        return _best_omborga_daily(summaries)
-    if bot_key == "yuk":
-        return _best_yuk_daily(summaries)
-    if bot_key == "ombor":
-        return _best_ombor_daily(summaries)
-    if bot_key == "sklad":
-        return _best_sklad_daily(summaries)
-    merged = ""
-    for s in summaries:
-        if not merged:
-            merged = s
-        else:
-            merged = _merge_hub_summary(bot_key, merged, s)
+    rows = [{"bot_key": bot_key, "summary": s} for s in summaries if str(s or "").strip()]
+    if not rows:
+        return ""
+    merged = _replay_merged_by_bot(rows).get(bot_key, "") or ""
+    if not merged and bot_key == "yuk":
+        return "Yuk (jami): ish vaqti 0 soniya"
     return merged
 
 
@@ -93,9 +84,8 @@ def repair_hub_db(db_path: str, *, day: str = "", apply: bool = False) -> list[d
         if not rebuilt and bot == "yuk":
             rebuilt = "Yuk (jami): ish vaqti 0 soniya"
         latest = evs[-1]["summary"]
-        collapse_bots = CANONICAL_UPSERT_KEYS | {"sklad"}
         needs_fix = bool(rebuilt) and (
-            rebuilt != latest or (bot in collapse_bots and len(evs) > 1)
+            rebuilt != latest or (bot in COLLAPSE_BOT_KEYS and len(evs) > 1)
         )
         if not needs_fix:
             continue
