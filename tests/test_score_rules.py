@@ -60,23 +60,23 @@ def test_ombor_17h_capped():
 
 
 def test_mesta():
-    # 10 poz norma 30 daq; 27 daqda bajarildi → 3 daq tejash = 1 ball
-    assert score_bot_summary("mesta", "Mesta: poz 10, ish 27:00, dam 0:00, tejash 3:00, bekor 0:00") == (1, 27 * 60)
-    # Normada — ball yo'q
-    assert score_bot_summary("mesta", "Mesta: poz 10, ish 30:00, dam 0:00, tejash 0:00, bekor 0:00") == (0, 30 * 60)
-    # 6 daq tejash = 2 ball
-    assert score_bot_summary("mesta", "Mesta: poz 10, ish 24:00, dam 0:00, tejash 6:00, bekor 0:00") == (2, 24 * 60)
-    # Ortda qolsa — ball yo'q
-    assert score_bot_summary("mesta", "Mesta: poz 10, ish 35:00, dam 0:00, tejash 0:00, bekor 5:00") == (0, 35 * 60)
+    # Endi Mesta ochkosi = pozitsiya + tejash bonusi
+    assert score_bot_summary("mesta", "Mesta: poz 10, ish 27:00, dam 0:00, tejash 3:00, bekor 0:00") == (11, 27 * 60)
+    # Normada — bonus yo'q, faqat pozitsiya
+    assert score_bot_summary("mesta", "Mesta: poz 10, ish 30:00, dam 0:00, tejash 0:00, bekor 0:00") == (10, 30 * 60)
+    # 6 daq tejash = 2 bonus; jami 12
+    assert score_bot_summary("mesta", "Mesta: poz 10, ish 24:00, dam 0:00, tejash 6:00, bekor 0:00") == (12, 24 * 60)
+    # Ortda qolsa — bonus yo'q, faqat pozitsiya
+    assert score_bot_summary("mesta", "Mesta: poz 10, ish 35:00, dam 0:00, tejash 0:00, bekor 5:00") == (10, 35 * 60)
     assert score_bot_summary("mesta", "Mesta: poz 0, ish 0:00, dam 0:00, bekor 0:00") == (0, 0)
     # ≥1 soat tejash — H:MM:SS
     assert score_bot_summary(
         "mesta", "Mesta: poz 33, ish 13:30, dam 0:00, tejash 1:25:30, bekor 0:00, kaizen 28"
-    ) == (28, 13 * 60 + 30)
+    ) == (61, 13 * 60 + 30)
     # kaizen maydoni ustuvor
     assert score_bot_summary(
         "mesta", "Mesta: poz 13, ish 7:49, dam 0:00, tejash 0:00, bekor 0:00, kaizen 10"
-    ) == (10, 7 * 60 + 49)
+    ) == (23, 7 * 60 + 49)
 
 
 def test_omborga_982_ignored():
