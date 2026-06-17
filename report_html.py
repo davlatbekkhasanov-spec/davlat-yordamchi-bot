@@ -205,7 +205,9 @@ def build_report_html(data: DailyReportCardData, avatar: bytes | None = None) ->
             body, empty = _format_bot_body(bot.summary, bot.metrics, bot_key=bot.key)
         hub_only = bot.key in HUB_CATEGORY_BOT_KEYS
         card_score = 0 if hub_only else bot.score
-        hub_score_fmt = fmt_points(bot.score) if hub_only and bot.score else None
+        score_text = ""
+        if not hub_only and card_score:
+            score_text = fmt_points(card_score)["text"]
         bots.append(
             {
                 "title": title,
@@ -214,9 +216,7 @@ def build_report_html(data: DailyReportCardData, avatar: bytes | None = None) ->
                 "empty": empty,
                 "score": card_score,
                 "score_fmt": fmt_points(card_score),
-                "score_text": fmt_points(card_score)["text"],
-                "hub_metrics_only": hub_only and bool((bot.summary or "").strip()),
-                "hub_score_fmt": hub_score_fmt,
+                "score_text": score_text,
             }
         )
 
@@ -262,6 +262,9 @@ def build_report_html(data: DailyReportCardData, avatar: bytes | None = None) ->
         "bot_total": fmt_points(data.bot_total),
         "total_work": data.total_work,
         "period_sum": data.period_sum,
+        "overall_text": data.overall_text,
+        "summary_text": data.summary_text,
+        "recommendation_text": data.recommendation_text,
         "bots": bots,
         "breakdown_lines": breakdown_lines,
         "avatar_b64": avatar_b64,
