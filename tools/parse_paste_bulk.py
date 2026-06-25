@@ -21,7 +21,7 @@ EMPLOYEES = [
     "Shernazarov Tolib",
     "Ruziboev Sindor",
     "Ravshanov Ziyodullo",
-    "Yadullaev Umidjon",
+    "Ergashev Ozodbek",
     "Mustafoev Abdullo",
     "Tuvalov Farrux",
 ]

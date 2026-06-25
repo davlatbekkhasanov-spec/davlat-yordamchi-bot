@@ -182,7 +182,7 @@ EMPLOYEES = [
     "Shernazarov Tolib",
     "Ruziboev Sindor",
     "Ravshanov Ziyodullo",
-    "Yadullaev Umidjon",
+    "Ergashev Ozodbek",
     "Mustafoev Abdullo",
     "Tuvalov Farrux",
 ]
@@ -213,7 +213,7 @@ EMPLOYEE_PINS = {
     "Shernazarov Tolib": "5555",
     "Ruziboev Sindor": "6666",
     "Ravshanov Ziyodullo": "7777",
-    "Yadullaev Umidjon": "8888",
+    "Ergashev Ozodbek": "8888",
     "Mustafoev Abdullo": "9999",
     "Tuvalov Farrux": "0000",
 }
