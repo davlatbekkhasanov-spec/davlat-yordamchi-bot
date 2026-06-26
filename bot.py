@@ -49,6 +49,7 @@ from employee_photos import (
     init_schema as init_photo_schema,
     load_photo_for_employee,
     save_employee_photo,
+    bootstrap_employee_photos,
 )
 from employee_tg_map import TG_EMPLOYEE, resolve_owner_tg_id, resolve_tg_id, tg_ids_for_employee
 from hub_ingest import start_ingest_server
@@ -299,6 +300,7 @@ cur.execute("CREATE INDEX IF NOT EXISTS idx_reports_period_emp_cat ON reports(pe
 cur.execute("CREATE INDEX IF NOT EXISTS idx_reports_day_emp_cat ON reports(day, employee, category)")
 cur.execute("CREATE INDEX IF NOT EXISTS idx_reports_tgid_created ON reports(tg_id, created_at)")
 init_photo_schema(conn)
+_photo_boot = bootstrap_employee_photos(conn)
 init_ranking_schema(conn)
 init_ranking_adj_schema(conn)
 conn.commit()
