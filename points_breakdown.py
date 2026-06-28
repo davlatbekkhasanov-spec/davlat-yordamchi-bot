@@ -44,6 +44,7 @@ _BOT_COLS = (
     ("sklad", "Skl"),
     ("mesta", "Mes"),
     ("inventarizatsiya", "Inv"),
+    ("navbatchi", "Nav"),
     ("ishxona", "Ish"),
     ("faceid", "FI"),
 )
@@ -55,6 +56,7 @@ BOT_SOURCE_CYRL = {
     "sklad": "Склад назорат",
     "mesta": "Mesta",
     "inventarizatsiya": "Inventarizatsiya",
+    "navbatchi": "Navbatchi nazorat",
     "ishxona": "Ишхона шикоят",
     "faceid": "Face ID davomat",
 }

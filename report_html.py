@@ -23,6 +23,7 @@ BOT_TITLES = {
     "sklad": "СКЛАД НАЗОРАТ",
     "mesta": "МЕСТА ХР",
     "inventarizatsiya": "ПЕРЕСЧЕТ ТОВАРОВ",
+    "navbatchi": "НАВБАТЧИЛИК",
     "ishxona": "ИШХОНА НАЗОРАТ",
     "faceid": "FACE ID DAVOMAT",
 }

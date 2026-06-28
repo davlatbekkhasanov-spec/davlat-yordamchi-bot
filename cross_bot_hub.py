@@ -28,6 +28,7 @@ BOT_LABELS = {
     "ishxona": "Ishxona nazorat",
     "mesta": "Mesta",
     "inventarizatsiya": "Inventarizatsiya",
+    "navbatchi": "Navbatchi nazorat",
     "faceid": "Face ID davomat",
 }
 
@@ -44,6 +45,13 @@ _BOT_KEY_ALIASES = {
         "inventarizatsiyanazorat",
         "hisobchi",
         "pereschet",
+    },
+    "navbatchi": {
+        "navbatchi",
+        "navbatchi_control",
+        "navbatchi_control_bot",
+        "navbatchilik",
+        "navbatchi_nazorat",
     },
     "faceid": {"faceid", "face_id", "face-id", "faceidbot", "davomat"},
 }
@@ -286,6 +294,23 @@ def _merge_inventarizatsiya_daily(summaries: list[str]) -> str:
     return merged[:MAX_SUMMARY_LEN]
 
 
+def _parse_navbatchi_ball(summary: str) -> int:
+    sl = (summary or "").lower()
+    ball_m = re.search(r"ball\s*[=:]?\s*([+-]?\d+)", sl)
+    return int(ball_m.group(1)) if ball_m else 0
+
+
+def _merge_navbatchi_daily(summaries: list[str]) -> str:
+    """Bir kunda bir nechta navbatchi yozuvi — oxirgisi (yoki eng katta ball)."""
+    clean = [s for s in summaries if s and s.strip()]
+    if not clean:
+        return ""
+    if len(clean) == 1:
+        return clean[0][:MAX_SUMMARY_LEN]
+    best = max(clean, key=_parse_navbatchi_ball)
+    return best[:MAX_SUMMARY_LEN]
+
+
 def _merge_hub_summary(bot_key: str, old: str, new: str) -> str:
     """Bir xil kun+xodim+bot uchun yangi hisobotni eskisiga qo'shish."""
     key = normalize_bot_key(bot_key)
@@ -295,6 +320,8 @@ def _merge_hub_summary(bot_key: str, old: str, new: str) -> str:
         return _merge_mesta_daily([old, new])
     if key == "inventarizatsiya":
         return _merge_inventarizatsiya_daily([old, new])
+    if key == "navbatchi":
+        return _merge_navbatchi_daily([old, new])
     if key == "faceid":
         return new or old
     if key == "ombor":
@@ -655,6 +682,8 @@ def _replay_merged_by_bot(rows: list) -> dict[str, str]:
             merged = _merge_mesta_daily(summaries)
         elif k == "inventarizatsiya":
             merged = _merge_inventarizatsiya_daily(summaries)
+        elif k == "navbatchi":
+            merged = _merge_navbatchi_daily(summaries)
         else:
             merged = ""
             for s in summaries:
@@ -714,7 +743,7 @@ async def build_appendix_lines_async(tg_id: int | set[int], day_iso: str) -> lis
     if not events:
         return []
 
-    order = ("omborga", "ombor", "yuk", "sklad", "mesta", "inventarizatsiya", "ishxona", "faceid")
+    order = ("omborga", "ombor", "yuk", "sklad", "mesta", "inventarizatsiya", "navbatchi", "ishxona", "faceid")
     lines = ["", "── Boshqa botlar (bugun) ──"]
     used = 0
     for key in order:

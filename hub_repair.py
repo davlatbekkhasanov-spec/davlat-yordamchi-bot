@@ -17,7 +17,7 @@ from cross_bot_hub import (
 LOST_PATH = Path(__file__).resolve().parent / "tools" / "hub_lost_events.json"
 
 # Bir nechta yozuv → bitta kunlik xulosa (mesta/inventarizatsiya ham)
-COLLAPSE_BOT_KEYS = CANONICAL_UPSERT_KEYS | frozenset({"sklad", "mesta", "inventarizatsiya"})
+COLLAPSE_BOT_KEYS = CANONICAL_UPSERT_KEYS | frozenset({"sklad", "mesta", "inventarizatsiya", "navbatchi"})
 
 
 def _load_lost() -> list[dict]:

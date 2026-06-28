@@ -26,7 +26,7 @@ W, H = 1520, 2280
 M = 24
 FONT_DIR = Path(__file__).resolve().parent / "assets" / "fonts"
 
-BOT_ORDER = ("omborga", "ombor", "yuk", "sklad", "mesta", "inventarizatsiya", "ishxona", "faceid")
+BOT_ORDER = ("omborga", "ombor", "yuk", "sklad", "mesta", "inventarizatsiya", "navbatchi", "ishxona", "faceid")
 # Ballari «Места хр» / «Пересчет товаров» категориясида — bot_total ga qo'shilmaydi
 HUB_CATEGORY_BOT_KEYS = frozenset({"mesta", "inventarizatsiya"})
 HUB_CATEGORY_MAP = {
@@ -41,6 +41,7 @@ BOT_BADGE = {
     "sklad": ("SN", (155, 110, 240)),
     "mesta": ("MS", (120, 200, 160)),
     "inventarizatsiya": ("IN", (90, 170, 230)),
+    "navbatchi": ("NV", (180, 140, 80)),
     "ishxona": ("IX", (240, 85, 110)),
     "faceid": ("FI", (255, 200, 60)),
 }
@@ -299,6 +300,7 @@ def score_bot_summary(key: str, summary: str) -> tuple[int, int]:
     inventarizatsiya: tejash÷2 (1 poz=2 daq norma; tez ishlasa ball)
     ishxona: ochiq shikoyat × (−40); bartaraf/rad = 0
     faceid: ball= qiymati to'g'ridan-to'g'ri (kech/qarz/bonus yig'indisi)
+    navbatchi: ball= qiymati to'g'ridan-to'g'ri (navbatchilik hisoboti)
     """
     s = (summary or "").strip()
     if not s:
@@ -361,6 +363,11 @@ def score_bot_summary(key: str, summary: str) -> tuple[int, int]:
             return -40, 0
         return 0, 0
     if key == "faceid":
+        ball_m = re.search(r"ball\s*[=:]?\s*([+-]?\d+)", sl)
+        if ball_m:
+            return int(ball_m.group(1)), 0
+        return 0, 0
+    if key == "navbatchi":
         ball_m = re.search(r"ball\s*[=:]?\s*([+-]?\d+)", sl)
         if ball_m:
             return int(ball_m.group(1)), 0
