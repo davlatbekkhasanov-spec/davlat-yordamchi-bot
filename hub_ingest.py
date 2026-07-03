@@ -7,7 +7,7 @@ import os
 
 from aiohttp import web
 
-from cross_bot_hub import hub_secret_ok, record_event
+from cross_bot_hub import faceid_events_in_range_sync, hub_secret_ok, record_event
 from analytics_web import register_analytics_routes
 from preview_web import register_preview_routes
 
@@ -58,10 +58,33 @@ async def handle_health(_request: web.Request) -> web.Response:
     return web.json_response({"ok": True, "service": "yordamchi-hub"})
 
 
+async def handle_faceid_events(request: web.Request) -> web.Response:
+    raw_secret = (
+        request.headers.get("X-Hub-Secret", "")
+        or request.headers.get("Authorization", "").removeprefix("Bearer ").strip()
+        or request.query.get("token", "")
+    )
+    if not hub_secret_ok(raw_secret):
+        return web.json_response({"ok": False, "message": "unauthorized"}, status=401)
+
+    from_day = (request.query.get("from") or request.query.get("from_day") or "").strip()
+    to_day = (request.query.get("to") or request.query.get("to_day") or "").strip()
+    if not from_day or not to_day:
+        return web.json_response({"ok": False, "message": "from and to required"}, status=400)
+
+    try:
+        rows = faceid_events_in_range_sync(from_day, to_day)
+        return web.json_response({"ok": True, "from": from_day, "to": to_day, "events": rows})
+    except Exception as e:
+        log.exception("faceid events export")
+        return web.json_response({"ok": False, "message": str(e)}, status=500)
+
+
 def make_app() -> web.Application:
     app = web.Application()
     app.router.add_post("/ingest", handle_ingest)
     app.router.add_get("/health", handle_health)
+    app.router.add_get("/hub/faceid-events", handle_faceid_events)
     register_preview_routes(app)
     register_analytics_routes(app)
     return app

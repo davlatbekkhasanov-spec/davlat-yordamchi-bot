@@ -827,3 +827,29 @@ async def hub_stats_today(day: str) -> dict[str, tuple[int, str | None]]:
     for row in rows:
         out[row["bot_key"]] = (int(row["cnt"]), row["last_at"])
     return out
+
+
+def faceid_events_in_range_sync(from_day: str, to_day: str) -> list[dict]:
+    """Face ID keldi/ketdi — kun + tg_id bo'yicha birlashtirilgan xulosa."""
+    from collections import defaultdict
+
+    cur = _conn.cursor()
+    cur.execute(
+        """
+        SELECT day, tg_id, bot_key, summary, id
+        FROM cross_bot_events
+        WHERE bot_key = 'faceid' AND day >= ? AND day <= ?
+        ORDER BY day ASC, id ASC
+        """,
+        (from_day, to_day),
+    )
+    rows = cur.fetchall()
+    groups: dict[tuple[str, int], list] = defaultdict(list)
+    for r in rows:
+        groups[(str(r["day"]), int(r["tg_id"]))].append(r)
+    out: list[dict] = []
+    for (day, tg_id), evs in sorted(groups.items()):
+        merged = _replay_merged_by_bot(evs).get("faceid", "")
+        if merged:
+            out.append({"day": day, "tg_id": tg_id, "summary": merged})
+    return out
