@@ -362,6 +362,14 @@ def score_bot_summary(key: str, summary: str) -> tuple[int, int]:
         if "shikoyat" in sl:
             return -40, 0
         return 0, 0
+    if key == "anonim":
+        om = re.search(r"ochiq\s*=\s*(\d+)", sl)
+        if om:
+            n = int(om.group(1))
+            return (-40 * n, 0) if n else (0, 0)
+        if any(x in sl for x in ("rad=", "yopilgan=", "ko'rilgan")):
+            return 0, 0
+        return 0, 0
     if key == "faceid":
         ball_m = re.search(r"ball\s*[=:]?\s*([+-]?\d+)", sl)
         if ball_m:

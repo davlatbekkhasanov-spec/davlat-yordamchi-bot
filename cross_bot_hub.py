@@ -30,6 +30,7 @@ BOT_LABELS = {
     "inventarizatsiya": "Inventarizatsiya",
     "navbatchi": "Navbatchi nazorat",
     "faceid": "Face ID davomat",
+    "anonim": "Anonim murojaat",
 }
 
 _BOT_KEY_ALIASES = {
@@ -54,6 +55,14 @@ _BOT_KEY_ALIASES = {
         "navbatchi_nazorat",
     },
     "faceid": {"faceid", "face_id", "face-id", "faceidbot", "davomat"},
+    "anonim": {
+        "anonim",
+        "anonymous",
+        "anonimous",
+        "anonnymous",
+        "anonim_uz",
+        "anonimuz",
+    },
 }
 
 _PERSIST = bootstrap_persistence(DB_PATH, legacy_names=("data.db",))
