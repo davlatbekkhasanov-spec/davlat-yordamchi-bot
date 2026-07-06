@@ -2764,6 +2764,9 @@ async def main():
     except Exception:
         logging.exception("Kunlik reyting catch-up xato")
     try:
+        from telegram_polling_guard import ensure_polling_mode
+
+        await ensure_polling_mode(bot)
         await dp.start_polling(bot)
     finally:
         if scheduler:
