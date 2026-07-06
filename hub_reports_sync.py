@@ -8,7 +8,6 @@ from datetime import date, datetime, timedelta
 
 from cross_bot_hub import DB_PATH, fetch_merged_latest_by_bot
 from daily_report_card import (
-    HUB_ADDITIVE_CATEGORIES,
     HUB_ONLY_CATEGORIES,
     hub_category_points,
 )
@@ -114,10 +113,7 @@ async def enrich_session_agg_from_hub(
     for cat, pts in hub_pts.items():
         if pts <= 0:
             continue
-        if cat in HUB_ADDITIVE_CATEGORIES:
-            out[cat] = out.get(cat, 0) + pts
-        else:
-            out[cat] = pts
+        out[cat] = pts
     return out
 
 
@@ -130,7 +126,7 @@ async def replay_hub_categories_for_day(day_iso: str) -> int:
         cur.execute(
             """
             SELECT DISTINCT tg_id FROM cross_bot_events
-            WHERE day = ? AND bot_key IN ('mesta', 'inventarizatsiya')
+            WHERE day = ? AND bot_key IN ('mesta', 'inventarizatsiya', 'prihod')
             """,
             (day_iso,),
         )
@@ -152,7 +148,7 @@ def hub_category_days_in_db() -> list[str]:
         cur.execute(
             """
             SELECT DISTINCT day FROM cross_bot_events
-            WHERE bot_key IN ('mesta', 'inventarizatsiya')
+            WHERE bot_key IN ('mesta', 'inventarizatsiya', 'prihod')
             ORDER BY day
             """
         )
@@ -162,7 +158,7 @@ def hub_category_days_in_db() -> list[str]:
 
 
 async def replay_hub_categories_all_days() -> tuple[int, int]:
-    """Barcha kunlar va xodimlar — Места хр / Пересчет reports ni qayta yozish."""
+    """Barcha kunlar va xodimlar — Места хр / Пересчет / Приход reports ni qayta yozish."""
     days = hub_category_days_in_db()
     total = 0
     for day in days:

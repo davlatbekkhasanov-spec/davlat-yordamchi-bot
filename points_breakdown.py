@@ -269,6 +269,7 @@ def build_daily_breakdown_lines(card: DailyReportCardData) -> list[dict[str, str
     lines: list[dict[str, str]] = []
     mesta_bot = next((b for b in card.bots if b.key == "mesta"), None)
     inv_bot = next((b for b in card.bots if b.key == "inventarizatsiya"), None)
+    prihod_bot = next((b for b in card.bots if b.key == "prihod"), None)
     for row in card.categories:
         if row.added <= 0:
             continue
@@ -276,6 +277,8 @@ def build_daily_breakdown_lines(card: DailyReportCardData) -> list[dict[str, str
             _, formula = explain_bot_formula("mesta", mesta_bot.summary)
         elif row.name == "Пересчет товаров" and inv_bot:
             _, formula = explain_bot_formula("inventarizatsiya", inv_bot.summary)
+        elif row.name == "Приход" and prihod_bot:
+            _, formula = explain_bot_formula("prihod", prihod_bot.summary)
         else:
             formula = f"{row.today} бирлик (1:1)"
         lines.append(

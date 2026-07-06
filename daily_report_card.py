@@ -34,8 +34,7 @@ HUB_CATEGORY_MAP = {
     "inventarizatsiya": "Пересчет товаров",
     "prihod": "Приход",
 }
-HUB_ONLY_CATEGORIES = frozenset({"Места хр", "Пересчет товаров"})
-HUB_ADDITIVE_CATEGORIES = frozenset({"Приход"})
+HUB_ONLY_CATEGORIES = frozenset({"Места хр", "Пересчет товаров", "Приход"})
 BOT_BADGE = {
     "omborga": ("OM", (0, 175, 210)),
     "ombor": ("OX", (255, 130, 45)),
@@ -544,10 +543,7 @@ async def build_card_data(
     for cat, pts in hub_pts.items():
         if pts <= 0:
             continue
-        if cat in HUB_ADDITIVE_CATEGORIES:
-            merged_agg[cat] = merged_agg.get(cat, 0) + pts
-        else:
-            merged_agg[cat] = pts
+        merged_agg[cat] = pts
 
     period_sum = 0
     cat_total = 0
@@ -558,10 +554,7 @@ async def build_card_data(
         if added <= 0:
             continue
         if cat in HUB_ONLY_CATEGORIES:
-            # Mesta/Pereschet uchun "Бугун" ustunida ham ochko ko'rsatiladi (oldingi format).
-            today = added
-        elif cat in HUB_ADDITIVE_CATEGORIES and hub_pts.get(cat, 0) > 0:
-            # Hisobchi Prihod hub + qo'lda kiritilgan Приход yig'indisi.
+            # Hub kategoriyalari uchun "Бугун" ustunida ham ochko ko'rsatiladi.
             today = added
         else:
             today = await sum_day(day_iso, employee, cat)

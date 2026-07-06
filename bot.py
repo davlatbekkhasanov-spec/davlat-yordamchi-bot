@@ -202,8 +202,10 @@ CATEGORIES = [
 ]
 
 # Qo'lda kiritish faqat shu kategoriyalar uchun.
-# "Места хр" va "Пересчет товаров" qiymati cross-bot orqali keladi.
-MANUAL_INPUT_CATEGORIES = [c for c in CATEGORIES if c not in ("Места хр", "Пересчет товаров")]
+# «Места хр», «Пересчет товаров», «Приход» — cross-bot (hub) orqali keladi.
+MANUAL_INPUT_CATEGORIES = [
+    c for c in CATEGORIES if c not in ("Места хр", "Пересчет товаров", "Приход")
+]
 
 # PINлар (ходимларга берилади)
 EMPLOYEE_PINS = {
@@ -1132,7 +1134,7 @@ async def save_number(message: Message):
         state.pop("category", None)
         await message.answer(
             "❗ Бу категорияни ёрдамчи ботдан қўлда киритиш ёпилган.\n"
-            "Места ботдан келган маълумот автоматик ҳисобга олинади.",
+            "Маълумот иш ботларидан автоматик ҳисобга олинади.",
             reply_markup=categories_kb(message.from_user.id),
         )
         return
@@ -2514,7 +2516,7 @@ async def sync_categories_cmd(message: Message):
         days_n, sync_n = await replay_hub_categories_all_days()
         await message.answer(
             f"✅ Barcha kunlar: {days_n} kun · {sync_n} xodim-kun — "
-            f"Места хр / Пересчет reports ga yozildi.",
+            f"Места хр / Пересчет / Приход reports ga yozildi.",
             reply_markup=await keyboard_for_user(uid),
         )
         return
@@ -2525,7 +2527,7 @@ async def sync_categories_cmd(message: Message):
             break
     n = await replay_hub_categories_for_day(day)
     await message.answer(
-        f"✅ {day}: {n} ta xodim — Места хр / Пересчет reports ga yozildi.",
+        f"✅ {day}: {n} ta xodim — Места хр / Пересчет / Приход reports ga yozildi.",
         reply_markup=await keyboard_for_user(uid),
     )
 
