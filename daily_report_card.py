@@ -27,13 +27,15 @@ M = 24
 FONT_DIR = Path(__file__).resolve().parent / "assets" / "fonts"
 
 BOT_ORDER = ("omborga", "ombor", "yuk", "sklad", "mesta", "inventarizatsiya", "navbatchi", "ishxona", "faceid")
-# Ballari «Места хр» / «Пересчет товаров» категориясида — bot_total ga qo'shilmaydi
-HUB_CATEGORY_BOT_KEYS = frozenset({"mesta", "inventarizatsiya"})
+# Ballari «Места хр» / «Пересчет товаров» / Hisobchi «Приход» — bot_total ga qo'shilmaydi
+HUB_CATEGORY_BOT_KEYS = frozenset({"mesta", "inventarizatsiya", "prihod"})
 HUB_CATEGORY_MAP = {
     "mesta": "Места хр",
     "inventarizatsiya": "Пересчет товаров",
+    "prihod": "Приход",
 }
-HUB_ONLY_CATEGORIES = frozenset(HUB_CATEGORY_MAP.values())
+HUB_ONLY_CATEGORIES = frozenset({"Места хр", "Пересчет товаров"})
+HUB_ADDITIVE_CATEGORIES = frozenset({"Приход"})
 BOT_BADGE = {
     "omborga": ("OM", (0, 175, 210)),
     "ombor": ("OX", (255, 130, 45)),
@@ -48,6 +50,7 @@ BOT_BADGE = {
 
 MESTA_NORM_MIN = 3
 INV_NORM_MIN = 2
+PRIHOD_NORM_MIN = 3
 
 # Ranglar (referens)
 BG = (7, 12, 32)
@@ -289,6 +292,20 @@ def _inventarizatsiya_scoring(summary: str) -> tuple[int, int, int, int]:
     return poz, work_sec, saved_sec, (poz + bonus_pts)
 
 
+def _prihod_scoring(summary: str) -> tuple[int, int, int, int]:
+    """(poz, work_sec, saved_sec, points) — Hisobchi Prihod, 1 poz = 3 daq."""
+    poz, work_sec, pause_sec, saved_sec = _hub_session_times(summary)
+    if not poz and not work_sec:
+        return 0, work_sec, 0, 0
+    if not saved_sec and poz:
+        saved_sec = max(
+            0,
+            int((poz * PRIHOD_NORM_MIN - work_sec / 60.0 - pause_sec / 60.0) * 60),
+        )
+    bonus_pts = hub_teje_bonus(poz, work_sec, pause_sec, PRIHOD_NORM_MIN)
+    return poz, work_sec, saved_sec, (poz + bonus_pts)
+
+
 def score_bot_summary(key: str, summary: str) -> tuple[int, int]:
     """
     Ochko qoidalari (kelishilgan):
@@ -298,6 +315,7 @@ def score_bot_summary(key: str, summary: str) -> tuple[int, int]:
     sklad: sanaldi×2
     mesta: tejash÷3 (1 poz=3 daq norma; tez ishlasa ball)
     inventarizatsiya: tejash÷2 (1 poz=2 daq norma; tez ishlasa ball)
+    prihod: tejash÷3 (1 poz=3 daq norma; Hisobchi bot)
     ishxona: ochiq shikoyat × (−40); bartaraf/rad = 0
     faceid: ball= qiymati to'g'ridan-to'g'ri (kech/qarz/bonus yig'indisi)
     navbatchi: ball= qiymati to'g'ridan-to'g'ri (navbatchilik hisoboti)
@@ -382,6 +400,11 @@ def score_bot_summary(key: str, summary: str) -> tuple[int, int]:
         if not poz and not ish_sec:
             return 0, 0
         return pts, ish_sec
+    if key == "prihod":
+        poz, ish_sec, saved_sec, pts = _prihod_scoring(s)
+        if not poz and not ish_sec:
+            return 0, 0
+        return pts, ish_sec
     return 0, 0
 
 
@@ -455,6 +478,14 @@ def _bot_metrics(key: str, summary: str, work_sec: int) -> list[tuple[str, str]]
             ("tejash", _fmt_work_duration(saved_sec)),
             ("kaizen bonus", str(max(0, pts - poz))),
         ]
+    if key == "prihod":
+        poz, _, saved_sec, pts = _prihod_scoring(s)
+        return [
+            ("pozitsiya", str(poz)),
+            ("ish vaqti", _fmt_work_duration(work_sec)),
+            ("tejash", _fmt_work_duration(saved_sec)),
+            ("kaizen bonus", str(max(0, pts - poz))),
+        ]
     return [("info", _truncate(s, 28))]
 
 
@@ -511,7 +542,11 @@ async def build_card_data(
     hub_pts = hub_category_points(events)
     merged_agg = dict(session_agg)
     for cat, pts in hub_pts.items():
-        if pts > 0:
+        if pts <= 0:
+            continue
+        if cat in HUB_ADDITIVE_CATEGORIES:
+            merged_agg[cat] = merged_agg.get(cat, 0) + pts
+        else:
             merged_agg[cat] = pts
 
     period_sum = 0
@@ -524,6 +559,9 @@ async def build_card_data(
             continue
         if cat in HUB_ONLY_CATEGORIES:
             # Mesta/Pereschet uchun "Бугун" ustunida ham ochko ko'rsatiladi (oldingi format).
+            today = added
+        elif cat in HUB_ADDITIVE_CATEGORIES and hub_pts.get(cat, 0) > 0:
+            # Hisobchi Prihod hub + qo'lda kiritilgan Приход yig'indisi.
             today = added
         else:
             today = await sum_day(day_iso, employee, cat)

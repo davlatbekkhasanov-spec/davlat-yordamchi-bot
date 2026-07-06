@@ -15,6 +15,7 @@ from daily_report_card import (
     MESTA_NORM_MIN,
     _ceil_minutes,
     _inventarizatsiya_scoring,
+    _prihod_scoring,
     _mesta_scoring,
     _parse_omborga_time,
     _parse_ombor_duration,
@@ -105,6 +106,12 @@ def explain_bot_formula(key: str, summary: str) -> tuple[int, str]:
         return pts, f"{poz} poz + bonus {bonus} = {pts}"
     if key == "inventarizatsiya":
         poz, work_sec, saved_sec, pts = _inventarizatsiya_scoring(s)
+        if not poz:
+            return 0, "—"
+        bonus = max(0, pts - poz)
+        return pts, f"{poz} poz + bonus {bonus} = {pts}"
+    if key == "prihod":
+        poz, work_sec, saved_sec, pts = _prihod_scoring(s)
         if not poz:
             return 0, "—"
         bonus = max(0, pts - poz)

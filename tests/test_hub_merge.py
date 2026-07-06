@@ -178,6 +178,33 @@ def test_inventarizatsiya_multiple_sessions_no_double_poz():
     assert score_bot_summary("inventarizatsiya", merged)[0] == 300
 
 
+def test_prihod_hub_split_and_category():
+    """Hisobchi Prihod — Пересчет emas, alohida Приход qatoriga."""
+    from cross_bot_hub import _replay_merged_by_bot
+    from daily_report_card import hub_category_points, score_bot_summary
+
+    rows = [
+        {
+            "bot_key": "inventarizatsiya",
+            "summary": "Inventarizatsiya: poz 10, ish 0:15:00, dam 0:00, tejash 0:05:00, bekor 0:00, kaizen 2",
+        },
+        {
+            "bot_key": "inventarizatsiya",
+            "summary": "Приход: poz 5, ish 0:10:00, dam 0:00, tejash 0:05:00, bekor 0:00, kaizen 1",
+        },
+    ]
+    merged = _replay_merged_by_bot(rows)
+    assert "inventarizatsiya" in merged
+    assert "prihod" in merged
+    assert merged["prihod"].startswith("Приход:")
+    assert "Inventarizatsiya:" in merged["inventarizatsiya"]
+
+    pts = hub_category_points(merged)
+    assert pts.get("Пересчет товаров", 0) > 0
+    assert pts.get("Приход", 0) > 0
+    assert score_bot_summary("prihod", merged["prihod"])[0] == pts["Приход"]
+
+
     a = "Yuk (bugun jami): ish vaqti 1200 soniya"
     b = "Yuk (bugun jami): ish vaqti 2400 soniya"
     merged = _merge_hub_summary("yuk", a, b)

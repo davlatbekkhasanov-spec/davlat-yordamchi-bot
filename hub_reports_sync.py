@@ -8,6 +8,7 @@ from datetime import date, datetime, timedelta
 
 from cross_bot_hub import DB_PATH, fetch_merged_latest_by_bot
 from daily_report_card import (
+    HUB_ADDITIVE_CATEGORIES,
     HUB_ONLY_CATEGORIES,
     hub_category_points,
 )
@@ -111,7 +112,11 @@ async def enrich_session_agg_from_hub(
     hub_pts = hub_category_points(events)
     out = dict(agg)
     for cat, pts in hub_pts.items():
-        if pts > 0:
+        if pts <= 0:
+            continue
+        if cat in HUB_ADDITIVE_CATEGORIES:
+            out[cat] = out.get(cat, 0) + pts
+        else:
             out[cat] = pts
     return out
 

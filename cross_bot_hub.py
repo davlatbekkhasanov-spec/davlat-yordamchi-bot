@@ -221,6 +221,27 @@ def _parse_omborga_totals(summary: str) -> tuple[int, int]:
     return reys, _parse_omborga_ish_sec(sl)
 
 
+def _is_prihod_hub_summary(summary: str) -> bool:
+    """Hisobchi bot Prihod sessiyasi — summary boshida Приход/prihod."""
+    sl = (summary or "").strip().lower()
+    return sl.startswith("приход:") or sl.startswith("prihod:")
+
+
+def _split_inventarizatsiya_summaries(summaries: list[str]) -> tuple[list[str], list[str]]:
+    """inventarizatsiya bot_key yozuvlarini Prihod va Inventarizatsiya ga ajratish."""
+    prihod: list[str] = []
+    invent: list[str] = []
+    for s in summaries:
+        text = (s or "").strip()
+        if not text:
+            continue
+        if _is_prihod_hub_summary(text):
+            prihod.append(text)
+        else:
+            invent.append(text)
+    return prihod, invent
+
+
 def _parse_mesta_hub_summary(summary: str) -> tuple[int, int, int, int, int]:
     """poz, ish_sec, dam_sec, tejash_sec, bekor_sec."""
     from time_display import parse_duration_text
@@ -265,11 +286,50 @@ def _merge_mesta_daily(summaries: list[str]) -> str:
     return merged[:MAX_SUMMARY_LEN]
 
 
+def _merge_prihod_daily(summaries: list[str]) -> str:
+    """Bir kunda bir nechta Prihod sessiyasi (Hisobchi bot, 1 poz = 3 daq)."""
+    from time_display import fmt_duration
+
+    clean = [
+        s
+        for s in summaries
+        if s and _is_prihod_hub_summary(s) and re.search(r"poz\s*\d+", (s or "").lower())
+    ]
+    if not clean:
+        return ""
+    if len(clean) == 1:
+        return clean[0][:MAX_SUMMARY_LEN]
+
+    from daily_report_card import PRIHOD_NORM_MIN, hub_teje_bonus
+
+    total_poz = total_ish = total_dam = total_tej = total_bek = 0
+    for s in clean:
+        p, i, d, t, b = _parse_mesta_hub_summary(s)
+        total_poz += p
+        total_ish += i
+        total_dam += d
+        total_tej += t
+        total_bek += b
+    total_bonus = hub_teje_bonus(total_poz, total_ish, total_dam, PRIHOD_NORM_MIN)
+
+    merged = (
+        f"Приход: poz {total_poz}, ish {fmt_duration(total_ish)}, dam {fmt_duration(total_dam)}, "
+        f"tejash {fmt_duration(total_tej)}, bekor {fmt_duration(total_bek)}, kaizen {total_bonus}"
+    )
+    return merged[:MAX_SUMMARY_LEN]
+
+
 def _merge_inventarizatsiya_daily(summaries: list[str]) -> str:
     """Bir kunda bir nechta inventarizatsiya sessiyasi."""
     from time_display import fmt_duration
 
-    clean = [s for s in summaries if s and re.search(r"poz\s*\d+", (s or "").lower())]
+    clean = [
+        s
+        for s in summaries
+        if s
+        and not _is_prihod_hub_summary(s)
+        and re.search(r"poz\s*\d+", (s or "").lower())
+    ]
     if not clean:
         return ""
     if len(clean) == 1:
@@ -319,7 +379,13 @@ def _merge_hub_summary(bot_key: str, old: str, new: str) -> str:
     if key == "mesta":
         return _merge_mesta_daily([old, new])
     if key == "inventarizatsiya":
-        return _merge_inventarizatsiya_daily([old, new])
+        prihod_s, inv_s = _split_inventarizatsiya_summaries([s for s in (old, new) if s])
+        parts: list[str] = []
+        if inv_s:
+            parts.append(_merge_inventarizatsiya_daily(inv_s))
+        if prihod_s:
+            parts.append(_merge_prihod_daily(prihod_s))
+        return parts[0] if len(parts) == 1 else (parts[0] if parts else "")
     if key == "navbatchi":
         return _merge_navbatchi_daily([old, new])
     if key == "faceid":
@@ -681,7 +747,16 @@ def _replay_merged_by_bot(rows: list) -> dict[str, str]:
         elif k == "mesta":
             merged = _merge_mesta_daily(summaries)
         elif k == "inventarizatsiya":
-            merged = _merge_inventarizatsiya_daily(summaries)
+            prihod_s, inv_s = _split_inventarizatsiya_summaries(summaries)
+            if inv_s:
+                merged_inv = _merge_inventarizatsiya_daily(inv_s)
+                if merged_inv:
+                    out["inventarizatsiya"] = merged_inv
+            if prihod_s:
+                merged_pri = _merge_prihod_daily(prihod_s)
+                if merged_pri:
+                    out["prihod"] = merged_pri
+            continue
         elif k == "navbatchi":
             merged = _merge_navbatchi_daily(summaries)
         else:
