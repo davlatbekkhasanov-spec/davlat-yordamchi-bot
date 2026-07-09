@@ -6,6 +6,8 @@ import re
 
 TUVALOV_FARRUX_TG_ID = 7703650930
 CANONICAL_TUVALOV = "Tuvalov Farrux"
+CANONICAL_OZODBEK = "Ergashev Ozodbek"
+OZODBEK_TG_ID = 7844168817
 
 PULAT_LEGACY_NAMES: frozenset[str] = frozenset(
     {
@@ -21,6 +23,17 @@ TUVALOV_NAME_KEYS: frozenset[str] = frozenset(
         "tuvalov farrux",
         "тувалов фаррух",
         "фаррух",
+    }
+)
+
+UMID_LEGACY_NAMES: frozenset[str] = frozenset(
+    {
+        "yadullaev umid",
+        "yadullaev umidjon",
+        "ядуллаев умид",
+        "ядуллаев умиджон",
+        "umid",
+        "umidjon",
     }
 )
 
@@ -131,13 +144,19 @@ def is_tuvalov_name(name: str) -> bool:
     return key in TUVALOV_NAME_KEYS or name.strip() == CANONICAL_TUVALOV
 
 
+def is_umid_legacy(name: str) -> bool:
+    return _alias_key(name) in UMID_LEGACY_NAMES
+
+
 def canonical_employee_name(name: str) -> str:
-    """Pulat → Tuvalov; Farrux allaqachon bo'lsa o'zgartirmaydi."""
+    """Pulat → Tuvalov; Yadullaev Umid → Ergashev Ozodbek."""
     raw = (name or "").strip()
     if not raw:
         return raw
     if is_pulat_legacy(raw) or is_tuvalov_name(raw):
         return CANONICAL_TUVALOV
+    if is_umid_legacy(raw):
+        return CANONICAL_OZODBEK
     return raw
 
 

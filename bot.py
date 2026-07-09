@@ -51,7 +51,7 @@ from employee_photos import (
     save_employee_photo,
     bootstrap_employee_photos,
 )
-from employee_tg_map import TG_EMPLOYEE, resolve_owner_tg_id, resolve_tg_id, tg_ids_for_employee
+from employee_tg_map import TG_EMPLOYEE, canonical_employee_name, resolve_owner_tg_id, resolve_tg_id, tg_ids_for_employee
 from hub_ingest import start_ingest_server
 from admin_status import (
     BTN_ADMIN_PHOTO,
@@ -309,11 +309,35 @@ conn.commit()
 
 
 async def seed_pins():
+    """PIN jadvali — faqat joriy xodimlar; eski Yadullaev takrorlari tozalanadi."""
+    valid = tuple(EMPLOYEE_PINS.keys())
+    if valid:
+        placeholders = ",".join("?" * len(valid))
+        await db_exec(
+            f"DELETE FROM employee_pins WHERE employee NOT IN ({placeholders})",
+            valid,
+        )
     for emp, pin in EMPLOYEE_PINS.items():
         await db_exec(
-            "INSERT OR REPLACE INTO employee_pins(employee, pin) VALUES (?, ?)",
-            (emp, pin)
+            "DELETE FROM employee_pins WHERE pin = ? AND employee != ?",
+            (pin, emp),
         )
+        await db_exec(
+            "INSERT OR REPLACE INTO employee_pins(employee, pin) VALUES (?, ?)",
+            (emp, pin),
+        )
+
+
+async def migrate_legacy_employee_links():
+    """Yadullaev → Ozodbek; tg_id 7844168817 uchun rasmiy ism."""
+    await db_exec(
+        "UPDATE employee_links SET employee = ? WHERE employee LIKE 'Yadullaev%'",
+        ("Ergashev Ozodbek",),
+    )
+    await db_exec(
+        "INSERT OR REPLACE INTO employee_links(tg_id, employee) VALUES (?, ?)",
+        (7844168817, "Ergashev Ozodbek"),
+    )
 
 
 # ============================================================
@@ -791,7 +815,15 @@ async def send_report_preview(message: Message, *, demo: bool = False) -> None:
 # DB query helpers
 async def get_linked_employee(tg_id: int) -> str | None:
     row = await db_fetchone("SELECT employee FROM employee_links WHERE tg_id = ?", (tg_id,))
-    return row["employee"] if row else None
+    if not row:
+        return None
+    canon = canonical_employee_name(row["employee"])
+    if canon != row["employee"] and canon in EMPLOYEES:
+        await db_exec(
+            "UPDATE employee_links SET employee = ? WHERE tg_id = ?",
+            (canon, tg_id),
+        )
+    return canon if canon in EMPLOYEES else row["employee"]
 
 
 async def keyboard_for_user(uid: int) -> ReplyKeyboardMarkup | ReplyKeyboardRemove:
@@ -907,7 +939,10 @@ async def link_employee(message: Message):
         await message.answer("❌ PIN нотўғри. Админдан PIN сўранг.")
         return
 
-    employee = row["employee"]
+    employee = canonical_employee_name(row["employee"])
+    if employee not in EMPLOYEES:
+        await message.answer("❌ PIN eski xodimga bog'langan. Admindan yangi PIN so'rang.")
+        return
     await db_exec(
         "INSERT OR REPLACE INTO employee_links(tg_id, employee) VALUES (?, ?)",
         (message.from_user.id, employee)
@@ -2745,9 +2780,10 @@ async def main():
     except Exception:
         logging.exception("Metrics seed xato")
     await seed_pins()
+    await migrate_legacy_employee_links()
     for tg_id, emp_name in TG_EMPLOYEE.items():
         await db_exec(
-            "INSERT OR IGNORE INTO employee_links(tg_id, employee) VALUES (?, ?)",
+            "INSERT OR REPLACE INTO employee_links(tg_id, employee) VALUES (?, ?)",
             (int(tg_id), emp_name),
         )
     try:
