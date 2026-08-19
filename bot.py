@@ -183,9 +183,9 @@ EMPLOYEES = [
     "Shernazarov Tolib",
     "Ruziboev Sindor",
     "Ravshanov Ziyodullo",
-    "Ergashev Ozodbek",
+    "Ibodullaev Shoxijaxon",
     "Mustafoev Abdullo",
-    "Tuvalov Farrux",
+    "Rajabboev Pulat",
 ]
 
 CATEGORIES = [
@@ -216,9 +216,9 @@ EMPLOYEE_PINS = {
     "Shernazarov Tolib": "5555",
     "Ruziboev Sindor": "6666",
     "Ravshanov Ziyodullo": "7777",
-    "Ergashev Ozodbek": "8888",
+    "Ibodullaev Shoxijaxon": "8888",
     "Mustafoev Abdullo": "9999",
-    "Tuvalov Farrux": "0000",
+    "Rajabboev Pulat": "0000",
 }
 
 
@@ -329,14 +329,63 @@ async def seed_pins():
 
 
 async def migrate_legacy_employee_links():
-    """Yadullaev → Ozodbek; tg_id 7844168817 uchun rasmiy ism."""
+    """Eski ismlar va tg_id → joriy xodimlar (Pulat / Shoxijaxon)."""
+    from employee_registry import (
+        CANONICAL_PULAT,
+        CANONICAL_SHOXIJAXON,
+        OZODBEK_DISPLAY_NAMES,
+        PULAT_TG_ID,
+        SHOXIJAXON_TG_ID,
+        TUVALOV_DISPLAY_NAMES,
+    )
+
+    for old in TUVALOV_DISPLAY_NAMES + ("Tuvalov Farrux", "Тувалов Фаррух"):
+        await db_exec(
+            "UPDATE reports SET employee = ? WHERE employee = ?",
+            (CANONICAL_PULAT, old),
+        )
+        await db_exec(
+            "UPDATE monthly_plans SET employee = ? WHERE employee = ?",
+            (CANONICAL_PULAT, old),
+        )
+        await db_exec(
+            "UPDATE employee_pins SET employee = ? WHERE employee = ?",
+            (CANONICAL_PULAT, old),
+        )
+        await db_exec(
+            "UPDATE employee_links SET employee = ? WHERE employee = ?",
+            (CANONICAL_PULAT, old),
+        )
+
+    for old in OZODBEK_DISPLAY_NAMES:
+        await db_exec(
+            "UPDATE reports SET employee = ? WHERE employee = ?",
+            (CANONICAL_SHOXIJAXON, old),
+        )
+        await db_exec(
+            "UPDATE monthly_plans SET employee = ? WHERE employee = ?",
+            (CANONICAL_SHOXIJAXON, old),
+        )
+        await db_exec(
+            "UPDATE employee_pins SET employee = ? WHERE employee = ?",
+            (CANONICAL_SHOXIJAXON, old),
+        )
+        await db_exec(
+            "UPDATE employee_links SET employee = ? WHERE employee = ?",
+            (CANONICAL_SHOXIJAXON, old),
+        )
+
     await db_exec(
         "UPDATE employee_links SET employee = ? WHERE employee LIKE 'Yadullaev%'",
-        ("Ergashev Ozodbek",),
+        (CANONICAL_SHOXIJAXON,),
     )
     await db_exec(
         "INSERT OR REPLACE INTO employee_links(tg_id, employee) VALUES (?, ?)",
-        (7844168817, "Ergashev Ozodbek"),
+        (SHOXIJAXON_TG_ID, CANONICAL_SHOXIJAXON),
+    )
+    await db_exec(
+        "INSERT OR REPLACE INTO employee_links(tg_id, employee) VALUES (?, ?)",
+        (PULAT_TG_ID, CANONICAL_PULAT),
     )
 
 
@@ -1642,7 +1691,7 @@ async def del_quick(message: Message):
     txt = message.text.replace("/del", "", 1).strip()
     parts = [p.strip() for p in txt.split("|")] if "|" in txt else []
     if len(parts) < 2:
-        await message.answer("Формат:\n/del YYYY-MM-DD | Employee | Category/ALL\nМисол:\n/del 2026-03-02 | Tuvalov Farrux | Пересчет товаров")
+        await message.answer("Формат:\n/del YYYY-MM-DD | Employee | Category/ALL\nМисол:\n/del 2026-03-02 | Rajabboev Pulat | Пересчет товаров")
         return
 
     day_iso = parse_iso_date(parts[0])

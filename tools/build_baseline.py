@@ -27,7 +27,7 @@ HUB_EXCLUDE: tuple[tuple[str, int, str, str], ...] = (
 # Skrinshot / yakuniy hisobot bo'yicha tuzatishlar (SUM noto'g'ri bo'lsa)
 METRIC_OVERRIDES: dict[tuple[str, str, str], int | None] = {
     ("2026-06-08", "Ravshanov Oxunjon", "Счет ТСД"): 73,
-    ("2026-06-08", "Tuvalov Farrux", "Перемещение"): 2,
+    ("2026-06-08", "Rajabboev Pulat", "Перемещение"): 2,
     ("2026-06-08", "Yadullaev Umid", "Фото ТМЦ"): None,
 }
 
@@ -50,7 +50,7 @@ HUB_DAY_OVERRIDES: dict[str, dict[int, dict[str, str]]] = {
             "omborga": "Reys 7, yuk 105m, ish 2:45, dam 0:14",
             "sklad": "Papka Увлажнители воздуха: sanaldi 1, joy 1, xato 0, kun 17/28",
         },
-        7703650930: {"omborga": "Reys 5, yuk 87m, ish 1:52, dam 0:18"},
+        7987730795: {"omborga": "Reys 5, yuk 87m, ish 1:52, dam 0:18"},
         8440127425: {"omborga": "Reys 5, yuk 151m, ish 7:56, dam 4:03"},
         8547365654: {
             "ombor": SINDOR_OMBOR_FIX,

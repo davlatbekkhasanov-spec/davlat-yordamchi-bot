@@ -5,7 +5,12 @@ from __future__ import annotations
 from datetime import datetime
 from pathlib import Path
 
-from employee_registry import TG_EMPLOYEE, canonical_employee_name
+from employee_registry import (
+    CANONICAL_SHOXIJAXON,
+    SHOXIJAXON_TG_ID,
+    TG_EMPLOYEE,
+    canonical_employee_name,
+)
 from employee_tg_map import resolve_owner_tg_id
 
 LEGACY_PHOTO_NAMES = (
@@ -14,10 +19,11 @@ LEGACY_PHOTO_NAMES = (
     "Yadullaev Umid",
     "Ядуллаев Умид",
     "Ядуллаев Умиджон",
+    "Ergashev Ozodbek",
+    "Tuvalov Farrux",
+    "Тувалов Фаррух",
 )
-LEGACY_PHOTO_TG_ID = 924612402
-OZODBEK_TG_ID = 7844168817
-OZODBEK_CANONICAL = "Ergashev Ozodbek"
+LEGACY_PHOTO_TG_IDS = (924612402, 7844168817, 7703650930)
 
 BUNDLED_PHOTOS_DIR = Path(__file__).resolve().parent / "assets" / "employee_photos"
 
@@ -150,8 +156,9 @@ def migrate_legacy_employee_photos(conn) -> int:
     for name in LEGACY_PHOTO_NAMES:
         cur = conn.execute("DELETE FROM employee_photos_by_name WHERE employee = ?", (name,))
         n += cur.rowcount
-    cur = conn.execute("DELETE FROM employee_photos WHERE tg_id = ?", (LEGACY_PHOTO_TG_ID,))
-    n += cur.rowcount
+    for old_tg in LEGACY_PHOTO_TG_IDS:
+        cur = conn.execute("DELETE FROM employee_photos WHERE tg_id = ?", (old_tg,))
+        n += cur.rowcount
     return n
 
 
@@ -172,8 +179,8 @@ def seed_bundled_employee_photos(conn) -> int:
         if stem.isdigit():
             tg_id = int(stem)
             employee = TG_EMPLOYEE.get(tg_id) or employee
-        elif stem == OZODBEK_CANONICAL:
-            tg_id = OZODBEK_TG_ID
+        elif stem == CANONICAL_SHOXIJAXON:
+            tg_id = SHOXIJAXON_TG_ID
         owner = resolve_owner_tg_id(employee) or tg_id
         canon = canonical_employee_name(employee)
         _upsert_photo_sync(conn, employee=canon, tg_id=owner, data=data)
