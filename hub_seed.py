@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-HUB_SEED_VERSION = 5
+HUB_SEED_VERSION = 6
 
 # (day, tg_id, bot_key, summary)
 HUB_SEED_ROWS: tuple[tuple[str, int, str, str], ...] = (
@@ -35,7 +35,7 @@ HUB_SEED_ROWS: tuple[tuple[str, int, str, str], ...] = (
     ("2026-06-04", 8547365654, "ombor", "Ombor (forward jami): 5 ta, ish vaqti 3861 soniya"),
     ("2026-06-04", 8547365654, "omborga", "Reys 36, ish 4:03:03, dam 2:33:52"),
     # 2026-06-05
-    ("2026-06-05", 924612402, "omborga", "Reys 21, yuk 712m, ish 32:55, dam 15:34"),
+    ("2026-06-05", 6706402440, "omborga", "Reys 21, yuk 712m, ish 32:55, dam 15:34"),
     ("2026-06-05", 1432810519, "ombor", "#4 🙋 Xizmat so'rovi: bajarildi, 1 soat 30 daqiqa 7 soniya"),
     ("2026-06-05", 5465963344, "omborga", "Reys 8, ish 35:05, dam 0:00"),
     ("2026-06-05", 5732350707, "omborga", "Reys 13, ish 63:15, dam 0:00"),
@@ -62,7 +62,7 @@ HUB_SEED_ROWS: tuple[tuple[str, int, str, str], ...] = (
     ("2026-06-06", 8440127425, "yuk", "Yuk (bugun jami): ish vaqti 0:00"),
     ("2026-06-06", 8547365654, "omborga", "Reys 5, yuk 271m, ish 14:37, dam 7:04"),
     # 2026-06-07
-    ("2026-06-07", 924612402, "omborga", "Reys 13, ish 50:36, dam 0:00"),
+    ("2026-06-07", 6706402440, "omborga", "Reys 13, ish 50:36, dam 0:00"),
     ("2026-06-07", 5412958249, "ombor", "#72 🙋 Xizmat so'rovi: bajarildi, 56 soniya"),
     ("2026-06-07", 5412958249, "omborga", "Reys 28, yuk 781m, ish 21:24, dam 2:50"),
     ("2026-06-07", 5465963344, "ombor", "#58 📦 Tovar buyurtma: bajarildi, 2 daqiqa 57 soniya"),
@@ -77,7 +77,7 @@ HUB_SEED_ROWS: tuple[tuple[str, int, str, str], ...] = (
     ("2026-06-07", 8547365654, "ombor", "#63 🙋 Xizmat so'rovi: bajarildi, 7 daqiqa 10 soniya"),
     ("2026-06-07", 8547365654, "omborga", "Reys 1, yuk 69m, ish 11:52, dam 0:03"),
     # 2026-06-08
-    ("2026-06-08", 924612402, "omborga", "Reys 8, yuk 216m, ish 9:22, dam 4:51"),
+    ("2026-06-08", 6706402440, "omborga", "Reys 8, yuk 216m, ish 9:22, dam 4:51"),
     ("2026-06-08", 5412958249, "omborga", "Reys 7, yuk 105m, ish 2:45, dam 0:14"),
     ("2026-06-08", 5412958249, "yuk", "Yuk (jami): ish vaqti 0 soniya"),
     ("2026-06-08", 5465963344, "ombor", "#48 📦 Tovar buyurtma: bajarildi, 7 daqiqa 14 soniya"),

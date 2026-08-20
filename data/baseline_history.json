@@ -358,7 +358,7 @@
         "day": "2026-06-03",
         "period": "2026-06",
         "tg_id": 0,
-        "employee": "Yadullaev Umidjon",
+        "employee": "Ibodullaev Shoxijaxon",
         "category": "Пересчет товаров",
         "value": 95,
         "created_at": "2026-06-03T23:59:00"
@@ -368,7 +368,7 @@
         "day": "2026-06-03",
         "period": "2026-06",
         "tg_id": 0,
-        "employee": "Yadullaev Umidjon",
+        "employee": "Ibodullaev Shoxijaxon",
         "category": "Фото ТМЦ",
         "value": 103,
         "created_at": "2026-06-03T23:59:00"
@@ -647,8 +647,8 @@
         "id": 65,
         "day": "2026-06-05",
         "period": "2026-06",
-        "tg_id": 7703650930,
-        "employee": "Tuvalov Farrux",
+        "tg_id": 7987730795,
+        "employee": "Rajabboev Pulat",
         "category": "Счет ТСД",
         "value": 111,
         "created_at": "2026-06-05T23:59:00"
@@ -657,8 +657,8 @@
         "id": 66,
         "day": "2026-06-05",
         "period": "2026-06",
-        "tg_id": 924612402,
-        "employee": "Yadullaev Umid",
+        "tg_id": 6706402440,
+        "employee": "Ibodullaev Shoxijaxon",
         "category": "Фасовка",
         "value": 105,
         "created_at": "2026-06-05T23:59:00"
@@ -807,8 +807,8 @@
         "id": 81,
         "day": "2026-06-06",
         "period": "2026-06",
-        "tg_id": 7703650930,
-        "employee": "Tuvalov Farrux",
+        "tg_id": 7987730795,
+        "employee": "Rajabboev Pulat",
         "category": "Места хр",
         "value": 11,
         "created_at": "2026-06-06T23:59:00"
@@ -817,8 +817,8 @@
         "id": 82,
         "day": "2026-06-06",
         "period": "2026-06",
-        "tg_id": 7703650930,
-        "employee": "Tuvalov Farrux",
+        "tg_id": 7987730795,
+        "employee": "Rajabboev Pulat",
         "category": "Перемещение",
         "value": 1,
         "created_at": "2026-06-06T23:59:00"
@@ -827,8 +827,8 @@
         "id": 83,
         "day": "2026-06-06",
         "period": "2026-06",
-        "tg_id": 7703650930,
-        "employee": "Tuvalov Farrux",
+        "tg_id": 7987730795,
+        "employee": "Rajabboev Pulat",
         "category": "Переоценка",
         "value": 15,
         "created_at": "2026-06-06T23:59:00"
@@ -837,8 +837,8 @@
         "id": 84,
         "day": "2026-06-06",
         "period": "2026-06",
-        "tg_id": 7703650930,
-        "employee": "Tuvalov Farrux",
+        "tg_id": 7987730795,
+        "employee": "Rajabboev Pulat",
         "category": "Пересчет товаров",
         "value": 50,
         "created_at": "2026-06-06T23:59:00"
@@ -847,8 +847,8 @@
         "id": 85,
         "day": "2026-06-06",
         "period": "2026-06",
-        "tg_id": 7703650930,
-        "employee": "Tuvalov Farrux",
+        "tg_id": 7987730795,
+        "employee": "Rajabboev Pulat",
         "category": "Приход",
         "value": 15,
         "created_at": "2026-06-06T23:59:00"
@@ -857,8 +857,8 @@
         "id": 86,
         "day": "2026-06-06",
         "period": "2026-06",
-        "tg_id": 7703650930,
-        "employee": "Tuvalov Farrux",
+        "tg_id": 7987730795,
+        "employee": "Rajabboev Pulat",
         "category": "Счет ТСД",
         "value": 61,
         "created_at": "2026-06-06T23:59:00"
@@ -967,8 +967,8 @@
         "id": 97,
         "day": "2026-06-07",
         "period": "2026-06",
-        "tg_id": 7703650930,
-        "employee": "Tuvalov Farrux",
+        "tg_id": 7987730795,
+        "employee": "Rajabboev Pulat",
         "category": "АРМ диспетчер",
         "value": 13,
         "created_at": "2026-06-07T23:59:00"
@@ -977,8 +977,8 @@
         "id": 98,
         "day": "2026-06-07",
         "period": "2026-06",
-        "tg_id": 7703650930,
-        "employee": "Tuvalov Farrux",
+        "tg_id": 7987730795,
+        "employee": "Rajabboev Pulat",
         "category": "Места хр",
         "value": 21,
         "created_at": "2026-06-07T23:59:00"
@@ -987,8 +987,8 @@
         "id": 99,
         "day": "2026-06-07",
         "period": "2026-06",
-        "tg_id": 7703650930,
-        "employee": "Tuvalov Farrux",
+        "tg_id": 7987730795,
+        "employee": "Rajabboev Pulat",
         "category": "Перемещение",
         "value": 9,
         "created_at": "2026-06-07T23:59:00"
@@ -997,8 +997,8 @@
         "id": 100,
         "day": "2026-06-07",
         "period": "2026-06",
-        "tg_id": 7703650930,
-        "employee": "Tuvalov Farrux",
+        "tg_id": 7987730795,
+        "employee": "Rajabboev Pulat",
         "category": "Приход",
         "value": 1,
         "created_at": "2026-06-07T23:59:00"
@@ -1007,8 +1007,8 @@
         "id": 101,
         "day": "2026-06-07",
         "period": "2026-06",
-        "tg_id": 7703650930,
-        "employee": "Tuvalov Farrux",
+        "tg_id": 7987730795,
+        "employee": "Rajabboev Pulat",
         "category": "Счет ТСД",
         "value": 16,
         "created_at": "2026-06-07T23:59:00"
@@ -1017,8 +1017,8 @@
         "id": 102,
         "day": "2026-06-07",
         "period": "2026-06",
-        "tg_id": 924612402,
-        "employee": "Yadullaev Umid",
+        "tg_id": 6706402440,
+        "employee": "Ibodullaev Shoxijaxon",
         "category": "Перемещение",
         "value": 15,
         "created_at": "2026-06-07T23:59:00"
@@ -1197,8 +1197,8 @@
         "id": 120,
         "day": "2026-06-08",
         "period": "2026-06",
-        "tg_id": 7703650930,
-        "employee": "Tuvalov Farrux",
+        "tg_id": 7987730795,
+        "employee": "Rajabboev Pulat",
         "category": "Перемещение",
         "value": 2,
         "created_at": "2026-06-08T23:59:00"
@@ -1207,8 +1207,8 @@
         "id": 121,
         "day": "2026-06-08",
         "period": "2026-06",
-        "tg_id": 7703650930,
-        "employee": "Tuvalov Farrux",
+        "tg_id": 7987730795,
+        "employee": "Rajabboev Pulat",
         "category": "Приход",
         "value": 1,
         "created_at": "2026-06-08T23:59:00"
@@ -1217,8 +1217,8 @@
         "id": 122,
         "day": "2026-06-08",
         "period": "2026-06",
-        "tg_id": 7703650930,
-        "employee": "Tuvalov Farrux",
+        "tg_id": 7987730795,
+        "employee": "Rajabboev Pulat",
         "category": "Счет ТСД",
         "value": 121,
         "created_at": "2026-06-08T23:59:00"
@@ -1227,8 +1227,8 @@
         "id": 123,
         "day": "2026-06-08",
         "period": "2026-06",
-        "tg_id": 924612402,
-        "employee": "Yadullaev Umid",
+        "tg_id": 6706402440,
+        "employee": "Ibodullaev Shoxijaxon",
         "category": "Места хр",
         "value": 50,
         "created_at": "2026-06-08T23:59:00"
@@ -1412,7 +1412,7 @@
       },
       {
         "day": "2026-06-05",
-        "tg_id": 924612402,
+        "tg_id": 6706402440,
         "bot_key": "omborga",
         "summary": "Reys 21, yuk 712m, ish 32:55, dam 15:34",
         "created_at": "2026-06-05 23:59:00"
@@ -1454,14 +1454,14 @@
       },
       {
         "day": "2026-06-05",
-        "tg_id": 7703650930,
+        "tg_id": 7987730795,
         "bot_key": "ombor",
         "summary": "#11 📦 Tovar buyurtma: bajarildi, 3 daqiqa 12 soniya",
         "created_at": "2026-06-05 23:59:00"
       },
       {
         "day": "2026-06-05",
-        "tg_id": 7703650930,
+        "tg_id": 7987730795,
         "bot_key": "omborga",
         "summary": "Reys 19, ish 55:47, dam 0:00",
         "created_at": "2026-06-05 23:59:00"
@@ -1545,21 +1545,21 @@
       },
       {
         "day": "2026-06-06",
-        "tg_id": 7703650930,
+        "tg_id": 7987730795,
         "bot_key": "ombor",
         "summary": "#36 🙋 Xizmat so'rovi: bajarildi, 49 soniya",
         "created_at": "2026-06-06 23:59:00"
       },
       {
         "day": "2026-06-06",
-        "tg_id": 7703650930,
+        "tg_id": 7987730795,
         "bot_key": "omborga",
         "summary": "Reys 20, yuk 751m, ish 20:03, dam 10:23",
         "created_at": "2026-06-06 23:59:00"
       },
       {
         "day": "2026-06-06",
-        "tg_id": 7703650930,
+        "tg_id": 7987730795,
         "bot_key": "sklad",
         "summary": "Papka Глобусы: sanaldi 1, joy 1, xato 0, kun 1/29",
         "created_at": "2026-06-06 23:59:00"
@@ -1587,7 +1587,7 @@
       },
       {
         "day": "2026-06-07",
-        "tg_id": 924612402,
+        "tg_id": 6706402440,
         "bot_key": "omborga",
         "summary": "Reys 13, ish 50:36, dam 0:00",
         "created_at": "2026-06-07 23:59:00"
@@ -1643,14 +1643,14 @@
       },
       {
         "day": "2026-06-07",
-        "tg_id": 7703650930,
+        "tg_id": 7987730795,
         "bot_key": "ombor",
         "summary": "#59 📦 Tovar buyurtma: bajarildi, 22 daqiqa 14 soniya",
         "created_at": "2026-06-07 23:59:00"
       },
       {
         "day": "2026-06-07",
-        "tg_id": 7703650930,
+        "tg_id": 7987730795,
         "bot_key": "omborga",
         "summary": "Reys 5, ish 20:31, dam 0:00",
         "created_at": "2026-06-07 23:59:00"
@@ -1685,7 +1685,7 @@
       },
       {
         "day": "2026-06-08",
-        "tg_id": 924612402,
+        "tg_id": 6706402440,
         "bot_key": "omborga",
         "summary": "Reys 8, yuk 216m, ish 9:22, dam 4:51",
         "created_at": "2026-06-08 23:59:00"
@@ -1769,7 +1769,7 @@
       },
       {
         "day": "2026-06-08",
-        "tg_id": 7703650930,
+        "tg_id": 7987730795,
         "bot_key": "omborga",
         "summary": "Reys 5, yuk 87m, ish 1:52, dam 0:18",
         "created_at": "2026-06-08 23:59:00"
