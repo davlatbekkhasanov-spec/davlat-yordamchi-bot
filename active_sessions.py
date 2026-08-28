@@ -20,7 +20,7 @@ ACTIVITY_LABELS = {
     "mesta": "Mesta",
     "prihod": "Prihod",
     "invent": "Inventarizatsiya",
-    "yuk": "Yuk transport",
+    "yuk": "Юк ташиш",
     "omborga": "Reyslar",
     "sklad": "Sklad nazorat",
     "ombor": "Ombor xizmat",
