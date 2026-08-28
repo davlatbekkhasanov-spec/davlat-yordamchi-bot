@@ -7,7 +7,7 @@ HUB_SEED_VERSION = 6
 # (day, tg_id, bot_key, summary)
 HUB_SEED_ROWS: tuple[tuple[str, int, str, str], ...] = (
     # 2026-06-02
-    ("2026-06-02", 5412958249, "yuk", "Yuk (forward jami): ish vaqti 2957 soniya"),
+    ("2026-06-02", 8663341753, "yuk", "Yuk (forward jami): ish vaqti 2957 soniya"),
     ("2026-06-02", 5465963344, "yuk", "Yuk (forward jami): ish vaqti 3457 soniya"),
     ("2026-06-02", 5732350707, "ombor", "Ombor (forward jami): 2 ta, ish vaqti 1878 soniya"),
     ("2026-06-02", 6931958983, "ombor", "Ombor (forward jami): 2 ta, ish vaqti 2647 soniya"),
@@ -16,15 +16,15 @@ HUB_SEED_ROWS: tuple[tuple[str, int, str, str], ...] = (
     ("2026-06-02", 8547365654, "ombor", "Ombor (forward jami): 2 ta, ish vaqti 3429 soniya"),
     ("2026-06-02", 8547365654, "omborga", "Reys 9, ish 24:42, dam 14:22"),
     # 2026-06-03
-    ("2026-06-03", 5412958249, "ombor", "Ombor (forward jami): 3 ta, ish vaqti 3534 soniya"),
+    ("2026-06-03", 8663341753, "ombor", "Ombor (forward jami): 3 ta, ish vaqti 3534 soniya"),
     ("2026-06-03", 6931958983, "ombor", "Ombor (forward jami): 4 ta, ish vaqti 3632 soniya"),
     ("2026-06-03", 6931958983, "omborga", "Reys 5, ish 8:33, dam 5:37"),
     ("2026-06-03", 8440127425, "ombor", "Ombor (forward jami): 2 ta, ish vaqti 683 soniya"),
     ("2026-06-03", 8440127425, "omborga", "Reys 3, ish 19:46, dam 0:00"),
     ("2026-06-03", 8547365654, "ombor", "Ombor (forward jami): 1 ta, ish vaqti 5907 soniya"),
     # 2026-06-04
-    ("2026-06-04", 5412958249, "ombor", "Ombor (forward jami): 2 ta, ish vaqti 1255 soniya"),
-    ("2026-06-04", 5412958249, "omborga", "Reys 18, ish 16:34, dam 0:00"),
+    ("2026-06-04", 8663341753, "ombor", "Ombor (forward jami): 2 ta, ish vaqti 1255 soniya"),
+    ("2026-06-04", 8663341753, "omborga", "Reys 18, ish 16:34, dam 0:00"),
     ("2026-06-04", 5465963344, "omborga", "Reys 9, ish 3:49:33, dam 0:00"),
     ("2026-06-04", 5732350707, "ombor", "Ombor (forward jami): 2 ta, ish vaqti 2852 soniya"),
     ("2026-06-04", 5732350707, "omborga", "Reys 10, ish 2:46:00, dam 1:30:00"),
@@ -46,9 +46,9 @@ HUB_SEED_ROWS: tuple[tuple[str, int, str, str], ...] = (
     ("2026-06-05", 8547365654, "ombor", "#9 📦 Tovar buyurtma: bajarildi, 9 daqiqa 43 soniya"),
     ("2026-06-05", 8547365654, "omborga", "Reys 21, ish 32:49, dam 0:00"),
     # 2026-06-06
-    ("2026-06-06", 5412958249, "ombor", "#25 🙋 Xizmat so'rovi: bajarildi, 1 daqiqa 3 soniya"),
-    ("2026-06-06", 5412958249, "omborga", "Reys 21, ish 20:11, dam 0:00"),
-    ("2026-06-06", 5412958249, "yuk", "Yuk (bugun jami): ish vaqti 0:00"),
+    ("2026-06-06", 8663341753, "ombor", "#25 🙋 Xizmat so'rovi: bajarildi, 1 daqiqa 3 soniya"),
+    ("2026-06-06", 8663341753, "omborga", "Reys 21, ish 20:11, dam 0:00"),
+    ("2026-06-06", 8663341753, "yuk", "Yuk (bugun jami): ish vaqti 0:00"),
     ("2026-06-06", 5465963344, "ombor", "#43 🙋 Xizmat so'rovi: bajarildi, 19 soniya"),
     ("2026-06-06", 5465963344, "omborga", "Reys 14, ish 33:29, dam 0:00"),
     ("2026-06-06", 5465963344, "yuk", "Yuk (bugun jami): ish vaqti 0:00"),
@@ -63,8 +63,8 @@ HUB_SEED_ROWS: tuple[tuple[str, int, str, str], ...] = (
     ("2026-06-06", 8547365654, "omborga", "Reys 5, yuk 271m, ish 14:37, dam 7:04"),
     # 2026-06-07
     ("2026-06-07", 6706402440, "omborga", "Reys 13, ish 50:36, dam 0:00"),
-    ("2026-06-07", 5412958249, "ombor", "#72 🙋 Xizmat so'rovi: bajarildi, 56 soniya"),
-    ("2026-06-07", 5412958249, "omborga", "Reys 28, yuk 781m, ish 21:24, dam 2:50"),
+    ("2026-06-07", 8663341753, "ombor", "#72 🙋 Xizmat so'rovi: bajarildi, 56 soniya"),
+    ("2026-06-07", 8663341753, "omborga", "Reys 28, yuk 781m, ish 21:24, dam 2:50"),
     ("2026-06-07", 5465963344, "ombor", "#58 📦 Tovar buyurtma: bajarildi, 2 daqiqa 57 soniya"),
     ("2026-06-07", 5465963344, "omborga", "Reys 27, ish 31:51, dam 0:00"),
     ("2026-06-07", 6931958983, "ombor", "#62 🙋 Xizmat so'rovi: bajarildi, 42 daqiqa 54 soniya"),
@@ -78,8 +78,8 @@ HUB_SEED_ROWS: tuple[tuple[str, int, str, str], ...] = (
     ("2026-06-07", 8547365654, "omborga", "Reys 1, yuk 69m, ish 11:52, dam 0:03"),
     # 2026-06-08
     ("2026-06-08", 6706402440, "omborga", "Reys 8, yuk 216m, ish 9:22, dam 4:51"),
-    ("2026-06-08", 5412958249, "omborga", "Reys 7, yuk 105m, ish 2:45, dam 0:14"),
-    ("2026-06-08", 5412958249, "yuk", "Yuk (jami): ish vaqti 0 soniya"),
+    ("2026-06-08", 8663341753, "omborga", "Reys 7, yuk 105m, ish 2:45, dam 0:14"),
+    ("2026-06-08", 8663341753, "yuk", "Yuk (jami): ish vaqti 0 soniya"),
     ("2026-06-08", 5465963344, "ombor", "#48 📦 Tovar buyurtma: bajarildi, 7 daqiqa 14 soniya"),
     ("2026-06-08", 5465963344, "omborga", "Reys 7, yuk 105m, ish 2:45, dam 0:14"),
     ("2026-06-08", 5465963344, "yuk", "Yuk (jami): ish vaqti 0 soniya"),
@@ -96,11 +96,11 @@ HUB_SEED_ROWS: tuple[tuple[str, int, str, str], ...] = (
     ("2026-06-08", 8547365654, "ombor", "Ombor (bugun jami): 3 ta, ish vaqti 6892 soniya"),
     ("2026-06-08", 8547365654, "omborga", "Reys 5, yuk 190m, ish 3:29, dam 1:10"),
     # 2026-06-09
-    ("2026-06-09", 5412958249, "omborga", "Reys 18, ish 21:13, dam 0:00"),
+    ("2026-06-09", 8663341753, "omborga", "Reys 18, ish 21:13, dam 0:00"),
     ("2026-06-09", 5465963344, "omborga", "Reys 18, yuk 522m, ish 982:00, dam 6:12"),
     ("2026-06-09", 8440127425, "yuk", "Yuk (bugun jami): ish vaqti 0:00"),
     ("2026-06-09", 8547365654, "omborga", "Reys 1, yuk 69m, ish 2:06, dam 0:07"),
     # 2026-06-08
-    ("2026-06-08", 5412958249, "sklad", "Papka Увлажнители воздуха: sanaldi 1, joy 1, xato 0, kun 17/28"),
+    ("2026-06-08", 8663341753, "sklad", "Papka Увлажнители воздуха: sanaldi 1, joy 1, xato 0, kun 17/28"),
     ("2026-06-08", 5465963344, "sklad", "Papka Увлажнители воздуха: sanaldi 1, joy 1, xato 0, kun 17/28"),
 )

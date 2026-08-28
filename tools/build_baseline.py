@@ -34,7 +34,7 @@ METRIC_OVERRIDES: dict[tuple[str, str, str], int | None] = {
 # 08.06 skrinshotdagi «бошқа ботлар» (kunlik hisobot)
 HUB_DAY_OVERRIDES: dict[str, dict[int, dict[str, str]]] = {
     "2026-06-08": {
-        5412958249: {
+        8663341753: {
             "omborga": "Reys 7, yuk 105m, ish 2:45, dam 0:14",
             "sklad": "Papka Увлажнители воздуха: sanaldi 1, joy 1, xato 0, kun 17/28",
         },

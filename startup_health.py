@@ -63,6 +63,14 @@ def format_startup_admin_message(stats: dict, maintenance: dict) -> str:
     hres = maintenance.get("hub_restore") or 0
     if hres:
         lines.append(f"♻️ Hub restore: {hres} ta yozuv tiklandi")
+    rmr = maintenance.get("ranking_minus_reset") or {}
+    if isinstance(rmr, dict) and not rmr.get("skipped") and (
+        rmr.get("hub_events") or rmr.get("penalties")
+    ):
+        lines.append(
+            f"🧹 Minus tozalash: hub {rmr.get('hub_events', 0)}, "
+            f"jarima {rmr.get('penalties', 0)}"
+        )
     hr = maintenance.get("hub_repair") or 0
     if hr:
         lines.append(f"🔧 Hub repair: {hr} ta guruh tuzatildi")
@@ -109,7 +117,12 @@ def html_esc(text: str) -> str:
 async def run_startup_maintenance(db_path: str) -> dict[str, Any]:
     """Baseline, purge, hub repair — ketma-ket."""
     from baseline_restore import ensure_baseline_restored
-    from hub_corrections import apply_hub_purges, apply_hub_restores
+    from hub_corrections import (
+        apply_faceid_history_reset,
+        apply_hub_purges,
+        apply_hub_restores,
+        apply_ranking_minus_reset_before_today,
+    )
     from hub_reports_sync import replay_hub_categories_all_days
     from hub_repair import repair_hub_db
     from yordamchi_push import today_iso
@@ -121,6 +134,16 @@ async def run_startup_maintenance(db_path: str) -> dict[str, Any]:
     except Exception:
         log.exception("hub purge")
         out["hub_purge"] = 0
+    try:
+        out["faceid_history_reset"] = await apply_faceid_history_reset(db_path)
+    except Exception:
+        log.exception("faceid history reset")
+        out["faceid_history_reset"] = 0
+    try:
+        out["ranking_minus_reset"] = await apply_ranking_minus_reset_before_today(db_path)
+    except Exception:
+        log.exception("ranking minus reset")
+        out["ranking_minus_reset"] = 0
     try:
         out["hub_restore"] = await apply_hub_restores()
     except Exception:

@@ -2309,6 +2309,9 @@ async def pin_live_dashboard(message: Message, bot: Bot):
     )
     try:
         await bot.pin_chat_message(message.chat.id, sent.message_id, disable_notification=True)
+        from active_sessions import set_hub_meta
+
+        set_hub_meta("live_pin_msg_id", str(sent.message_id))
         await message.answer("✅ Jonli holat xabari pin qilindi.")
     except Exception as exc:
         await message.answer(
@@ -2336,13 +2339,15 @@ async def live_menu_setup(message: Message, bot: Bot):
     await message.answer(text, parse_mode="HTML", reply_markup=kb)
 
 
-async def ensure_group_live_dashboard_pin(bot: Bot) -> None:
+async def ensure_group_live_dashboard_pin(bot: Bot, *, force: bool = False) -> None:
     """Guruhga bir marta jonli holat tugmasini pin qiladi."""
     from active_sessions import get_hub_meta, set_hub_meta
 
     if not GROUP_ID:
         return
-    if get_hub_meta("live_pin_msg_id"):
+    if force:
+        set_hub_meta("live_pin_msg_id", "")
+    elif get_hub_meta("live_pin_msg_id"):
         return
     url = live_dashboard_url()
     if not url:
@@ -2397,8 +2402,13 @@ async def setup_live_webapp_menus(bot: Bot) -> None:
     except Exception:
         logging.exception("Default menu Web App o'rnatilmadi")
     await register_live_bot_commands(bot)
+    force_pin = os.getenv("LIVE_FORCE_GROUP_PIN", "").strip().lower() in (
+        "1",
+        "true",
+        "yes",
+    )
     try:
-        await ensure_group_live_dashboard_pin(bot)
+        await ensure_group_live_dashboard_pin(bot, force=force_pin)
     except Exception:
         logging.exception("Live dashboard group pin xato")
 

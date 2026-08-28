@@ -82,7 +82,7 @@
           <div class="rank-info">
             <div class="rank-name">{{ row.name }}</div>
             <div class="rank-meta">
-              <span class="rank-score">+{{ row.score }} очко</span>
+              <span class="rank-score {{ row.score_cls }}">{{ row.score_text }} очко</span>
               {% if row.work_time != "00:00" %}
               <span class="rank-time">⏱ {{ row.work_time }}</span>
               {% endif %}

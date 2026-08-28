@@ -5,6 +5,7 @@ from __future__ import annotations
 from datetime import date
 
 from daily_report_card import LeaderRow, _fmt_footer_date
+from report_format import fmt_points
 from report_html import _css_text, _env, _logo_b64
 
 _MEDALS = {1: "1", 2: "2", 3: "3"}
@@ -19,6 +20,7 @@ def build_ranking_html(
 ) -> str:
     rows = []
     for row in leaders:
+        pts = fmt_points(row.score)
         rows.append(
             {
                 "rank": row.rank,
@@ -26,6 +28,8 @@ def build_ranking_html(
                 "tier": _TIERS.get(row.rank, "default"),
                 "name": row.name,
                 "score": row.score,
+                "score_text": pts["text"],
+                "score_cls": pts["cls"],
                 "work_time": row.work_time or "00:00",
                 "pct": row.pct,
                 "zero": row.score <= 0,

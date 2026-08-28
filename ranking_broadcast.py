@@ -10,8 +10,17 @@ from cross_bot_hub import fetch_merged_latest_by_bot
 from employee_tg_map import employee_name_variants, tg_ids_for_employee
 from ranking_adjustments import period_adjustment_net
 
+# Vaqtincha tatil (2026-08-21) — qaytarish: bo'sh qoldiring yoki o'chiring
+RANKING_PAUSED_EMPLOYEES: frozenset[str] = frozenset({
+    "Rajabboev Pulat",
+    "Ruziboev Sindor",
+})
+
+
 def ranking_employees(employees: list[str]) -> list[str]:
-    return list(employees)
+    if not RANKING_PAUSED_EMPLOYEES:
+        return list(employees)
+    return [e for e in employees if e not in RANKING_PAUSED_EMPLOYEES]
 
 
 def init_schema(conn) -> None:
