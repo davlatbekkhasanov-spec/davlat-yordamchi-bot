@@ -11,6 +11,9 @@ from zoneinfo import ZoneInfo
 from aiogram import Bot, Dispatcher
 from aiogram.filters import Command
 from aiogram.types import (
+    BotCommand,
+    BotCommandScopeAllGroupChats,
+    BotCommandScopeChat,
     BufferedInputFile,
     InlineKeyboardButton,
     InlineKeyboardMarkup,
@@ -2302,7 +2305,29 @@ async def pin_live_dashboard(message: Message, bot: Bot):
         await bot.pin_chat_message(message.chat.id, sent.message_id, disable_notification=True)
         await message.answer("✅ Jonli holat xabari pin qilindi.")
     except Exception as exc:
-        await message.answer(f"Pin qilishda xato: {exc}")
+        await message.answer(
+            f"Xabar yuborildi. Pin uchun botga admin + «Pin messages» bering.\n<code>{exc}</code>",
+            parse_mode="HTML",
+        )
+
+
+@dp.message(Command("livemenu"))
+async def live_menu_setup(message: Message, bot: Bot):
+    """Admin: guruh buyruqlari va (mumkin bo'lsa) menu tugmasini yangilash."""
+    if not is_admin(message.from_user.id):
+        return
+    await setup_live_webapp_menus(bot)
+    url = live_dashboard_url()
+    kb = _live_dashboard_kb(url) if url else None
+    text = (
+        "✅ <b>Jonli holat sozlandi</b>\n\n"
+        "• Guruhda <code>/</code> bosing → <b>/live</b> tanlang\n"
+        "• Yoki <code>/live</code> yozing\n"
+        "• Tepada pin qilingan xabar — scroll qilib oching\n\n"
+        "<i>Pastdagi menu tugmasi faqat bot bilan shaxsiy chatda ko'rinadi "
+        "(Telegram qoidasi).</i>"
+    )
+    await message.answer(text, parse_mode="HTML", reply_markup=kb)
 
 
 async def ensure_group_live_dashboard_pin(bot: Bot) -> None:
@@ -2325,11 +2350,51 @@ async def ensure_group_live_dashboard_pin(bot: Bot) -> None:
             parse_mode="HTML",
             reply_markup=_live_dashboard_kb(url),
         )
-        await bot.pin_chat_message(GROUP_ID, sent.message_id, disable_notification=True)
+        try:
+            await bot.pin_chat_message(GROUP_ID, sent.message_id, disable_notification=True)
+        except Exception:
+            logging.warning("Pin ruxsati yo'q — xabar yuborildi, pin qilinmadi")
         set_hub_meta("live_pin_msg_id", str(sent.message_id))
-        logging.info("Live dashboard pinned in group %s msg=%s", GROUP_ID, sent.message_id)
+        logging.info("Live dashboard group msg %s (chat=%s)", sent.message_id, GROUP_ID)
     except Exception:
         logging.exception("Live dashboard group pin failed")
+
+
+async def register_live_bot_commands(bot: Bot) -> None:
+    """Guruhda / tugmasida /live ko'rinsin."""
+    cmds = [
+        BotCommand(command="live", description="📊 Jonli holat paneli"),
+        BotCommand(command="jonli", description="📊 Jonli holat (o'zbek)"),
+    ]
+    try:
+        await bot.set_my_commands(cmds, scope=BotCommandScopeAllGroupChats())
+        logging.info("Bot commands: all group chats")
+    except Exception:
+        logging.exception("set_my_commands all groups xato")
+    if GROUP_ID:
+        try:
+            await bot.set_my_commands(cmds, scope=BotCommandScopeChat(chat_id=GROUP_ID))
+            logging.info("Bot commands: warehouse group %s", GROUP_ID)
+        except Exception:
+            logging.exception("set_my_commands group chat xato")
+
+
+async def setup_live_webapp_menus(bot: Bot) -> None:
+    """Shaxsiy chat va default menu — guruhda pastdagi tugma faqat bot profili orqali."""
+    url = live_dashboard_url()
+    if not url:
+        return
+    menu = MenuButtonWebApp(text="📊 Jonli holat", web_app=WebAppInfo(url=url))
+    try:
+        await bot.set_chat_menu_button(menu_button=menu)
+        logging.info("Default menu Web App: %s", url)
+    except Exception:
+        logging.exception("Default menu Web App o'rnatilmadi")
+    await register_live_bot_commands(bot)
+    try:
+        await ensure_group_live_dashboard_pin(bot)
+    except Exception:
+        logging.exception("Live dashboard group pin xato")
 
 
 @dp.message(Command("botdebug"))
@@ -2941,19 +3006,10 @@ async def main():
     except Exception:
         logging.exception("Startup admin xabari yuborilmadi")
     hub_runner = await start_ingest_server()
-    live_url = live_dashboard_url()
-    if live_url:
-        try:
-            await bot.set_chat_menu_button(
-                menu_button=MenuButtonWebApp(text="📊 Jonli holat", web_app=WebAppInfo(url=live_url)),
-            )
-            logging.info("Chat menu Web App: %s", live_url)
-        except Exception:
-            logging.exception("Chat menu Web App o'rnatilmadi")
-        try:
-            await ensure_group_live_dashboard_pin(bot)
-        except Exception:
-            logging.exception("Live dashboard group pin xato")
+    try:
+        await setup_live_webapp_menus(bot)
+    except Exception:
+        logging.exception("Live webapp menus xato")
     scheduler = setup_scheduler()
     try:
         await maybe_catchup_ranking()
