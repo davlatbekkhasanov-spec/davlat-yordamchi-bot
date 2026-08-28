@@ -2402,15 +2402,7 @@ async def setup_live_webapp_menus(bot: Bot) -> None:
     except Exception:
         logging.exception("Default menu Web App o'rnatilmadi")
     await register_live_bot_commands(bot)
-    force_pin = os.getenv("LIVE_FORCE_GROUP_PIN", "").strip().lower() in (
-        "1",
-        "true",
-        "yes",
-    )
-    try:
-        await ensure_group_live_dashboard_pin(bot, force=force_pin)
-    except Exception:
-        logging.exception("Live dashboard group pin xato")
+    # Guruhga avtomatik xabar/pin YO'Q — faqat admin /pinlive yuborganida
 
 
 @dp.message(Command("botdebug"))
