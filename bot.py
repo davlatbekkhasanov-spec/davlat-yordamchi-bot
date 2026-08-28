@@ -2305,6 +2305,33 @@ async def pin_live_dashboard(message: Message, bot: Bot):
         await message.answer(f"Pin qilishda xato: {exc}")
 
 
+async def ensure_group_live_dashboard_pin(bot: Bot) -> None:
+    """Guruhga bir marta jonli holat tugmasini pin qiladi."""
+    from active_sessions import get_hub_meta, set_hub_meta
+
+    if not GROUP_ID:
+        return
+    if get_hub_meta("live_pin_msg_id"):
+        return
+    url = live_dashboard_url()
+    if not url:
+        return
+    try:
+        sent = await bot.send_message(
+            GROUP_ID,
+            "📊 <b>Ombor jonli holati</b>\n\n"
+            "Kim hozir Mesta, Prihod, Invent, Yuk yoki Reysda ishlayapti — "
+            "tugmani bosing 👇",
+            parse_mode="HTML",
+            reply_markup=_live_dashboard_kb(url),
+        )
+        await bot.pin_chat_message(GROUP_ID, sent.message_id, disable_notification=True)
+        set_hub_meta("live_pin_msg_id", str(sent.message_id))
+        logging.info("Live dashboard pinned in group %s msg=%s", GROUP_ID, sent.message_id)
+    except Exception:
+        logging.exception("Live dashboard group pin failed")
+
+
 @dp.message(Command("botdebug"))
 async def botdebug_cmd(message: Message):
     """Admin debug: har bir xodim bo‘yicha qaysi botlar qancha vaqt/ochko berayotganini ko‘rsatadi."""
@@ -2923,6 +2950,10 @@ async def main():
             logging.info("Chat menu Web App: %s", live_url)
         except Exception:
             logging.exception("Chat menu Web App o'rnatilmadi")
+        try:
+            await ensure_group_live_dashboard_pin(bot)
+        except Exception:
+            logging.exception("Live dashboard group pin xato")
     scheduler = setup_scheduler()
     try:
         await maybe_catchup_ranking()

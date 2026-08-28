@@ -56,6 +56,31 @@ def init_active_sessions_schema() -> None:
     cur.execute(
         "CREATE INDEX IF NOT EXISTS idx_active_sessions_updated ON active_sessions(updated_at)"
     )
+    cur.execute(
+        """
+        CREATE TABLE IF NOT EXISTS hub_meta (
+            key TEXT PRIMARY KEY,
+            value TEXT NOT NULL
+        )
+        """
+    )
+    hub._conn.commit()
+
+
+def get_hub_meta(key: str) -> str:
+    init_active_sessions_schema()
+    cur = hub._conn.cursor()
+    row = cur.execute("SELECT value FROM hub_meta WHERE key = ?", (key,)).fetchone()
+    return str(row[0]) if row else ""
+
+
+def set_hub_meta(key: str, value: str) -> None:
+    init_active_sessions_schema()
+    cur = hub._conn.cursor()
+    cur.execute(
+        "INSERT OR REPLACE INTO hub_meta(key, value) VALUES (?, ?)",
+        (key, str(value)),
+    )
     hub._conn.commit()
 
 
