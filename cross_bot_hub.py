@@ -94,6 +94,9 @@ def init_schema() -> None:
         """
     )
     _conn.commit()
+    from active_sessions import init_active_sessions_schema
+
+    init_active_sessions_schema()
 
 
 def _parse_duration_seconds(sl: str) -> int:
@@ -902,6 +905,26 @@ async def hub_stats_today(day: str) -> dict[str, tuple[int, str | None]]:
     for row in rows:
         out[row["bot_key"]] = (int(row["cnt"]), row["last_at"])
     return out
+
+
+def navbatchi_summary_for_day_sync(tg_id: int, day: str) -> str | None:
+    """Kun + xodim uchun navbatchi hub summary (eng yaxshi ball)."""
+    cur = _conn.cursor()
+    cur.execute(
+        """
+        SELECT summary FROM cross_bot_events
+        WHERE bot_key = 'navbatchi' AND day = ? AND tg_id = ?
+        ORDER BY id ASC
+        """,
+        (day, int(tg_id)),
+    )
+    rows = [str(r["summary"] or "") for r in cur.fetchall() if r["summary"]]
+    if not rows:
+        return None
+    merged = _merge_navbatchi_daily(rows)
+    if _parse_navbatchi_ball(merged) <= 0 and "accepted" not in merged.lower():
+        return None
+    return merged or None
 
 
 def faceid_events_in_range_sync(from_day: str, to_day: str) -> list[dict]:

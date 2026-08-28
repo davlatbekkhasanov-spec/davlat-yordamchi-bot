@@ -7,8 +7,10 @@ import os
 
 from aiohttp import web
 
-from cross_bot_hub import faceid_events_in_range_sync, hub_secret_ok, record_event
+from cross_bot_hub import faceid_events_in_range_sync, hub_secret_ok, navbatchi_summary_for_day_sync, record_event
+from active_sessions import process_session_ingest
 from analytics_web import register_analytics_routes
+from live_web import register_live_routes
 from preview_web import register_preview_routes
 
 log = logging.getLogger(__name__)
@@ -45,9 +47,27 @@ async def handle_ingest(request: web.Request) -> web.Response:
     summary = _pick("summary", "text", "message", "result").strip()
     day = _pick("day", "date", "day_iso").strip()
 
-    if not bot_key or not summary:
-        log.warning("Hub ingest required fields missing: bot_key=%s summary=%s", bool(bot_key), bool(summary))
-        return web.json_response({"ok": False, "message": "bot_key and summary required"}, status=400)
+    event_type = _pick("event_type", "session_event").strip().lower()
+    summary_l = summary.lower()
+    is_session = (
+        bool(event_type)
+        or "[SESSION:" in summary.upper()
+        or "jonli sessiya" in summary_l
+    )
+
+    if not bot_key:
+        log.warning("Hub ingest bot_key missing")
+        return web.json_response({"ok": False, "message": "bot_key required"}, status=400)
+
+    if is_session:
+        await process_session_ingest(data)
+        if not summary:
+            log.info("Hub session ingest: tg=%s bot=%s event=%s", tg_id, bot_key, event_type or "auto")
+            return web.json_response({"ok": True, "session": True})
+
+    if not summary:
+        log.warning("Hub ingest summary missing: bot_key=%s", bot_key)
+        return web.json_response({"ok": False, "message": "summary required"}, status=400)
 
     await record_event(tg_id=tg_id, day=day, bot_key=bot_key, summary=summary)
     log.info("Hub ingest ok: tg=%s bot=%s day=%s", tg_id, bot_key, day or "auto")
@@ -80,13 +100,40 @@ async def handle_faceid_events(request: web.Request) -> web.Response:
         return web.json_response({"ok": False, "message": str(e)}, status=500)
 
 
+async def handle_navbatchi_lookup(request: web.Request) -> web.Response:
+    raw_secret = (
+        request.headers.get("X-Hub-Secret", "")
+        or request.headers.get("Authorization", "").removeprefix("Bearer ").strip()
+        or request.query.get("token", "")
+    )
+    if not hub_secret_ok(raw_secret):
+        return web.json_response({"ok": False, "message": "unauthorized"}, status=401)
+
+    day = (request.query.get("day") or "").strip()
+    try:
+        tg_id = int(request.query.get("tg_id") or 0)
+    except (TypeError, ValueError):
+        tg_id = 0
+    if not day or not tg_id:
+        return web.json_response({"ok": False, "message": "day and tg_id required"}, status=400)
+
+    try:
+        summary = navbatchi_summary_for_day_sync(tg_id, day)
+        return web.json_response({"ok": True, "tg_id": tg_id, "day": day, "summary": summary})
+    except Exception as e:
+        log.exception("navbatchi lookup")
+        return web.json_response({"ok": False, "message": str(e)}, status=500)
+
+
 def make_app() -> web.Application:
     app = web.Application()
     app.router.add_post("/ingest", handle_ingest)
     app.router.add_get("/health", handle_health)
     app.router.add_get("/hub/faceid-events", handle_faceid_events)
+    app.router.add_get("/hub/navbatchi", handle_navbatchi_lookup)
     register_preview_routes(app)
     register_analytics_routes(app)
+    register_live_routes(app)
     return app
 
 
@@ -99,7 +146,7 @@ async def start_ingest_server() -> web.AppRunner | None:
     await site.start()
     secret = os.getenv("YORDAMCHI_HUB_SECRET", "").strip()
     log.info(
-        "HTTP :%s — /health /preview /analytics%s",
+        "HTTP :%s — /health /preview /analytics /live%s",
         port,
         " /ingest" if secret else " (ingest o'chiq: SECRET yo'q)",
     )

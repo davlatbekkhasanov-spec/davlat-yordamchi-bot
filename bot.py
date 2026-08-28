@@ -10,7 +10,17 @@ from zoneinfo import ZoneInfo
 
 from aiogram import Bot, Dispatcher
 from aiogram.filters import Command
-from aiogram.types import BufferedInputFile, Message, ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemove
+from aiogram.types import (
+    BufferedInputFile,
+    InlineKeyboardButton,
+    InlineKeyboardMarkup,
+    KeyboardButton,
+    Message,
+    MenuButtonWebApp,
+    ReplyKeyboardMarkup,
+    ReplyKeyboardRemove,
+    WebAppInfo,
+)
 
 from cross_bot_hub import (
     BOT_LABELS,
@@ -62,6 +72,7 @@ from admin_status import (
     admin_status_kb,
     analytics_dashboard_url,
     handle_admin_status,
+    live_dashboard_url,
 )
 from admin_ranking_adj import (
     handle_bonus_start,
@@ -2238,6 +2249,62 @@ async def analytics_btn(message: Message):
     )
 
 
+@dp.message(Command("live", "jonli"))
+async def live_dashboard_cmd(message: Message):
+    """Guruh va shaxsiy chat: jonli holat Web App."""
+    url = live_dashboard_url()
+    if not url:
+        await message.answer(
+            "📊 Jonli panel URL yo'q.\n"
+            "Railway: <code>RAILWAY_PUBLIC_DOMAIN</code> yoki <code>YORDAMCHI_HUB_URL</code>",
+            parse_mode="HTML",
+        )
+        return
+    kb = _live_dashboard_kb(url)
+    await message.answer(
+        "📊 <b>Ombor jonli holati</b>\n\n"
+        "Kim hozir Mesta, Prihod, Invent, Yuk yoki Reysda ishlayapti — "
+        "barchasi bir panelda.",
+        parse_mode="HTML",
+        reply_markup=kb,
+    )
+
+
+def _live_dashboard_kb(url: str) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="📊 Jonli holat", web_app=WebAppInfo(url=url))]
+        ]
+    )
+
+
+@dp.message(Command("pinlive"))
+async def pin_live_dashboard(message: Message, bot: Bot):
+    """Admin: guruhda pin qilingan jonli holat tugmasi."""
+    if not is_admin(message.from_user.id):
+        return
+    if is_private(message):
+        await message.answer("Bu buyruq faqat guruhda ishlatiladi.")
+        return
+    url = live_dashboard_url()
+    if not url:
+        await message.answer("Jonli panel URL yo'q — RAILWAY_PUBLIC_DOMAIN tekshiring.")
+        return
+    sent = await bot.send_message(
+        message.chat.id,
+        "📊 <b>Ombor jonli holati</b>\n\n"
+        "Kim hozir ishlayapti — Mesta, Prihod, Invent, Yuk, Reys.\n"
+        "Tugmani bosing 👇",
+        parse_mode="HTML",
+        reply_markup=_live_dashboard_kb(url),
+    )
+    try:
+        await bot.pin_chat_message(message.chat.id, sent.message_id, disable_notification=True)
+        await message.answer("✅ Jonli holat xabari pin qilindi.")
+    except Exception as exc:
+        await message.answer(f"Pin qilishda xato: {exc}")
+
+
 @dp.message(Command("botdebug"))
 async def botdebug_cmd(message: Message):
     """Admin debug: har bir xodim bo‘yicha qaysi botlar qancha vaqt/ochko berayotganini ko‘rsatadi."""
@@ -2719,6 +2786,8 @@ async def hublink_cmd(message: Message):
             "Guruhga guruhdan kartalarni <b>forward</b> qilsangiz ham bot o'zi ajratadi.",
             "",
             "Tekshirish: 📊 Tizim holati · /hubtoday",
+            "Jonli panel: /live (guruhda Web App)",
+            "Bot sessiya: event_type=session_start|session_end + metadata",
             "Qo'lda: /forward (faqat zaxira)",
         ]
     )
@@ -2845,6 +2914,15 @@ async def main():
     except Exception:
         logging.exception("Startup admin xabari yuborilmadi")
     hub_runner = await start_ingest_server()
+    live_url = live_dashboard_url()
+    if live_url:
+        try:
+            await bot.set_chat_menu_button(
+                menu_button=MenuButtonWebApp(text="📊 Jonli holat", web_app=WebAppInfo(url=live_url)),
+            )
+            logging.info("Chat menu Web App: %s", live_url)
+        except Exception:
+            logging.exception("Chat menu Web App o'rnatilmadi")
     scheduler = setup_scheduler()
     try:
         await maybe_catchup_ranking()

@@ -49,6 +49,17 @@ def analytics_dashboard_url() -> str:
     return f"{base}/analytics?token={secret}"
 
 
+def live_dashboard_url() -> str:
+    """Guruh Web App — jonli holat paneli."""
+    base = resolve_public_hub_url()
+    if not base:
+        return ""
+    token = os.getenv("LIVE_DASHBOARD_TOKEN", "").strip()
+    if token:
+        return f"{base}/live?token={token}"
+    return f"{base}/live"
+
+
 def _flag(ok: bool) -> str:
     return "✅" if ok else "❌"
 

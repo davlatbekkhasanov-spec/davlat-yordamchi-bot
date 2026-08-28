@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <title>Jonli holat — СКЛАД</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>{{ css | safe }}</style>
+</head>
+<body>
+  <div class="page">
+    <header class="header">
+      <img src="data:image/svg+xml;base64,{{ logo_b64 }}" alt="Kanstik">
+      <div class="header-text">
+        <h1>Jonli holat</h1>
+        <div class="sub">СКЛАД · hozir kim nima qilyapti</div>
+      </div>
+      <div class="pulse-dot" id="liveDot"></div>
+    </header>
+
+    <div class="stats-bar">
+      <div class="stat-chip">
+        <div class="num" id="totalActive">—</div>
+        <div class="lbl">Faol ishchilar</div>
+      </div>
+      <div class="stat-chip">
+        <div class="num" id="sectionCount" style="font-size:1.4rem">—</div>
+        <div class="lbl">Faol yo'nalish</div>
+      </div>
+    </div>
+
+    <div id="emptyState" class="empty hidden">
+      <div class="empty-icon">😴</div>
+      <h2>Hozircha hech kim ishlamayapti</h2>
+      <p>Sessiya boshlanganda bu yerda ko'rinadi</p>
+    </div>
+
+    <div id="sectionsRoot"></div>
+
+    <footer class="footer">
+      Yangilanish: <span id="lastUpdate">—</span> · avto 20s
+    </footer>
+  </div>
+
+  <script>
+    const TOKEN = {{ token | tojson }};
+    const REFRESH_MS = 20000;
+    const SECTION_META = {
+      mesta: { icon: "M", label: "Mesta" },
+      prihod: { icon: "P", label: "Prihod" },
+      invent: { icon: "I", label: "Inventarizatsiya" },
+      yuk: { icon: "Y", label: "Yuk transport" },
+      omborga: { icon: "R", label: "Reyslar" },
+      sklad: { icon: "S", label: "Sklad nazorat" },
+      ombor: { icon: "O", label: "Ombor xizmat" },
+      ishxona: { icon: "X", label: "Ishxona" },
+      navbatchi: { icon: "N", label: "Navbatchi" },
+    };
+
+    let sessions = [];
+    let tickTimer = null;
+
+    function apiUrl() {
+      const q = TOKEN ? ("?token=" + encodeURIComponent(TOKEN)) : "";
+      return "/api/live" + q;
+    }
+
+    function fmtElapsed(sec) {
+      sec = Math.max(0, parseInt(sec, 10) || 0);
+      const h = Math.floor(sec / 3600);
+      const m = Math.floor((sec % 3600) / 60);
+      const s = sec % 60;
+      if (h > 0) {
+        return String(h).padStart(2, "0") + ":" + String(m).padStart(2, "0") + ":" + String(s).padStart(2, "0");
+      }
+      return String(m).padStart(2, "0") + ":" + String(s).padStart(2, "0");
+    }
+
+    function metaTags(meta, activity) {
+      const tags = [];
+      if (meta.poz != null) tags.push("poz " + meta.poz);
+      if (meta.trip_count != null) tags.push("reys " + meta.trip_count);
+      if (meta.folder) tags.push(meta.folder);
+      if (meta.yuk_m != null) tags.push("yuk " + meta.yuk_m + "m");
+      if (meta.done != null && meta.total != null) tags.push(meta.done + "/" + meta.total);
+      if (!tags.length && activity === "omborga") tags.push("transport");
+      return tags;
+    }
+
+    function renderCard(session) {
+      const type = session.activity_type || "other";
+      const meta = session.metadata || {};
+      const status = (session.status || "active").toLowerCase();
+      const statusCls = status === "paused" ? "paused" : "active";
+      const statusLabel = status === "paused" ? "Pauza" : "Faol";
+      const tags = metaTags(meta, type);
+      const tagsHtml = tags.map(t => `<span class="tag">${t}</span>`).join("")
+        + `<span class="tag ${statusCls}">${statusLabel}</span>`;
+
+      return `
+        <article class="card" data-type="${type}" data-started="${session.started_at}">
+          <div class="card-top">
+            <div class="card-name">${session.user_name || "—"}</div>
+            <div class="card-timer" data-elapsed-base="${session.elapsed_sec || 0}" data-ts="${Date.now()}">${fmtElapsed(session.elapsed_sec || 0)}</div>
+          </div>
+          <div class="card-meta">${tagsHtml}</div>
+        </article>`;
+    }
+
+    function renderSections(data) {
+      const root = document.getElementById("sectionsRoot");
+      const empty = document.getElementById("emptyState");
+      const sections = data.sections || {};
+      const keys = Object.keys(sections).filter(k => (sections[k] || []).length > 0);
+
+      document.getElementById("totalActive").textContent = data.total_active || 0;
+      document.getElementById("sectionCount").textContent = keys.length;
+      document.getElementById("lastUpdate").textContent = (data.updated_at || "—").slice(11, 19) || "—";
+
+      if (!data.total_active) {
+        root.innerHTML = "";
+        empty.classList.remove("hidden");
+        return;
+      }
+      empty.classList.add("hidden");
+
+      let html = "";
+      for (const key of keys) {
+        const list = sections[key] || [];
+        const meta = SECTION_META[key] || { icon: "•", label: data.labels?.[key] || key };
+        html += `
+          <section class="section">
+            <div class="section-head">
+              <div class="section-icon ${key}">${meta.icon}</div>
+              <div class="section-title">${meta.label}</div>
+              <div class="section-count">${list.length}</div>
+            </div>
+            ${list.map(renderCard).join("")}
+          </section>`;
+      }
+      root.innerHTML = html;
+      sessions = data.sessions || [];
+    }
+
+    function tickTimers() {
+      document.querySelectorAll(".card-timer").forEach(el => {
+        const base = parseInt(el.dataset.elapsedBase, 10) || 0;
+        const ts = parseInt(el.dataset.ts, 10) || Date.now();
+        const sec = base + Math.floor((Date.now() - ts) / 1000);
+        el.textContent = fmtElapsed(sec);
+      });
+    }
+
+    async function refresh() {
+      try {
+        const res = await fetch(apiUrl(), { cache: "no-store" });
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        const data = await res.json();
+        renderSections(data);
+      } catch (e) {
+        console.warn("live refresh", e);
+      }
+    }
+
+    function initTelegram() {
+      const tg = window.Telegram?.WebApp;
+      if (!tg) return;
+      tg.ready();
+      tg.expand();
+      if (tg.themeParams?.bg_color) {
+        document.body.style.background = tg.themeParams.bg_color;
+      }
+    }
+
+    initTelegram();
+    refresh();
+    setInterval(refresh, REFRESH_MS);
+    tickTimer = setInterval(tickTimers, 1000);
+  </script>
+</body>
+</html>
