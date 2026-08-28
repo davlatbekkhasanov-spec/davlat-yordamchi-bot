@@ -2263,7 +2263,7 @@ async def live_dashboard_cmd(message: Message):
             parse_mode="HTML",
         )
         return
-    kb = _live_dashboard_kb(url)
+    kb = _live_dashboard_kb(url, in_group=_is_group_chat(message.chat))
     await message.answer(
         "📊 <b>Ombor jonli holati</b>\n\n"
         "Kim hozir Mesta, Prihod, Invent, Yuk yoki Reysda ishlayapti — "
@@ -2273,12 +2273,18 @@ async def live_dashboard_cmd(message: Message):
     )
 
 
-def _live_dashboard_kb(url: str) -> InlineKeyboardMarkup:
-    return InlineKeyboardMarkup(
-        inline_keyboard=[
-            [InlineKeyboardButton(text="📊 Jonli holat", web_app=WebAppInfo(url=url))]
-        ]
-    )
+def _is_group_chat(chat) -> bool:
+    t = getattr(chat, "type", None)
+    return str(t) in ("group", "supergroup") or getattr(t, "value", str(t)) in ("group", "supergroup")
+
+
+def _live_dashboard_kb(url: str, *, in_group: bool = False) -> InlineKeyboardMarkup:
+    # Guruhda web_app tugmasi BUTTON_TYPE_INVALID — faqat URL ishlaydi
+    if in_group:
+        btn = InlineKeyboardButton(text="📊 Jonli holat", url=url)
+    else:
+        btn = InlineKeyboardButton(text="📊 Jonli holat", web_app=WebAppInfo(url=url))
+    return InlineKeyboardMarkup(inline_keyboard=[[btn]])
 
 
 @dp.message(Command("pinlive"))
@@ -2299,7 +2305,7 @@ async def pin_live_dashboard(message: Message, bot: Bot):
         "Kim hozir ishlayapti — Mesta, Prihod, Invent, Yuk, Reys.\n"
         "Tugmani bosing 👇",
         parse_mode="HTML",
-        reply_markup=_live_dashboard_kb(url),
+        reply_markup=_live_dashboard_kb(url, in_group=True),
     )
     try:
         await bot.pin_chat_message(message.chat.id, sent.message_id, disable_notification=True)
@@ -2318,7 +2324,7 @@ async def live_menu_setup(message: Message, bot: Bot):
         return
     await setup_live_webapp_menus(bot)
     url = live_dashboard_url()
-    kb = _live_dashboard_kb(url) if url else None
+    kb = _live_dashboard_kb(url, in_group=_is_group_chat(message.chat)) if url else None
     text = (
         "✅ <b>Jonli holat sozlandi</b>\n\n"
         "• Guruhda <code>/</code> bosing → <b>/live</b> tanlang\n"
@@ -2348,7 +2354,7 @@ async def ensure_group_live_dashboard_pin(bot: Bot) -> None:
             "Kim hozir Mesta, Prihod, Invent, Yuk yoki Reysda ishlayapti — "
             "tugmani bosing 👇",
             parse_mode="HTML",
-            reply_markup=_live_dashboard_kb(url),
+            reply_markup=_live_dashboard_kb(url, in_group=True),
         )
         try:
             await bot.pin_chat_message(GROUP_ID, sent.message_id, disable_notification=True)
