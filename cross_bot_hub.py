@@ -30,7 +30,7 @@ BOT_LABELS = {
     "inventarizatsiya": "Inventarizatsiya",
     "navbatchi": "Navbatchi nazorat",
     "faceid": "Face ID davomat",
-    "martekovka": "Martekovka",
+    "martekovka": "Markirovka",
 }
 
 _BOT_KEY_ALIASES = {
@@ -285,7 +285,7 @@ def _merge_martekovka_daily(summaries: list[str]) -> str:
         total_ish += i
 
     merged = (
-        f"Markerovka: poz {total_poz}, ish {fmt_duration(total_ish)}, norm 20s"
+        f"Markirovka: poz {total_poz}, ish {fmt_duration(total_ish)}, norm 20s"
     )
     return merged[:MAX_SUMMARY_LEN]
 

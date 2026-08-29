@@ -26,7 +26,7 @@ ACTIVITY_LABELS = {
     "ombor": "Ombor xizmat",
     "ishxona": "Ishxona",
     "navbatchi": "Navbatchi",
-    "martekovka": "Markerovka",
+    "martekovka": "Markirovka",
 }
 
 SECTION_ORDER = ("mesta", "prihod", "invent", "martekovka", "yuk", "omborga", "sklad", "ombor", "ishxona", "navbatchi")
