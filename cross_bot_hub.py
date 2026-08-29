@@ -62,6 +62,12 @@ DB_PATH = _PERSIST["db_path"]
 _conn = sqlite3.connect(DB_PATH, check_same_thread=False, timeout=30)
 _conn.row_factory = sqlite3.Row
 _lock = asyncio.Lock()
+hub_db_lock = _lock
+
+_conn.execute("PRAGMA journal_mode=WAL;")
+_conn.execute("PRAGMA synchronous=NORMAL;")
+_conn.execute("PRAGMA busy_timeout=30000;")
+_conn.commit()
 
 
 def init_schema() -> None:

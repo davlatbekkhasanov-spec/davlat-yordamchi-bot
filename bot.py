@@ -31,6 +31,7 @@ from cross_bot_hub import (
     build_appendix_lines_async,
     fetch_latest_by_bot,
     fetch_merged_latest_by_bot,
+    hub_db_lock,
     hub_events_for_day,
     ensure_hub_seed,
     init_schema as init_cross_bot_schema,
@@ -254,24 +255,56 @@ cur = conn.cursor()
 
 cur.execute("PRAGMA journal_mode=WAL;")
 cur.execute("PRAGMA synchronous=NORMAL;")
+cur.execute("PRAGMA busy_timeout=30000;")
 conn.commit()
 
 db_lock = asyncio.Lock()
 
+
+def _db_retry(fn, *, retries: int = 8):
+    last: sqlite3.OperationalError | None = None
+    for attempt in range(retries):
+        try:
+            return fn()
+        except sqlite3.OperationalError as e:
+            last = e
+            if "locked" not in str(e).lower() or attempt >= retries - 1:
+                raise
+            import time
+
+            time.sleep(min(0.25, 0.02 * (2**attempt)))
+    if last:
+        raise last
+
+
 async def db_exec(query: str, params: tuple = ()):
-    async with db_lock:
-        cur.execute(query, params)
-        conn.commit()
+    async with hub_db_lock:
+        async with db_lock:
+            def _run():
+                cur.execute(query, params)
+                conn.commit()
+
+            _db_retry(_run)
+
 
 async def db_fetchone(query: str, params: tuple = ()):
-    async with db_lock:
-        cur.execute(query, params)
-        return cur.fetchone()
+    async with hub_db_lock:
+        async with db_lock:
+            def _run():
+                cur.execute(query, params)
+                return cur.fetchone()
+
+            return _db_retry(_run)
+
 
 async def db_fetchall(query: str, params: tuple = ()):
-    async with db_lock:
-        cur.execute(query, params)
-        return cur.fetchall()
+    async with hub_db_lock:
+        async with db_lock:
+            def _run():
+                cur.execute(query, params)
+                return cur.fetchall()
+
+            return _db_retry(_run)
 
 
 # Tables

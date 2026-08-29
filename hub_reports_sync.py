@@ -6,7 +6,7 @@ import logging
 import sqlite3
 from datetime import date, datetime, timedelta
 
-from cross_bot_hub import DB_PATH, fetch_merged_latest_by_bot
+from cross_bot_hub import DB_PATH, _lock, fetch_merged_latest_by_bot
 from daily_report_card import (
     HUB_ONLY_CATEGORIES,
     hub_category_points,
@@ -84,11 +84,13 @@ async def sync_hub_categories_for_tg(tg_id: int, day_iso: str) -> dict[str, int]
     points = hub_category_points(events)
     # Bo'sh bo'lsa ham eski yozuvlarni tozalash
     full_pts = {cat: points.get(cat, 0) for cat in HUB_ONLY_CATEGORIES}
-    conn = sqlite3.connect(DB_PATH, check_same_thread=False, timeout=30)
-    try:
-        _sync_reports_sync(conn, tg_id=tg_id, day_iso=day_iso, employee=employee, points=full_pts)
-    finally:
-        conn.close()
+    async with _lock:
+        conn = sqlite3.connect(DB_PATH, check_same_thread=False, timeout=30)
+        conn.execute("PRAGMA busy_timeout=30000;")
+        try:
+            _sync_reports_sync(conn, tg_id=tg_id, day_iso=day_iso, employee=employee, points=full_pts)
+        finally:
+            conn.close()
     if points:
         log.info("Hub→reports %s %s: %s", day_iso, employee, points)
     return points
