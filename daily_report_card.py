@@ -55,6 +55,7 @@ BOT_BADGE = {
 MESTA_NORM_MIN = 3
 INV_NORM_MIN = 2
 PRIHOD_NORM_MIN = 3
+MARTEKOVKA_NORM_SEC = 20
 
 # Ranglar (referens)
 BG = (7, 12, 32)
@@ -419,7 +420,9 @@ def score_bot_summary(key: str, summary: str) -> tuple[int, int]:
         ish_sec = _parse_hms(ish_m.group(1)) if ish_m else 0
         if not poz:
             return 0, ish_sec
-        return poz, ish_sec
+        norm_total = poz * MARTEKOVKA_NORM_SEC
+        pts = poz if ish_sec <= norm_total else poz // 20
+        return pts, ish_sec
     return 0, 0
 
 

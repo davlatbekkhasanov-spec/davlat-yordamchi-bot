@@ -278,15 +278,14 @@ def _merge_martekovka_daily(summaries: list[str]) -> str:
     if len(clean) == 1:
         return clean[0][:MAX_SUMMARY_LEN]
 
-    total_poz = total_ish = total_dam = 0
+    total_poz = total_ish = 0
     for s in clean:
-        p, i, d, _, _ = _parse_mesta_hub_summary(s)
+        p, i, _, _, _ = _parse_mesta_hub_summary(s)
         total_poz += p
         total_ish += i
-        total_dam += d
 
     merged = (
-        f"Martekovka: poz {total_poz}, ish {fmt_duration(total_ish)}, dam {fmt_duration(total_dam)}"
+        f"Martekovka: poz {total_poz}, ish {fmt_duration(total_ish)}, norm 20s"
     )
     return merged[:MAX_SUMMARY_LEN]
 
