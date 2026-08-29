@@ -56,13 +56,17 @@ def _sync_reports_sync(
     for cat, pts in points.items():
         if cat not in HUB_ONLY_CATEGORIES:
             continue
-        cur.execute(
-            """
-            DELETE FROM reports
-            WHERE day = ? AND employee = ? AND category = ?
-            """,
-            (day_iso, employee, cat),
-        )
+        clear_cats = [cat]
+        if cat == "Маркеровка":
+            clear_cats.append("Фасовка")
+        for clear_cat in clear_cats:
+            cur.execute(
+                """
+                DELETE FROM reports
+                WHERE day = ? AND employee = ? AND category = ?
+                """,
+                (day_iso, employee, clear_cat),
+            )
         if pts <= 0:
             continue
         cur.execute(

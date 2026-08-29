@@ -36,9 +36,9 @@ HUB_CATEGORY_MAP = {
     "mesta": "Места хр",
     "inventarizatsiya": "Пересчет товаров",
     "prihod": "Приход",
-    "martekovka": "Фасовка",
+    "martekovka": "Маркеровка",
 }
-HUB_ONLY_CATEGORIES = frozenset({"Места хр", "Пересчет товаров", "Приход", "Фасовка"})
+HUB_ONLY_CATEGORIES = frozenset({"Места хр", "Пересчет товаров", "Приход", "Маркеровка"})
 BOT_BADGE = {
     "omborga": ("OM", (0, 175, 210)),
     "ombor": ("OX", (255, 130, 45)),
@@ -858,7 +858,7 @@ def build_demo_card_data() -> DailyReportCardData:
             CategoryRow("Перемещение", 5, 5, 5, 5, y),
             CategoryRow("Фото ТМЦ", 5, 5, 5, 5, y),
             CategoryRow("Счет ТСД", 6, 6, 6, 6, y),
-            CategoryRow("Фасовка", 5, 5, 5, 5, y),
+            CategoryRow("Маркеровка", 5, 5, 5, 5, y),
             CategoryRow("АРМ диспетчер", 6, 6, 6, 6, y),
             CategoryRow("Исправление пересортицы", 5, 5, 5, 5, y),
             CategoryRow("Переоценка", 5, 5, 5, 5, y),

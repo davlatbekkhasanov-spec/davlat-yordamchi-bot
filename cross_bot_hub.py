@@ -285,7 +285,7 @@ def _merge_martekovka_daily(summaries: list[str]) -> str:
         total_ish += i
 
     merged = (
-        f"Martekovka: poz {total_poz}, ish {fmt_duration(total_ish)}, norm 20s"
+        f"Markerovka: poz {total_poz}, ish {fmt_duration(total_ish)}, norm 20s"
     )
     return merged[:MAX_SUMMARY_LEN]
 

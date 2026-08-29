@@ -208,7 +208,7 @@ CATEGORIES = [
     "Перемещение",
     "Фото ТМЦ",
     "Счет ТСД",
-    "Фасовка",
+    "Маркеровка",
     "АРМ диспетчер",
     "Исправление пересортицы",
     "Переоценка",
@@ -219,7 +219,7 @@ CATEGORIES = [
 # Qo'lda kiritish faqat shu kategoriyalar uchun.
 # «Места хр», «Пересчет товаров», «Приход» — cross-bot (hub) orqali keladi.
 MANUAL_INPUT_CATEGORIES = [
-    c for c in CATEGORIES if c not in ("Места хр", "Пересчет товаров", "Приход", "Фасовка")
+    c for c in CATEGORIES if c not in ("Места хр", "Пересчет товаров", "Приход", "Маркеровка")
 ]
 
 # PINлар (ходимларга берилади)
