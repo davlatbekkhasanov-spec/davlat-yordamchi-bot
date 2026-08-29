@@ -26,9 +26,10 @@ ACTIVITY_LABELS = {
     "ombor": "Ombor xizmat",
     "ishxona": "Ishxona",
     "navbatchi": "Navbatchi",
+    "martekovka": "Martekovka",
 }
 
-SECTION_ORDER = ("mesta", "prihod", "invent", "yuk", "omborga", "sklad", "ombor", "ishxona", "navbatchi")
+SECTION_ORDER = ("mesta", "prihod", "invent", "martekovka", "yuk", "omborga", "sklad", "ombor", "ishxona", "navbatchi")
 
 _STALE_HOURS = 10
 

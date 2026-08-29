@@ -219,7 +219,7 @@ CATEGORIES = [
 # Qo'lda kiritish faqat shu kategoriyalar uchun.
 # «Места хр», «Пересчет товаров», «Приход» — cross-bot (hub) orqali keladi.
 MANUAL_INPUT_CATEGORIES = [
-    c for c in CATEGORIES if c not in ("Места хр", "Пересчет товаров", "Приход")
+    c for c in CATEGORIES if c not in ("Места хр", "Пересчет товаров", "Приход", "Фасовка")
 ]
 
 # PINлар (ходимларга берилади)

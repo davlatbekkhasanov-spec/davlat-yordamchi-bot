@@ -128,7 +128,7 @@ async def replay_hub_categories_for_day(day_iso: str) -> int:
         cur.execute(
             """
             SELECT DISTINCT tg_id FROM cross_bot_events
-            WHERE day = ? AND bot_key IN ('mesta', 'inventarizatsiya', 'prihod')
+            WHERE day = ? AND bot_key IN ('mesta', 'inventarizatsiya', 'prihod', 'martekovka')
             """,
             (day_iso,),
         )
@@ -150,7 +150,7 @@ def hub_category_days_in_db() -> list[str]:
         cur.execute(
             """
             SELECT DISTINCT day FROM cross_bot_events
-            WHERE bot_key IN ('mesta', 'inventarizatsiya', 'prihod')
+            WHERE bot_key IN ('mesta', 'inventarizatsiya', 'prihod', 'martekovka')
             ORDER BY day
             """
         )

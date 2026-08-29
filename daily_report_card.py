@@ -26,15 +26,19 @@ W, H = 1520, 2280
 M = 24
 FONT_DIR = Path(__file__).resolve().parent / "assets" / "fonts"
 
-BOT_ORDER = ("omborga", "ombor", "yuk", "sklad", "mesta", "inventarizatsiya", "navbatchi", "ishxona", "faceid")
-# Ballari «Места хр» / «Пересчет товаров» / Hisobchi «Приход» — bot_total ga qo'shilmaydi
-HUB_CATEGORY_BOT_KEYS = frozenset({"mesta", "inventarizatsiya", "prihod"})
+BOT_ORDER = (
+    "omborga", "ombor", "yuk", "sklad", "mesta", "inventarizatsiya",
+    "martekovka", "navbatchi", "ishxona", "faceid",
+)
+# Ballari kategoriya qatoriga — bot_total ga qo'shilmaydi
+HUB_CATEGORY_BOT_KEYS = frozenset({"mesta", "inventarizatsiya", "prihod", "martekovka"})
 HUB_CATEGORY_MAP = {
     "mesta": "Места хр",
     "inventarizatsiya": "Пересчет товаров",
     "prihod": "Приход",
+    "martekovka": "Фасовка",
 }
-HUB_ONLY_CATEGORIES = frozenset({"Места хр", "Пересчет товаров", "Приход"})
+HUB_ONLY_CATEGORIES = frozenset({"Места хр", "Пересчет товаров", "Приход", "Фасовка"})
 BOT_BADGE = {
     "omborga": ("OM", (0, 175, 210)),
     "ombor": ("OX", (255, 130, 45)),
@@ -45,6 +49,7 @@ BOT_BADGE = {
     "navbatchi": ("NV", (180, 140, 80)),
     "ishxona": ("IX", (240, 85, 110)),
     "faceid": ("FI", (255, 200, 60)),
+    "martekovka": ("MK", (200, 120, 220)),
 }
 
 MESTA_NORM_MIN = 3
@@ -404,6 +409,17 @@ def score_bot_summary(key: str, summary: str) -> tuple[int, int]:
         if not poz and not ish_sec:
             return 0, 0
         return pts, ish_sec
+    if key == "martekovka":
+        poz_m = re.search(r"poz\s*(\d+)", sl)
+        poz = int(poz_m.group(1)) if poz_m else 0
+        if not poz:
+            jami_m = re.search(r"jami\s*(\d+)", sl)
+            poz = int(jami_m.group(1)) if jami_m else 0
+        ish_m = re.search(r"ish\s+([\d:]+)", sl)
+        ish_sec = _parse_hms(ish_m.group(1)) if ish_m else 0
+        if not poz:
+            return 0, ish_sec
+        return poz, ish_sec
     return 0, 0
 
 

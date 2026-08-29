@@ -30,6 +30,7 @@ BOT_LABELS = {
     "inventarizatsiya": "Inventarizatsiya",
     "navbatchi": "Navbatchi nazorat",
     "faceid": "Face ID davomat",
+    "martekovka": "Martekovka",
 }
 
 _BOT_KEY_ALIASES = {
@@ -54,6 +55,7 @@ _BOT_KEY_ALIASES = {
         "navbatchi_nazorat",
     },
     "faceid": {"faceid", "face_id", "face-id", "faceidbot", "davomat"},
+    "martekovka": {"martekovka", "fasovka", "fasovka_nazorat", "markerovka", "markirovka"},
 }
 
 _PERSIST = bootstrap_persistence(DB_PATH, legacy_names=("data.db",))
@@ -264,6 +266,29 @@ def _parse_mesta_hub_summary(summary: str) -> tuple[int, int, int, int, int]:
     poz_m = re.search(r"poz\s*(\d+)", sl)
     poz = int(poz_m.group(1)) if poz_m else 0
     return poz, _field("ish"), _field("dam"), _field("tejash"), _field("bekor")
+
+
+def _merge_martekovka_daily(summaries: list[str]) -> str:
+    """Bir kunda bir nechta martekovka sessiyasi — poz va vaqt yig'indisi."""
+    from time_display import fmt_duration
+
+    clean = [s for s in summaries if s and re.search(r"poz\s*\d+", (s or "").lower())]
+    if not clean:
+        return ""
+    if len(clean) == 1:
+        return clean[0][:MAX_SUMMARY_LEN]
+
+    total_poz = total_ish = total_dam = 0
+    for s in clean:
+        p, i, d, _, _ = _parse_mesta_hub_summary(s)
+        total_poz += p
+        total_ish += i
+        total_dam += d
+
+    merged = (
+        f"Martekovka: poz {total_poz}, ish {fmt_duration(total_ish)}, dam {fmt_duration(total_dam)}"
+    )
+    return merged[:MAX_SUMMARY_LEN]
 
 
 def _merge_mesta_daily(summaries: list[str]) -> str:
@@ -684,7 +709,7 @@ async def record_event(
             )
         _conn.commit()
 
-    if key in ("mesta", "inventarizatsiya"):
+    if key in ("mesta", "inventarizatsiya", "martekovka"):
         try:
             from hub_reports_sync import sync_hub_categories_for_tg
 
@@ -755,6 +780,8 @@ def _replay_merged_by_bot(rows: list) -> dict[str, str]:
             merged = _best_sklad_daily(summaries)
         elif k == "mesta":
             merged = _merge_mesta_daily(summaries)
+        elif k == "martekovka":
+            merged = _merge_martekovka_daily(summaries)
         elif k == "inventarizatsiya":
             prihod_s, inv_s = _split_inventarizatsiya_summaries(summaries)
             if inv_s:
