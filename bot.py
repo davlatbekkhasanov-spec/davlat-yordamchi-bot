@@ -93,7 +93,12 @@ from ranking_adjustments import (
     day_adjustment_net,
     init_schema as init_ranking_adj_schema,
 )
-from hub_reports_sync import enrich_session_agg_from_hub, replay_hub_categories_all_days, replay_hub_categories_for_day
+from hub_reports_sync import (
+    enrich_session_agg_from_hub,
+    replay_hub_categories_all_days,
+    replay_hub_categories_for_day,
+    sync_hub_categories_for_tg,
+)
 from employee_photo_admin import (
     admin_photo_state,
     handle_photo_cancel,
@@ -221,6 +226,16 @@ CATEGORIES = [
 MANUAL_INPUT_CATEGORIES = [
     c for c in CATEGORIES if c not in ("Места хр", "Пересчет товаров", "Приход", "Маркеровка")
 ]
+
+HUB_ONLY_CATEGORIES = frozenset(c for c in CATEGORIES if c not in MANUAL_INPUT_CATEGORIES) | frozenset({"Фасовка"})
+
+HUB_ONLY_HINTS: dict[str, str] = {
+    "Приход": "Prihod botida ishni tugatganda avtomatik tushadi.",
+    "Пересчет товаров": "Inventarizatsiya botida ishni tugatganda avtomatik tushadi.",
+    "Места хр": "Mesta botida ishni tugatganda avtomatik tushadi.",
+    "Маркеровка": "Markirovka botida rasm + «Yakunlash» qilganda avtomatik tushadi.",
+    "Фасовка": "Markirovka botida rasm + «Yakunlash» qilganda avtomatik tushadi (eski nom).",
+}
 
 # PINлар (ходимларга берилади)
 EMPLOYEE_PINS = {
@@ -910,16 +925,32 @@ async def send_report_preview(message: Message, *, demo: bool = False) -> None:
 
 # DB query helpers
 async def get_linked_employee(tg_id: int) -> str | None:
+    from metrics_import import resolve_employee_name
+
     row = await db_fetchone("SELECT employee FROM employee_links WHERE tg_id = ?", (tg_id,))
     if not row:
+        raw = TG_EMPLOYEE.get(int(tg_id))
+        if not raw:
+            return None
+        emp = resolve_employee_name(canonical_employee_name(raw), EMPLOYEES) or resolve_employee_name(raw, EMPLOYEES)
+        if emp and emp in EMPLOYEES:
+            await db_exec(
+                "INSERT OR REPLACE INTO employee_links(tg_id, employee) VALUES (?, ?)",
+                (tg_id, emp),
+            )
+            return emp
         return None
+
     canon = canonical_employee_name(row["employee"])
-    if canon != row["employee"] and canon in EMPLOYEES:
-        await db_exec(
-            "UPDATE employee_links SET employee = ? WHERE tg_id = ?",
-            (canon, tg_id),
-        )
-    return canon if canon in EMPLOYEES else row["employee"]
+    emp = resolve_employee_name(canon, EMPLOYEES) or resolve_employee_name(row["employee"], EMPLOYEES)
+    if emp and emp in EMPLOYEES:
+        if emp != row["employee"]:
+            await db_exec(
+                "UPDATE employee_links SET employee = ? WHERE tg_id = ?",
+                (emp, tg_id),
+            )
+        return emp
+    return row["employee"] if row["employee"] in EMPLOYEES else None
 
 
 async def keyboard_for_user(uid: int) -> ReplyKeyboardMarkup | ReplyKeyboardRemove:
@@ -1071,6 +1102,10 @@ async def start(message: Message):
         return
 
     user_state[message.from_user.id] = {"employee": emp, "session": []}
+    try:
+        asyncio.create_task(sync_hub_categories_for_tg(uid, today_local().isoformat()))
+    except Exception:
+        logging.debug("Hub sync on /start skipped", exc_info=True)
     await message.answer(
         f"✅ Салом, <b>{html.escape(emp)}</b>!\n📌 Категорияни танланг:",
         parse_mode="HTML",
@@ -1241,6 +1276,18 @@ async def cancel_btn(message: Message):
 # ============================================================
 # Категория -> Сон (ГУРУҲГА СПАМ ЙЎҚ)
 # ============================================================
+
+@dp.message(lambda m: is_private(m) and m.text in HUB_ONLY_CATEGORIES)
+async def hub_only_category(message: Message):
+    hint = HUB_ONLY_HINTS.get(message.text or "", "")
+    await message.answer(
+        "❗ Бу категорияни ёрдамчи ботдан қўлда киритиш ёпилган.\n"
+        f"{hint}\n\n"
+        "Agar ish botida tugatgan bo'lsangiz, /start bosing — ma'lumot yangilanadi.\n"
+        "Admin: /synccategories",
+        reply_markup=categories_kb(message.from_user.id),
+    )
+
 
 @dp.message(lambda m: is_private(m) and m.text in MANUAL_INPUT_CATEGORIES)
 async def select_category(message: Message):
@@ -2800,7 +2847,7 @@ async def sync_categories_cmd(message: Message):
         days_n, sync_n = await replay_hub_categories_all_days()
         await message.answer(
             f"✅ Barcha kunlar: {days_n} kun · {sync_n} xodim-kun — "
-            f"Места хр / Пересчет / Приход reports ga yozildi.",
+            f"Места хр / Пересчет / Приход / Маркеровка reports ga yozildi.",
             reply_markup=await keyboard_for_user(uid),
         )
         return
@@ -2811,7 +2858,7 @@ async def sync_categories_cmd(message: Message):
             break
     n = await replay_hub_categories_for_day(day)
     await message.answer(
-        f"✅ {day}: {n} ta xodim — Места хр / Пересчет / Приход reports ga yozildi.",
+        f"✅ {day}: {n} ta xodim — Места хр / Пересчет / Приход / Маркеровка reports ga yozildi.",
         reply_markup=await keyboard_for_user(uid),
     )
 
