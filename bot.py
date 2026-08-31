@@ -148,7 +148,7 @@ if not TOKEN:
     raise RuntimeError("BOT_TOKEN is empty. Set Railway variable BOT_TOKEN.")
 
 GROUP_ID = int(os.getenv("GROUP_ID", "-1001877019294"))
-INGEST_CHAT_ID = int(os.getenv("YORDAMCHI_INGEST_CHAT_ID", "0") or "0")
+INGEST_CHAT_ID = int(os.getenv("YORDAMCHI_INGEST_CHAT_ID", "0") or "0") or GROUP_ID
 TZ = ZoneInfo(os.getenv("TZ", "Asia/Tashkent"))
 
 def _parse_admin_ids() -> set[int]:
