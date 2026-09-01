@@ -18,6 +18,7 @@ from yordamchi_push import today_iso
 
 BTN_ADMIN_STATUS = "📊 Tizim holati"
 BTN_PREVIEW_REPORT = "👁 Hisobot ko'rish"
+BTN_ADMIN_EMP_REPORT = "👥 Xodim hisoboti"
 BTN_ADMIN_PHOTO = "📷 Xodim rasmi"
 BTN_RANKING = "🏆 Reyting"
 BTN_ANALYTICS = "📈 Kaizen tahlil"
@@ -27,8 +28,8 @@ def admin_status_kb() -> ReplyKeyboardMarkup:
     return ReplyKeyboardMarkup(
         keyboard=[
             [KeyboardButton(text=BTN_ADMIN_STATUS), KeyboardButton(text=BTN_PREVIEW_REPORT)],
-            [KeyboardButton(text=BTN_ADMIN_PHOTO), KeyboardButton(text=BTN_RANKING)],
-            [KeyboardButton(text=BTN_ANALYTICS)],
+            [KeyboardButton(text=BTN_ADMIN_EMP_REPORT), KeyboardButton(text=BTN_ADMIN_PHOTO)],
+            [KeyboardButton(text=BTN_RANKING), KeyboardButton(text=BTN_ANALYTICS)],
             [KeyboardButton(text=BTN_BONUS), KeyboardButton(text=BTN_PENALTY)],
         ],
         resize_keyboard=True,

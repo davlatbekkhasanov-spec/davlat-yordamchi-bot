@@ -68,6 +68,7 @@ from employee_photos import (
 from employee_tg_map import TG_EMPLOYEE, canonical_employee_name, resolve_owner_tg_id, resolve_tg_id, tg_ids_for_employee
 from hub_ingest import start_ingest_server
 from admin_status import (
+    BTN_ADMIN_EMP_REPORT,
     BTN_ADMIN_PHOTO,
     BTN_ADMIN_STATUS,
     BTN_ANALYTICS,
@@ -77,6 +78,11 @@ from admin_status import (
     analytics_dashboard_url,
     handle_admin_status,
     live_dashboard_url,
+)
+from admin_employee_report import (
+    BTN_ALL_EMPLOYEES,
+    admin_emp_report_kb,
+    send_one_employee_report,
 )
 from admin_ranking_adj import (
     handle_bonus_start,
@@ -466,8 +472,8 @@ def categories_kb(user_id: int | None = None):
     rows = [[KeyboardButton(text=c)] for c in MANUAL_INPUT_CATEGORIES] + [[KeyboardButton(text="❌ Бекор қилиш")]]
     if user_id and is_admin(user_id):
         rows.append([KeyboardButton(text=BTN_ADMIN_STATUS), KeyboardButton(text=BTN_PREVIEW_REPORT)])
-        rows.append([KeyboardButton(text=BTN_ADMIN_PHOTO), KeyboardButton(text=BTN_RANKING)])
-        rows.append([KeyboardButton(text=BTN_ANALYTICS)])
+        rows.append([KeyboardButton(text=BTN_ADMIN_EMP_REPORT), KeyboardButton(text=BTN_ADMIN_PHOTO)])
+        rows.append([KeyboardButton(text=BTN_RANKING), KeyboardButton(text=BTN_ANALYTICS)])
         rows.append([KeyboardButton(text=BTN_BONUS), KeyboardButton(text=BTN_PENALTY)])
     return ReplyKeyboardMarkup(keyboard=rows, resize_keyboard=True)
 
@@ -523,12 +529,14 @@ _INTAKE_SKIP_TEXTS = frozenset(
     {
         BTN_ADMIN_STATUS,
         BTN_PREVIEW_REPORT,
+        BTN_ADMIN_EMP_REPORT,
         BTN_ADMIN_PHOTO,
         BTN_RANKING,
         BTN_ANALYTICS,
         BTN_BONUS,
         BTN_PENALTY,
         BTN_ADJ_CONFIRM,
+        BTN_ALL_EMPLOYEES,
         "✅ Ҳамма ходим",
         "✅ Ҳамма категория",
         "➕ Яна категория",
@@ -831,6 +839,17 @@ async def employee_tg_map() -> dict[str, int]:
         if tid:
             out[emp] = tid
     return out
+
+
+async def _session_agg_for_employee(emp: str) -> dict[str, int]:
+    today_iso = today_local().isoformat()
+    agg: dict[str, int] = {}
+    for cat in CATEGORIES:
+        v = await sum_day(today_iso, emp, cat)
+        if v > 0:
+            agg[cat] = v
+    etg_map = await employee_tg_map()
+    return await enrich_session_agg_from_hub(emp, today_iso, agg, employee_tg_map=etg_map)
 
 
 async def _session_agg(uid: int, emp: str, state: dict | None) -> dict[str, int]:
@@ -1140,6 +1159,60 @@ async def cancel_cmd(message: Message):
 # Admin: xodim rasmi (boshqa handlerlar oldin)
 # ============================================================
 
+@dp.message(lambda m: is_private(m) and m.text == BTN_ADMIN_EMP_REPORT and is_admin(m.from_user.id))
+async def admin_emp_report_start(message: Message):
+    uid = message.from_user.id if message.from_user else 0
+    user_state[uid] = {"admin_emp_report": {"step": "pick"}}
+    await message.answer(
+        "👥 Qaysi xodimning <b>bugungi</b> hisobot kartochkasini ko'rmoqchisiz?\n"
+        "Faqat sizga yuboriladi (guruhga emas).",
+        parse_mode="HTML",
+        reply_markup=admin_emp_report_kb(EMPLOYEES),
+    )
+
+
+@dp.message(
+    lambda m: is_private(m)
+    and is_admin(m.from_user.id)
+    and m.from_user
+    and user_state.get(m.from_user.id, {}).get("admin_emp_report", {}).get("step") == "pick"
+    and m.text in (EMPLOYEES + [BTN_ALL_EMPLOYEES])
+)
+async def admin_emp_report_pick(message: Message):
+    uid = message.from_user.id if message.from_user else 0
+    text = (message.text or "").strip()
+    user_state.pop(uid, None)
+
+    if text == BTN_ALL_EMPLOYEES:
+        await message.answer(
+            f"⏳ {len(EMPLOYEES)} ta xodim hisoboti yuborilmoqda…",
+            reply_markup=admin_status_kb(),
+        )
+        sent = 0
+        for emp in EMPLOYEES:
+            ok = await send_one_employee_report(
+                message,
+                emp=emp,
+                session_agg_for_employee=_session_agg_for_employee,
+                build_report_png_for_user=build_report_png_for_user,
+                today_local=today_local,
+            )
+            if ok:
+                sent += 1
+            await asyncio.sleep(0.4)
+        await message.answer(f"✅ Tayyor: {sent}/{len(EMPLOYEES)} ta hisobot yuborildi.")
+        return
+
+    await send_one_employee_report(
+        message,
+        emp=text,
+        session_agg_for_employee=_session_agg_for_employee,
+        build_report_png_for_user=build_report_png_for_user,
+        today_local=today_local,
+    )
+    await message.answer("👇 Boshqa xodim uchun yana tanlang yoki tugmalardan foydalaning.", reply_markup=admin_status_kb())
+
+
 @dp.message(lambda m: is_private(m) and m.text == BTN_BONUS and is_admin(m.from_user.id))
 async def admin_bonus_start(message: Message):
     await handle_bonus_start(
@@ -1276,8 +1349,10 @@ async def admin_photo_flow(message: Message):
     and not (m.from_user and m.from_user.id in admin_photo_state)
 )
 async def cancel_btn(message: Message):
-    user_state.pop(message.from_user.id, None)
-    await message.answer("Бекор қилинди. /start", reply_markup=ReplyKeyboardRemove())
+    uid = message.from_user.id if message.from_user else 0
+    user_state.pop(uid, None)
+    kb = admin_status_kb() if is_admin(uid) else ReplyKeyboardRemove()
+    await message.answer("Бекор қилинди.", reply_markup=kb)
 
 
 # ============================================================
