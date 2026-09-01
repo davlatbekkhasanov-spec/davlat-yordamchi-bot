@@ -708,11 +708,13 @@ async def record_event(
             )
         _conn.commit()
 
-    if key in ("mesta", "inventarizatsiya", "martekovka"):
+    if key in ("mesta", "inventarizatsiya", "prihod", "martekovka"):
         try:
             from hub_reports_sync import sync_hub_categories_for_tg
 
-            await sync_hub_categories_for_tg(int(tg_id), day_s)
+            pts = await sync_hub_categories_for_tg(int(tg_id), day_s)
+            if pts:
+                log.info("Hub→reports %s %s key=%s: %s", day_s, tg_id, key, pts)
         except Exception:
             log.exception("Hub→reports sync xato tg=%s day=%s key=%s", tg_id, day_s, key)
 

@@ -147,6 +147,13 @@ TOKEN = os.getenv("BOT_TOKEN")
 if not TOKEN:
     raise RuntimeError("BOT_TOKEN is empty. Set Railway variable BOT_TOKEN.")
 
+if not os.getenv("RAILWAY_ENVIRONMENT") and not os.getenv("ALLOW_LOCAL_YORDAMCHI"):
+    raise RuntimeError(
+        "Yordamchi bot faqat Railway da ishlashi kerak.\n"
+        "Notebookda python bot.py ishga tushirmang — ma'lumotlar aralashadi.\n"
+        "Dev uchun: ALLOW_LOCAL_YORDAMCHI=1"
+    )
+
 GROUP_ID = int(os.getenv("GROUP_ID", "-1001877019294"))
 INGEST_CHAT_ID = int(os.getenv("YORDAMCHI_INGEST_CHAT_ID", "0") or "0") or GROUP_ID
 TZ = ZoneInfo(os.getenv("TZ", "Asia/Tashkent"))
